@@ -4,9 +4,17 @@ import { embed, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { supabaseAdmin } from "@/lib/supabase";
 
+const partSchema = z.object({
+  type: z.string(),
+  text: z.string().optional(),
+});
+
 const messageSchema = z.object({
-  role: z.enum(["user", "assistant"]),
-  content: z.string(),
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().optional(),
+  parts: z.array(partSchema).optional(),
+  id: z.string().optional(),
+  createdAt: z.union([z.string(), z.date()]).optional(),
 });
 
 const chatSchema = z.object({
@@ -14,7 +22,42 @@ const chatSchema = z.object({
   storeId: z.string().min(1),
 });
 
-const SYSTEM_PROMPT = `You are a professional customer service assistant for an online store. Answer ONLY based on the information provided in the context. If you do not know the answer, ask the customer to contact the store directly. Keep answers brief, friendly, and in Norwegian.`;
+type Message = z.infer<typeof messageSchema>;
+
+function extractTextFromMessage(message: Message): string {
+  if (message.parts && message.parts.length > 0) {
+    return message.parts
+      .filter((part) => part.type === "text" && part.text)
+      .map((part) => part.text!)
+      .join("");
+  }
+  return message.content || "";
+}
+
+const SYSTEM_PROMPT = `Du er en EKSPERT på båtpleie og jobber som kundeservice for en nettbutikk.
+
+KRITISK - SLIK FINNER DU URL-ER:
+- Hvert dokument i konteksten har formatet:
+  --- DOKUMENT START ---
+  KILDE-URL: https://...
+  INNHOLD: ...
+  --- DOKUMENT SLUTT ---
+- Du SKAL se etter "KILDE-URL:" som står rett over innholdet i hvert dokument
+- Hvis brukeren spør om en lenke til et produkt, og du ser en KILDE-URL rett over informasjonen om det produktet, er det DIN PLIKT å gjengi den NØYAKTIG som en Markdown-lenke: [Produktnavn](KILDE-URL)
+- ALDRI gjett eller konstruer en URL - bruk KUN det som står etter "KILDE-URL:"
+
+RESONNERINGSREGLER:
+- Les ALLE dokumentene og kombiner relevant informasjon
+- Koble sammen fakta fra flere dokumenter (f.eks. pris fra ett, beskrivelse fra et annet)
+- Vær PROAKTIV: Si ALDRI "jeg har ikke informasjon" hvis det finnes i konteksten
+
+FORMATERINGSREGLER:
+1. Bruk kulepunkter (*) for produktlister
+2. Format: * **Produktnavn** - Beskrivelse. [Les mer](KILDE-URL-FRA-DOKUMENT)
+3. Hold svarene kompakte
+4. Svar på norsk
+
+Vær hjelpsom og del din ekspertise!`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,13 +66,12 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: "Invalid request", details: parsed.error.flatten() }),
+        JSON.stringify({ error: "Invalid request" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
     const { messages, storeId } = parsed.data;
-
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
     if (!lastUserMessage) {
@@ -39,9 +81,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const lastUserText = extractTextFromMessage(lastUserMessage);
+
     const { embedding } = await embed({
       model: openai.embedding("text-embedding-3-small"),
-      value: lastUserMessage.content,
+      value: lastUserText,
       providerOptions: {
         openai: { dimensions: 1536 },
       },
@@ -51,34 +95,47 @@ export async function POST(request: NextRequest) {
       "match_site_content",
       {
         query_embedding: embedding,
-        match_threshold: 0.2,
-        match_count: 5,
+        match_threshold: 0.4,
+        match_count: 8,
         filter_store_id: storeId,
       }
     );
 
     if (searchError) {
-      console.error("Vector search error:", searchError);
       return new Response(
-        JSON.stringify({ error: "Failed to search documents" }),
+        JSON.stringify({ error: "Search failed" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
     const context =
       relevantDocs && relevantDocs.length > 0
-        ? relevantDocs.map((doc: { content: string }) => doc.content).join("\n\n---\n\n")
-        : "No relevant information found in the knowledge base.";
+        ? relevantDocs
+            .map((doc: { content: string; metadata?: { source?: string; url?: string } }) => {
+              const url = doc.metadata?.source || doc.metadata?.url || "INGEN URL TILGJENGELIG";
+              return `--- DOKUMENT START ---\nKILDE-URL: ${url}\nINNHOLD: ${doc.content}\n--- DOKUMENT SLUTT ---`;
+            })
+            .join("\n\n")
+        : "";
+
+    // DEBUG: Se om URL-ene faktisk er med i konteksten
+    console.log("=== FINAL PROMPT CONTEXT ===");
+    console.log(context);
+    console.log("=== END CONTEXT ===");
+
+    const normalizedMessages = messages.map((m) => ({
+      role: m.role as "user" | "assistant" | "system",
+      content: extractTextFromMessage(m),
+    }));
 
     const result = streamText({
-      model: openai("gpt-4o-mini"),
-      system: `${SYSTEM_PROMPT}\n\nContext:\n${context}`,
-      messages,
+      model: openai("gpt-4o"),
+      system: context ? `${SYSTEM_PROMPT}\n\nKONTEKST FRA DATABASE:\n${context}` : SYSTEM_PROMPT,
+      messages: normalizedMessages,
     });
 
-    return result.toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
-    console.error("Chat error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json" } }

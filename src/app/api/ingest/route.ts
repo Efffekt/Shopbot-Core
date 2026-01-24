@@ -49,6 +49,8 @@ function splitIntoChunks(text: string, chunkSize: number = 1000): string[] {
   return chunks.filter((chunk) => chunk.length > 0);
 }
 
+const EMBEDDING_BATCH_SIZE = 100;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -76,57 +78,95 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const scrapeResult = await firecrawl.scrape(url, {
-      formats: ["markdown"],
+    console.log(`Starting crawl of ${url}...`);
+
+    const crawlResult = await firecrawl.crawl(url, {
+      scrapeOptions: {
+        formats: ["markdown"],
+      },
+      limit: 500,
     });
 
-    if (!scrapeResult.markdown) {
+    if (crawlResult.status === "failed") {
       return NextResponse.json(
-        { error: "Failed to scrape URL or no content found" },
+        { error: "Crawl failed" },
         { status: 500 }
       );
     }
 
-    const chunks = splitIntoChunks(scrapeResult.markdown);
-
-    if (chunks.length === 0) {
+    if (!crawlResult.data || crawlResult.data.length === 0) {
       return NextResponse.json(
-        { error: "No content found at URL" },
+        { error: "No pages found to crawl" },
         { status: 400 }
       );
     }
 
-    const { embeddings } = await embedMany({
-      model: openai.embedding("text-embedding-3-small"),
-      values: chunks,
-      providerOptions: {
-        openai: { dimensions: 1536 },
-      },
-    });
+    console.log(`Crawled ${crawlResult.data.length} pages`);
 
-    const documents = chunks.map((content, index) => ({
-      content,
-      embedding: embeddings[index],
+    const allChunks: { content: string; source: string }[] = [];
+
+    for (const page of crawlResult.data) {
+      if (page.markdown) {
+        const pageChunks = splitIntoChunks(page.markdown);
+        const sourceUrl = page.metadata?.sourceURL || page.metadata?.url || url;
+        for (const chunk of pageChunks) {
+          allChunks.push({ content: chunk, source: sourceUrl });
+        }
+      }
+    }
+
+    if (allChunks.length === 0) {
+      return NextResponse.json(
+        { error: "No content found on website" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Processing ${allChunks.length} chunks...`);
+
+    const allEmbeddings: number[][] = [];
+
+    for (let i = 0; i < allChunks.length; i += EMBEDDING_BATCH_SIZE) {
+      const batch = allChunks.slice(i, i + EMBEDDING_BATCH_SIZE);
+      const { embeddings } = await embedMany({
+        model: openai.embedding("text-embedding-3-small"),
+        values: batch.map((c) => c.content),
+        providerOptions: {
+          openai: { dimensions: 1536 },
+        },
+      });
+      allEmbeddings.push(...embeddings);
+      console.log(`Embedded ${Math.min(i + EMBEDDING_BATCH_SIZE, allChunks.length)}/${allChunks.length} chunks`);
+    }
+
+    const documents = allChunks.map((chunk, index) => ({
+      content: chunk.content,
+      embedding: allEmbeddings[index],
       store_id: storeId,
-      metadata: { source: url },
+      metadata: { source: chunk.source },
     }));
 
-    const { error: insertError } = await supabaseAdmin
-      .from("documents")
-      .insert(documents);
+    const DB_BATCH_SIZE = 500;
+    for (let i = 0; i < documents.length; i += DB_BATCH_SIZE) {
+      const batch = documents.slice(i, i + DB_BATCH_SIZE);
+      const { error: insertError } = await supabaseAdmin
+        .from("documents")
+        .insert(batch);
 
-    if (insertError) {
-      console.error("Error inserting documents:", insertError);
-      return NextResponse.json(
-        { error: "Failed to save documents" },
-        { status: 500 }
-      );
+      if (insertError) {
+        console.error("Error inserting documents:", insertError);
+        return NextResponse.json(
+          { error: "Failed to save documents" },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully ingested ${chunks.length} chunks from ${url}`,
-      chunksCount: chunks.length,
+      message: `Successfully crawled ${crawlResult.data.length} pages and ingested ${allChunks.length} chunks`,
+      pagesCount: crawlResult.data.length,
+      chunksCount: allChunks.length,
     });
   } catch (error) {
     console.error("Ingest error:", error);
