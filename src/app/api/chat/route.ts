@@ -83,6 +83,9 @@ export async function POST(request: NextRequest) {
 
     const lastUserText = extractTextFromMessage(lastUserMessage);
 
+    // Performance timing
+    const start = Date.now();
+
     const { embedding } = await embed({
       model: openai.embedding("text-embedding-3-small"),
       value: lastUserText,
@@ -90,6 +93,9 @@ export async function POST(request: NextRequest) {
         openai: { dimensions: 1536 },
       },
     });
+
+    const embeddingDone = Date.now();
+    console.log(`⏱️ Embedding tok: ${embeddingDone - start}ms`);
 
     const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
       "match_site_content",
@@ -100,6 +106,9 @@ export async function POST(request: NextRequest) {
         filter_store_id: storeId,
       }
     );
+
+    const dbDone = Date.now();
+    console.log(`⏱️ Supabase søk tok: ${dbDone - embeddingDone}ms`);
 
     if (searchError) {
       return new Response(
@@ -118,15 +127,14 @@ export async function POST(request: NextRequest) {
             .join("\n\n")
         : "";
 
-    // DEBUG: Se om URL-ene faktisk er med i konteksten
-    console.log("=== FINAL PROMPT CONTEXT ===");
-    console.log(context);
-    console.log("=== END CONTEXT ===");
-
     const normalizedMessages = messages.map((m) => ({
       role: m.role as "user" | "assistant" | "system",
       content: extractTextFromMessage(m),
     }));
+
+    const aiStart = Date.now();
+    console.log(`⏱️ Klargjøring tok: ${aiStart - dbDone}ms`);
+    console.log(`⏱️ Total før AI: ${aiStart - start}ms`);
 
     const result = streamText({
       model: openai("gpt-4o"),
@@ -134,11 +142,28 @@ export async function POST(request: NextRequest) {
       messages: normalizedMessages,
     });
 
-    return result.toUIMessageStreamResponse();
+    // Safari/Mobile compatible streaming headers
+    const streamHeaders = {
+      "Connection": "keep-alive",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Content-Type-Options": "nosniff",
+      "X-Accel-Buffering": "no",
+    };
+
+    return result.toUIMessageStreamResponse({
+      headers: streamHeaders,
+    });
   } catch (error) {
+    console.error("Chat error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        }
+      }
     );
   }
 }
