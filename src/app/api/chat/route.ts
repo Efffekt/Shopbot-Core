@@ -142,21 +142,26 @@ export async function POST(request: NextRequest) {
       messages: normalizedMessages,
     });
 
-    // Safari/Mobile compatible streaming headers
+    // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
-      "Connection": "keep-alive",
       "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
       "X-Content-Type-Options": "nosniff",
-      "X-Accel-Buffering": "no",
+      "Access-Control-Allow-Origin": "*",
     };
 
     return result.toUIMessageStreamResponse({
       headers: streamHeaders,
     });
-  } catch (error) {
-    console.error("Chat error:", error);
+  } catch (error: unknown) {
+    // Log full error for Vercel Logs debugging
+    console.error("❌ Chat API Error:", error);
+    console.error("❌ Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: "Internal server error", details: errorMessage }),
       {
         status: 500,
         headers: {
