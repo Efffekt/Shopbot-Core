@@ -1,28 +1,86 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-  // Handle CORS preflight
-  if (request.method === "OPTIONS") {
-    return new NextResponse(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Max-Age": "86400",
-      },
-    });
+// Paths that require Basic Authentication
+const PROTECTED_PATHS = ["/admin", "/api/scrape"];
+
+// Paths that should remain public (no auth)
+const PUBLIC_API_PATHS = ["/api/chat", "/api/ingest"];
+
+function isProtectedPath(pathname: string): boolean {
+  return PROTECTED_PATHS.some((path) => pathname.startsWith(path));
+}
+
+function isPublicApiPath(pathname: string): boolean {
+  return PUBLIC_API_PATHS.some((path) => pathname.startsWith(path));
+}
+
+function verifyBasicAuth(request: NextRequest): boolean {
+  const authHeader = request.headers.get("authorization");
+
+  if (!authHeader || !authHeader.startsWith("Basic ")) {
+    return false;
   }
 
-  const response = NextResponse.next();
-  response.headers.set("Access-Control-Allow-Origin", "*");
-  response.headers.set("Access-Control-Allow-Methods", "*");
-  response.headers.set("Access-Control-Allow-Headers", "*");
+  const base64Credentials = authHeader.split(" ")[1];
+  const credentials = atob(base64Credentials);
+  const [username, password] = credentials.split(":");
 
-  return response;
+  const validUsername = process.env.ADMIN_USERNAME;
+  const validPassword = process.env.ADMIN_PASSWORD;
+
+  if (!validUsername || !validPassword) {
+    console.error("ADMIN_USERNAME or ADMIN_PASSWORD not set in environment");
+    return false;
+  }
+
+  return username === validUsername && password === validPassword;
+}
+
+function unauthorizedResponse(): NextResponse {
+  return new NextResponse("Unauthorized", {
+    status: 401,
+    headers: {
+      "WWW-Authenticate": 'Basic realm="Secure Area"',
+      "Content-Type": "text/plain",
+    },
+  });
+}
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Check if path requires authentication
+  if (isProtectedPath(pathname)) {
+    if (!verifyBasicAuth(request)) {
+      return unauthorizedResponse();
+    }
+  }
+
+  // Handle CORS preflight for API routes
+  if (pathname.startsWith("/api/")) {
+    if (request.method === "OPTIONS") {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "*",
+          "Access-Control-Allow-Headers": "*",
+          "Access-Control-Max-Age": "86400",
+        },
+      });
+    }
+
+    const response = NextResponse.next();
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    response.headers.set("Access-Control-Allow-Methods", "*");
+    response.headers.set("Access-Control-Allow-Headers", "*");
+    return response;
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: ["/admin/:path*", "/api/:path*"],
 };
