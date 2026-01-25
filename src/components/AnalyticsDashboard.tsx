@@ -64,14 +64,23 @@ export default function AnalyticsDashboard() {
     setError("");
 
     try {
+      console.log(`🔄 Fetching analytics for storeId=baatpleiebutikken, days=${days}`);
       const res = await fetch(
         `/api/admin/stats?storeId=baatpleiebutikken&days=${days}`
       );
-      if (!res.ok) throw new Error("Failed to fetch analytics");
+
       const json = await res.json();
+      console.log("📊 API Response:", json);
+
+      if (!res.ok) {
+        throw new Error(json.details || json.error || "Failed to fetch analytics");
+      }
+
       setData(json);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
+      const errorMsg = err instanceof Error ? err.message : "Failed to load data";
+      console.error("❌ Analytics fetch error:", errorMsg);
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -83,8 +92,9 @@ export default function AnalyticsDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-12">
+      <div className="flex flex-col items-center justify-center p-12 gap-3">
         <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+        <p className="text-gray-500 text-sm">Loading analytics for baatpleiebutikken...</p>
       </div>
     );
   }
@@ -92,10 +102,11 @@ export default function AnalyticsDashboard() {
   if (error) {
     return (
       <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-700">{error}</p>
+        <p className="text-red-700 font-medium">Error loading analytics</p>
+        <p className="text-red-600 text-sm mt-1">{error}</p>
         <button
           onClick={fetchData}
-          className="mt-2 text-sm text-red-600 underline"
+          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
         >
           Try again
         </button>
