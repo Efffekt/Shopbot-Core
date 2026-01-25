@@ -20,7 +20,104 @@ const messageSchema = z.object({
 const chatSchema = z.object({
   messages: z.array(messageSchema).min(1),
   storeId: z.string().min(1),
+  sessionId: z.string().optional(),
 });
+
+// Patterns that indicate the AI couldn't fully answer
+const UNHANDLED_PATTERNS = [
+  "jeg fant ikke",
+  "jeg vet ikke",
+  "har ikke informasjon",
+  "finner ikke",
+  "ikke tilgjengelig",
+  "kan ikke finne",
+  "mangler informasjon",
+];
+
+// Detect intent from user query
+function detectIntent(query: string): "product_query" | "support" | "general" | "unknown" {
+  const q = query.toLowerCase();
+
+  // Support patterns
+  if (
+    q.includes("reklam") ||
+    q.includes("retur") ||
+    q.includes("bytte") ||
+    q.includes("klage") ||
+    q.includes("kontakt") ||
+    q.includes("snakke med") ||
+    q.includes("menneske") ||
+    q.includes("hjelp")
+  ) {
+    return "support";
+  }
+
+  // Product query patterns
+  if (
+    q.includes("pris") ||
+    q.includes("koster") ||
+    q.includes("kjøp") ||
+    q.includes("produkt") ||
+    q.includes("voks") ||
+    q.includes("polish") ||
+    q.includes("båtløft") ||
+    q.includes("rengjør") ||
+    q.includes("anbefal")
+  ) {
+    return "product_query";
+  }
+
+  // General questions
+  if (
+    q.includes("hvordan") ||
+    q.includes("hva er") ||
+    q.includes("kan jeg")
+  ) {
+    return "general";
+  }
+
+  return "unknown";
+}
+
+// Check if response indicates an unhandled query
+function checkIfHandled(response: string): boolean {
+  const lower = response.toLowerCase();
+  return !UNHANDLED_PATTERNS.some((pattern) => lower.includes(pattern));
+}
+
+// Check if response referred to email
+function checkEmailReferral(response: string): boolean {
+  return response.toLowerCase().includes("post@vbaat.no");
+}
+
+// Log conversation to database (fire and forget)
+async function logConversation(data: {
+  storeId: string;
+  sessionId?: string;
+  userQuery: string;
+  aiResponse: string;
+  metadata?: Record<string, unknown>;
+}) {
+  try {
+    const intent = detectIntent(data.userQuery);
+    const wasHandled = checkIfHandled(data.aiResponse);
+    const referredToEmail = checkEmailReferral(data.aiResponse);
+
+    await supabaseAdmin.from("conversations").insert({
+      store_id: data.storeId,
+      session_id: data.sessionId || null,
+      user_query: data.userQuery,
+      ai_response: data.aiResponse,
+      detected_intent: intent,
+      was_handled: wasHandled,
+      referred_to_email: referredToEmail,
+      metadata: data.metadata || {},
+    });
+  } catch (error) {
+    // Don't fail the request if logging fails
+    console.error("Failed to log conversation:", error);
+  }
+}
 
 type Message = z.infer<typeof messageSchema>;
 
@@ -100,7 +197,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { messages, storeId } = parsed.data;
+    const { messages, storeId, sessionId } = parsed.data;
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
     if (!lastUserMessage) {
@@ -169,6 +266,19 @@ export async function POST(request: NextRequest) {
       model: openai("gpt-4o"),
       system: context ? `${SYSTEM_PROMPT}\n\nKONTEKST FRA DATABASE:\n${context}` : SYSTEM_PROMPT,
       messages: normalizedMessages,
+      onFinish: async ({ text }) => {
+        // Log conversation after streaming completes (fire and forget)
+        logConversation({
+          storeId,
+          sessionId,
+          userQuery: lastUserText,
+          aiResponse: text,
+          metadata: {
+            docsFound: relevantDocs?.length || 0,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      },
     });
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS

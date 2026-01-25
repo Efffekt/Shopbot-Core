@@ -13,9 +13,11 @@
     "@mendable/firecrawl-js": "^4.11.4",
     "@supabase/supabase-js": "^2.91.0",
     "ai": "^6.0.49",
+    "lucide-react": "^0.563.0",
     "next": "16.1.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "recharts": "^3.7.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import ScraperControl from "@/components/ScraperControl";
+import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"quick" | "advanced">("advanced");
+  const [activeTab, setActiveTab] = useState<"analytics" | "scraper" | "quick">("analytics");
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
+      <div className={`mx-auto ${activeTab === "analytics" ? "max-w-4xl" : "max-w-2xl"}`}>
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">ShopBot Admin</h1>
           <p className="mt-2 text-gray-600">
@@ -19,14 +20,24 @@ export default function AdminPage() {
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 mb-6">
           <button
-            onClick={() => setActiveTab("advanced")}
+            onClick={() => setActiveTab("analytics")}
             className={`flex-1 py-3 px-4 text-center font-medium ${
-              activeTab === "advanced"
+              activeTab === "analytics"
                 ? "border-b-2 border-blue-500 text-blue-600"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            Advanced Scraper
+            Analytics
+          </button>
+          <button
+            onClick={() => setActiveTab("scraper")}
+            className={`flex-1 py-3 px-4 text-center font-medium ${
+              activeTab === "scraper"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Scraper
           </button>
           <button
             onClick={() => setActiveTab("quick")}
@@ -40,11 +51,9 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {activeTab === "advanced" ? (
-          <ScraperControl />
-        ) : (
-          <QuickIngest />
-        )}
+        {activeTab === "analytics" && <AnalyticsDashboard />}
+        {activeTab === "scraper" && <ScraperControl />}
+        {activeTab === "quick" && <QuickIngest />}
       </div>
     </div>
   );
