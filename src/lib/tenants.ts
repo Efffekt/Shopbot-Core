@@ -162,6 +162,7 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
       "www.baatpleiebutikken.no",
       "vbaat.no",
       "www.vbaat.no",
+      "shopbot-test.vercel.app",
       "localhost",
       "localhost:3000",
       "127.0.0.1",
