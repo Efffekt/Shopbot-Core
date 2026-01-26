@@ -241,12 +241,13 @@ export async function POST(request: NextRequest) {
     console.log(`⏱️ Embedding took: ${embeddingDone - start}ms`);
 
     // Vector search with tenant isolation - CRITICAL for multi-tenancy
+    // match_count: 15 gives AI more context to find product URLs
     const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
       "match_site_content",
       {
         query_embedding: embedding,
-        match_threshold: 0.4,
-        match_count: 8,
+        match_threshold: 0.35,
+        match_count: 15,
         filter_store_id: storeId, // Tenant-isolated vector search
       }
     );
