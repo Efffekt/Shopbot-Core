@@ -2,10 +2,17 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Paths that require Basic Authentication
-const PROTECTED_PATHS = ["/admin", "/api/scrape"];
+// SECURITY: All admin/scrape/ingest endpoints require authentication
+const PROTECTED_PATHS = [
+  "/admin",
+  "/api/scrape",
+  "/api/ingest",
+  "/api/admin",
+];
 
 // Paths that should remain public (no auth)
-const PUBLIC_API_PATHS = ["/api/chat", "/api/ingest"];
+// Only the chat endpoint is public - it has its own domain/rate limiting protection
+const PUBLIC_API_PATHS = ["/api/chat"];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATHS.some((path) => pathname.startsWith(path));
@@ -41,7 +48,7 @@ function unauthorizedResponse(): NextResponse {
   return new NextResponse("Unauthorized", {
     status: 401,
     headers: {
-      "WWW-Authenticate": 'Basic realm="Secure Area"',
+      "WWW-Authenticate": 'Basic realm="ShopBot Admin"',
       "Content-Type": "text/plain",
     },
   });
@@ -53,6 +60,7 @@ export function middleware(request: NextRequest) {
   // Check if path requires authentication
   if (isProtectedPath(pathname)) {
     if (!verifyBasicAuth(request)) {
+      console.warn(`🚫 Unauthorized access attempt to: ${pathname}`);
       return unauthorizedResponse();
     }
   }
@@ -64,8 +72,8 @@ export function middleware(request: NextRequest) {
         status: 204,
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "*",
-          "Access-Control-Allow-Headers": "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
           "Access-Control-Max-Age": "86400",
         },
       });
@@ -73,8 +81,8 @@ export function middleware(request: NextRequest) {
 
     const response = NextResponse.next();
     response.headers.set("Access-Control-Allow-Origin", "*");
-    response.headers.set("Access-Control-Allow-Methods", "*");
-    response.headers.set("Access-Control-Allow-Headers", "*");
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     return response;
   }
 

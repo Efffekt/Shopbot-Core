@@ -3,7 +3,8 @@ import { z } from "zod";
 import { embed, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getTenantConfig, DEFAULT_TENANT } from "@/lib/tenants";
+import { getTenantConfig, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
 
 const partSchema = z.object({
   type: z.string(),
@@ -167,7 +168,52 @@ export async function POST(request: NextRequest) {
     // Get tenant-specific configuration
     const tenantConfig = getTenantConfig(storeId);
 
-    console.log(`🏪 Chat request for tenant: ${storeId} (${tenantConfig.name})`);
+    // === SECURITY: Domain Validation ===
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+    const originValidation = validateOrigin(tenantConfig, origin, referer);
+
+    if (!originValidation.allowed) {
+      console.warn(`🚫 Origin blocked: ${originValidation.reason}`);
+      return new Response(
+        JSON.stringify({ error: "Forbidden", message: "Origin not allowed" }),
+        {
+          status: 403,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    // === SECURITY: Rate Limiting ===
+    const clientId = getClientIdentifier(sessionId, request.headers);
+    const rateLimitKey = `chat:${storeId}:${clientId}`;
+    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.chat);
+
+    if (!rateLimit.allowed) {
+      console.warn(`🚫 Rate limited: ${clientId} for tenant ${storeId}`);
+      return new Response(
+        JSON.stringify({
+          error: "Too Many Requests",
+          message: "Please wait before sending more messages",
+          retryAfterMs: rateLimit.retryAfterMs,
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.ceil((rateLimit.retryAfterMs || 60000) / 1000)),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(rateLimit.resetAt),
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    console.log(`🏪 Chat request for tenant: ${storeId} (${tenantConfig.name}) [${rateLimit.remaining} remaining]`);
 
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
@@ -266,6 +312,8 @@ export async function POST(request: NextRequest) {
       "Connection": "keep-alive",
       "X-Content-Type-Options": "nosniff",
       "Access-Control-Allow-Origin": "*",
+      "X-RateLimit-Remaining": String(rateLimit.remaining),
+      "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
     return result.toUIMessageStreamResponse({
