@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getTenantConfig, getAllTenants, DEFAULT_TENANT } from "@/lib/tenants";
 
 // This route is protected by middleware Basic Auth
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const storeId = searchParams.get("storeId") || "baatpleiebutikken";
+    const storeId = searchParams.get("storeId") || DEFAULT_TENANT;
     const days = parseInt(searchParams.get("days") || "30", 10);
 
-    console.log(`📊 Analytics request: storeId=${storeId}, days=${days}`);
+    // Get tenant config for display name
+    const tenantConfig = getTenantConfig(storeId);
+
+    console.log(`📊 Analytics request: storeId=${storeId} (${tenantConfig.name}), days=${days}`);
 
     // Calculate date threshold
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - days);
     const dateString = dateThreshold.toISOString();
 
-    // 1. Get basic stats
+    // 1. Get basic stats - filtered by store_id
     const { data: allConversations, error: convError } = await supabaseAdmin
       .from("conversations")
       .select("id, was_handled, referred_to_email, detected_intent, created_at")
@@ -46,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Stats calculated:`, stats);
 
-    // 2. Get top search terms (simple word extraction)
+    // 2. Get top search terms (simple word extraction) - filtered by store_id
     const { data: queryData, error: queryError } = await supabaseAdmin
       .from("conversations")
       .select("user_query")
@@ -113,7 +117,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Top search terms:`, topSearchTerms.slice(0, 5));
 
-    // 3. Get unanswered queries
+    // 3. Get unanswered queries - filtered by store_id
     const { data: unansweredData, error: unansweredError } = await supabaseAdmin
       .from("conversations")
       .select("id, created_at, user_query, ai_response")
@@ -128,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Unanswered queries: ${unansweredData?.length || 0}`);
 
-    // 4. Get daily volume (last 14 days)
+    // 4. Get daily volume (last 14 days) - filtered by store_id
     const volumeThreshold = new Date();
     volumeThreshold.setDate(volumeThreshold.getDate() - 14);
 
@@ -163,14 +167,27 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Daily volume (last 3 days):`, dailyVolume.slice(-3));
 
+    // 5. Get document count for this tenant
+    const { count: documentCount, error: docCountError } = await supabaseAdmin
+      .from("documents")
+      .select("*", { count: "exact", head: true })
+      .eq("store_id", storeId);
+
+    if (docCountError) {
+      console.error("❌ Document count error:", docCountError);
+    }
+
     return NextResponse.json({
       success: true,
       storeId,
+      tenantName: tenantConfig.name,
       period: `${days} days`,
       stats,
       topSearchTerms,
       unansweredQueries: unansweredData || [],
       dailyVolume,
+      documentCount: documentCount || 0,
+      availableTenants: getAllTenants().map((t) => ({ id: t.id, name: t.name })),
     });
   } catch (error) {
     console.error("❌ Analytics API error:", error);

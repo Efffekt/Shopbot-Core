@@ -3,6 +3,7 @@ import { z } from "zod";
 import { embed, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getTenantConfig, DEFAULT_TENANT } from "@/lib/tenants";
 
 const partSchema = z.object({
   type: z.string(),
@@ -19,7 +20,7 @@ const messageSchema = z.object({
 
 const chatSchema = z.object({
   messages: z.array(messageSchema).min(1),
-  storeId: z.string().min(1),
+  storeId: z.string().optional(),
   sessionId: z.string().optional(),
 });
 
@@ -32,6 +33,10 @@ const UNHANDLED_PATTERNS = [
   "ikke tilgjengelig",
   "kan ikke finne",
   "mangler informasjon",
+  "couldn't find",
+  "could not find",
+  "don't have information",
+  "no information about",
 ];
 
 // Detect intent from user query
@@ -47,7 +52,9 @@ function detectIntent(query: string): "product_query" | "support" | "general" | 
     q.includes("kontakt") ||
     q.includes("snakke med") ||
     q.includes("menneske") ||
-    q.includes("hjelp")
+    q.includes("hjelp") ||
+    q.includes("support") ||
+    q.includes("help")
   ) {
     return "support";
   }
@@ -62,7 +69,11 @@ function detectIntent(query: string): "product_query" | "support" | "general" | 
     q.includes("polish") ||
     q.includes("båtløft") ||
     q.includes("rengjør") ||
-    q.includes("anbefal")
+    q.includes("anbefal") ||
+    q.includes("price") ||
+    q.includes("product") ||
+    q.includes("buy") ||
+    q.includes("recommend")
   ) {
     return "product_query";
   }
@@ -71,7 +82,10 @@ function detectIntent(query: string): "product_query" | "support" | "general" | 
   if (
     q.includes("hvordan") ||
     q.includes("hva er") ||
-    q.includes("kan jeg")
+    q.includes("kan jeg") ||
+    q.includes("how") ||
+    q.includes("what is") ||
+    q.includes("where")
   ) {
     return "general";
   }
@@ -87,7 +101,9 @@ function checkIfHandled(response: string): boolean {
 
 // Check if response referred to email
 function checkEmailReferral(response: string): boolean {
-  return response.toLowerCase().includes("post@vbaat.no");
+  return response.toLowerCase().includes("post@vbaat.no") ||
+         response.toLowerCase().includes("email") ||
+         response.toLowerCase().includes("e-post");
 }
 
 // Log conversation to database (fire and forget)
@@ -131,87 +147,6 @@ function extractTextFromMessage(message: Message): string {
   return message.content || "";
 }
 
-const SYSTEM_PROMPT = `Du er produktspesialist for Båtpleiebutikken.
-
-=== GULLREGEL: KONTEKST ER DIN ENESTE SANNHET ===
-Din ENESTE kilde til produkter, priser og URL-er er "KONTEKST FRA DATABASE" nedenfor.
-Selv om du VET at et produkt eksisterer i verden - hvis det IKKE står i konteksten, eksisterer det ikke for denne samtalen.
-
-=== EKSPERTRESONNEMENT: BÅTPLEIE ===
-Du er en EKSPERT på båtpleie og vet følgende:
-
-UNIVERSELLE PRODUKTER:
-- Båtpleieprodukter er nesten alltid universelle for alle båttyper
-- Produkter merket for "gelcoat", "plastbåt" eller "glassfiber" passer PERFEKT til seilbåter, motorbåter, daycruisere, RIB, og alle andre fritidsbåter
-- Seilbåter og motorbåter har samme overflatematerialer (gelcoat/glassfiber)
-
-SYNONYM-KUNNSKAP (bruk dette aktivt):
-- "Poleringsmiddel" = Rubbing, Polish, Polervoks, Poleringsvæske, Slipemiddel
-- "Seilbåt/Motorbåt/Daycruiser/Snekke" = Produkter for Gelcoat/Plast/GRP/Glassfiber
-- "Voks" = Wax, Båtvoks, Beskyttelsesvoks
-- "Rengjøring" = Shampoo, Vask, Cleaner, Avfetting
-- "Bunnstoff" = Antifouling, Bunnsmøring
-
-TENK SOM EN EKSPERT:
-Når kunden spør om "poleringsmiddel til seilbåt", tenk: "Seilbåt = gelcoat-overflate. Jeg ser etter polish/rubbing for gelcoat i konteksten."
-
-=== ALDRI SI "FANT INGEN" FOR RASKT ===
-FEIL tilnærming:
-"Jeg fant ingen poleringsmiddel til seilbåt."
-
-RIKTIG tilnærming:
-"Til en seilbåt vil jeg anbefale disse produktene som er laget for gelcoat:"
-+ List relevante produkter fra konteksten
-
-Bare si "fant ingen" hvis konteksten VIRKELIG ikke har noe relevant i hele kategorien.
-
-=== FORMATTERING (KRITISK!) ===
-FORBUDT:
-- Aldri bruk > (blockquote)
-- Aldri bruk \`\`\` (kodeblokker)
-- Aldri start en linje med mellomrom eller tab
-- Aldri bruk --- eller ***
-
-PÅBUDT:
-- Flat tekst uten innrykk
-- Skill produkter med ___ (tre understrek)
-- Dobbel linjeskift mellom seksjoner
-
-=== PRODUKTFORMAT ===
-Bruk NØYAKTIG dette formatet (ingen ekstra symboler):
-
-**Produktnavn**
-Kort forklaring på 1-2 linjer om hvorfor dette passer.
-Pris: X ,-
-👉 [Se produktet her](KILDE-URL)
-
-___
-
-**Neste produkt**
-Forklaring...
-Pris: Y ,-
-👉 [Se produktet her](KILDE-URL)
-
-Regler:
-- Maks 3 produkter per svar
-- Kopier KILDE-URL nøyaktig fra konteksten
-- Ingen lenke hvis ingen KILDE-URL finnes
-
-=== URL-INTEGRITET ===
-ALDRI konstruer en URL. Kopier KILDE-URL eksakt fra kontekst-blokken.
-Ingen KILDE-URL = ingen lenke.
-
-=== NÅR DATA VIRKELIG MANGLER ===
-Kun hvis ingen produkter i konteksten er relevante for kategorien:
-"Vi har ikke et produkt som er merket spesifikt for [X], men send gjerne e-post til post@vbaat.no så hjelper vi deg videre."
-
-=== E-POST ===
-Nevn post@vbaat.no kun når: ingen produkter funnet, bruker ber om menneske, reklamasjon/retur, eller showroom-spørsmål.
-Showroom: Husvikholmen 8, Drøbak - stengt, kun avtale.
-
-=== SPRÅK ===
-Norsk (bokmål). Aldri telefonnummer.`;
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -224,7 +159,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { messages, storeId, sessionId } = parsed.data;
+    const { messages, sessionId } = parsed.data;
+
+    // Extract storeId with fallback to default tenant
+    const storeId = parsed.data.storeId || DEFAULT_TENANT;
+
+    // Get tenant-specific configuration
+    const tenantConfig = getTenantConfig(storeId);
+
+    console.log(`🏪 Chat request for tenant: ${storeId} (${tenantConfig.name})`);
+
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
     if (!lastUserMessage) {
@@ -248,22 +192,24 @@ export async function POST(request: NextRequest) {
     });
 
     const embeddingDone = Date.now();
-    console.log(`⏱️ Embedding tok: ${embeddingDone - start}ms`);
+    console.log(`⏱️ Embedding took: ${embeddingDone - start}ms`);
 
+    // Vector search with tenant isolation - CRITICAL for multi-tenancy
     const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
       "match_site_content",
       {
         query_embedding: embedding,
         match_threshold: 0.4,
         match_count: 8,
-        filter_store_id: storeId,
+        filter_store_id: storeId, // Tenant-isolated vector search
       }
     );
 
     const dbDone = Date.now();
-    console.log(`⏱️ Supabase søk tok: ${dbDone - embeddingDone}ms`);
+    console.log(`⏱️ Supabase search took: ${dbDone - embeddingDone}ms (store: ${storeId})`);
 
     if (searchError) {
+      console.error("Search error:", searchError);
       return new Response(
         JSON.stringify({ error: "Search failed" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
@@ -274,8 +220,8 @@ export async function POST(request: NextRequest) {
       relevantDocs && relevantDocs.length > 0
         ? relevantDocs
             .map((doc: { content: string; metadata?: { source?: string; url?: string } }) => {
-              const url = doc.metadata?.source || doc.metadata?.url || "INGEN URL TILGJENGELIG";
-              return `--- DOKUMENT START ---\nKILDE-URL: ${url}\nINNHOLD: ${doc.content}\n--- DOKUMENT SLUTT ---`;
+              const url = doc.metadata?.source || doc.metadata?.url || "NO URL AVAILABLE";
+              return `--- DOCUMENT START ---\nSOURCE-URL: ${url}\nCONTENT: ${doc.content}\n--- DOCUMENT END ---`;
             })
             .join("\n\n")
         : "";
@@ -286,12 +232,17 @@ export async function POST(request: NextRequest) {
     }));
 
     const aiStart = Date.now();
-    console.log(`⏱️ Klargjøring tok: ${aiStart - dbDone}ms`);
-    console.log(`⏱️ Total før AI: ${aiStart - start}ms`);
+    console.log(`⏱️ Preparation took: ${aiStart - dbDone}ms`);
+    console.log(`⏱️ Total before AI: ${aiStart - start}ms`);
+
+    // Use tenant-specific system prompt
+    const systemPrompt = tenantConfig.systemPrompt;
 
     const result = streamText({
       model: openai("gpt-4o"),
-      system: context ? `${SYSTEM_PROMPT}\n\nKONTEKST FRA DATABASE:\n${context}` : SYSTEM_PROMPT,
+      system: context
+        ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
+        : systemPrompt,
       messages: normalizedMessages,
       onFinish: async ({ text }) => {
         // Log conversation after streaming completes (fire and forget)
@@ -303,6 +254,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             docsFound: relevantDocs?.length || 0,
             timestamp: new Date().toISOString(),
+            tenant: tenantConfig.name,
           },
         });
       },

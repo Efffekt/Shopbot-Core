@@ -17,6 +17,8 @@ import {
   TrendingUp,
   RefreshCw,
   Search,
+  Database,
+  Building2,
 } from "lucide-react";
 
 interface Stats {
@@ -46,11 +48,19 @@ interface DailyVolume {
   count: number;
 }
 
+interface Tenant {
+  id: string;
+  name: string;
+}
+
 interface AnalyticsData {
   stats: Stats;
   topSearchTerms: SearchTerm[];
   unansweredQueries: UnansweredQuery[];
   dailyVolume: DailyVolume[];
+  documentCount: number;
+  tenantName: string;
+  availableTenants: Tenant[];
 }
 
 export default function AnalyticsDashboard() {
@@ -58,15 +68,17 @@ export default function AnalyticsDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [days, setDays] = useState(30);
+  const [selectedTenant, setSelectedTenant] = useState("baatpleiebutikken");
+  const [availableTenants, setAvailableTenants] = useState<Tenant[]>([]);
 
   const fetchData = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      console.log(`🔄 Fetching analytics for storeId=baatpleiebutikken, days=${days}`);
+      console.log(`🔄 Fetching analytics for storeId=${selectedTenant}, days=${days}`);
       const res = await fetch(
-        `/api/admin/stats?storeId=baatpleiebutikken&days=${days}`
+        `/api/admin/stats?storeId=${selectedTenant}&days=${days}`
       );
 
       const json = await res.json();
@@ -77,6 +89,11 @@ export default function AnalyticsDashboard() {
       }
 
       setData(json);
+
+      // Update available tenants from response
+      if (json.availableTenants && json.availableTenants.length > 0) {
+        setAvailableTenants(json.availableTenants);
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to load data";
       console.error("❌ Analytics fetch error:", errorMsg);
@@ -88,13 +105,13 @@ export default function AnalyticsDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, [days]);
+  }, [days, selectedTenant]);
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-3">
         <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-gray-500 text-sm">Loading analytics for baatpleiebutikken...</p>
+        <p className="text-gray-500 text-sm">Loading analytics for {selectedTenant}...</p>
       </div>
     );
   }
@@ -116,7 +133,7 @@ export default function AnalyticsDashboard() {
 
   if (!data) return null;
 
-  const { stats, topSearchTerms, unansweredQueries, dailyVolume } = data;
+  const { stats, topSearchTerms, unansweredQueries, dailyVolume, documentCount, tenantName } = data;
 
   // Format daily volume for chart
   const chartData = dailyVolume.map((d) => ({
@@ -134,10 +151,39 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Chatbot Analytics</h2>
+      {/* Header with Tenant Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Chatbot Analytics</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Viewing: <span className="font-medium text-gray-700">{tenantName}</span>
+          </p>
+        </div>
         <div className="flex items-center gap-3">
+          {/* Tenant Selector */}
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-gray-400" />
+            <select
+              value={selectedTenant}
+              onChange={(e) => setSelectedTenant(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white font-medium"
+            >
+              {availableTenants.length > 0 ? (
+                availableTenants.map((tenant) => (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.name}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="baatpleiebutikken">Båtpleiebutikken</option>
+                  <option value="docs-site">Docs Project</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          {/* Time Period Selector */}
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
@@ -147,6 +193,7 @@ export default function AnalyticsDashboard() {
             <option value={30}>Last 30 days</option>
             <option value={90}>Last 90 days</option>
           </select>
+
           <button
             onClick={fetchData}
             className="p-2 text-gray-500 hover:text-gray-700"
@@ -158,12 +205,18 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           icon={<MessageSquare className="h-5 w-5" />}
           label="Total Chats"
           value={stats.total_conversations}
           color="blue"
+        />
+        <StatCard
+          icon={<Database className="h-5 w-5" />}
+          label="Documents"
+          value={documentCount}
+          color="indigo"
         />
         <StatCard
           icon={<Mail className="h-5 w-5" />}
@@ -318,13 +371,14 @@ function StatCard({
   label: string;
   value: string | number;
   subtext?: string;
-  color: "blue" | "purple" | "orange" | "green";
+  color: "blue" | "purple" | "orange" | "green" | "indigo";
 }) {
   const colors = {
     blue: "bg-blue-50 text-blue-600",
     purple: "bg-purple-50 text-purple-600",
     orange: "bg-orange-50 text-orange-600",
     green: "bg-green-50 text-green-600",
+    indigo: "bg-indigo-50 text-indigo-600",
   };
 
   return (
