@@ -155,6 +155,25 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
       boatExpertise: false,
     },
   },
+  "rk-designsystem-docs": {
+    id: "rk-designsystem-docs",
+    name: "Norwegian Red Cross Design System",
+    language: "no-en",
+    persona: "Design System Documentation Assistant",
+    systemPrompt: DOCS_SITE_PROMPT,
+    allowedDomains: [
+      "norwegianredcross.github.io",
+      "localhost",
+      "localhost:3000",
+      "127.0.0.1",
+      "127.0.0.1:3000",
+    ],
+    features: {
+      synonymMapping: false,
+      codeBlockFormatting: true,
+      boatExpertise: false,
+    },
+  },
 };
 
 export const DEFAULT_TENANT = "baatpleiebutikken";
