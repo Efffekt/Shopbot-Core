@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 
-type Phase = "input" | "confirm" | "progress" | "complete";
+type Phase = "input" | "manual" | "confirm" | "progress" | "complete";
 
 interface Stats {
   errors: number;
@@ -24,6 +24,7 @@ export default function ScraperControl() {
   const [discoveredUrls, setDiscoveredUrls] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [manualUrls, setManualUrls] = useState("");
 
   // Progress state
   const [current, setCurrent] = useState(0);
@@ -37,6 +38,34 @@ export default function ScraperControl() {
   const [recentLogs, setRecentLogs] = useState<LogEntry[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
+
+  const handleManualSubmit = () => {
+    if (!storeId) {
+      setError("Please enter Store ID");
+      return;
+    }
+
+    const urls = manualUrls
+      .split("\n")
+      .map((url) => url.trim())
+      .filter((url) => {
+        try {
+          new URL(url);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+
+    if (urls.length === 0) {
+      setError("No valid URLs found. Enter one URL per line.");
+      return;
+    }
+
+    setError("");
+    setDiscoveredUrls(urls);
+    setPhase("confirm");
+  };
 
   const handleDiscover = async () => {
     if (!baseUrl || !storeId) {
@@ -148,6 +177,7 @@ export default function ScraperControl() {
     setStats({ errors: 0, newPages: 0, updatedPages: 0, skippedPages: 0 });
     setRecentLogs([]);
     setError("");
+    setManualUrls("");
   };
 
   const progressPercent = total > 0 ? Math.round((current / total) * 100) : 0;
@@ -223,6 +253,80 @@ export default function ScraperControl() {
               </>
             )}
           </button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setPhase("manual")}
+            className="w-full py-2 px-4 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center justify-center gap-2"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Manual URL Input (for SPAs)
+          </button>
+        </div>
+      )}
+
+      {/* Phase: Manual URL Input */}
+      {phase === "manual" && (
+        <div className="space-y-4">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+            <p className="text-amber-800 text-sm">
+              <strong>SPA/GitHub Pages Mode:</strong> Auto-discovery may not work for single-page applications. Paste URLs manually below.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Store ID
+            </label>
+            <input
+              type="text"
+              value={storeId}
+              onChange={(e) => setStoreId(e.target.value)}
+              placeholder="e.g., my-store"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder:text-gray-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              URLs (one per line)
+            </label>
+            <textarea
+              value={manualUrls}
+              onChange={(e) => setManualUrls(e.target.value)}
+              placeholder="https://example.github.io/docs/&#10;https://example.github.io/docs/getting-started&#10;https://example.github.io/docs/components"
+              rows={8}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder:text-gray-400 font-mono text-sm"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setPhase("input")}
+              className="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleManualSubmit}
+              className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Use These URLs
+            </button>
+          </div>
         </div>
       )}
 

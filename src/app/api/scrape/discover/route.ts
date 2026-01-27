@@ -76,8 +76,10 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Starting discovery for: ${baseUrl}`);
 
     // Use Firecrawl's map function for fast URL discovery
+    // Note: map() uses sitemap/links discovery, may not work well for SPAs
     const mapResult = await firecrawl.map(baseUrl, {
       limit: 500,
+      search: "", // Empty search to get all pages
     });
 
     if (!mapResult.links || mapResult.links.length === 0) {

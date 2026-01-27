@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
     const crawlResult = await firecrawl.crawl(url, {
       scrapeOptions: {
         formats: ["markdown"],
+        waitFor: 3000, // Wait 3s for JavaScript/SPA content to load
       },
       limit: 500,
     });
