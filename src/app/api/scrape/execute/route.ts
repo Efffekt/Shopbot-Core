@@ -81,11 +81,14 @@ export async function POST(request: NextRequest) {
           const batchResults = await Promise.allSettled(
             batch.map(async (url) => {
               try {
-                // Scrape the page with SPA support
+                // Scrape the page with SPA/React support
                 const scrapeResult = await firecrawl.scrape(url, {
                   formats: ["markdown"],
-                  waitFor: 3000, // Wait 3s for JavaScript/SPA content to load
-                  timeout: 30000, // 30s max timeout
+                  waitFor: 5000, // Wait 5s for React/Vite to hydrate
+                  timeout: 60000, // 60s max timeout for slow SPAs
+                  actions: [
+                    { type: "wait", milliseconds: 3000 }, // Extra wait for JS rendering
+                  ],
                 });
 
                 if (!scrapeResult.markdown) {
