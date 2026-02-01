@@ -32,6 +32,10 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
+  // Search state
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+
   // Add content form state
   const [showAddForm, setShowAddForm] = useState(false);
   const [newContent, setNewContent] = useState("");
@@ -48,7 +52,14 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
     setError(null);
 
     try {
-      const response = await fetch(`/api/tenant/${tenantId}/content?page=${page}&limit=20`);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "20",
+      });
+      if (search) {
+        params.set("search", search);
+      }
+      const response = await fetch(`/api/tenant/${tenantId}/content?${params}`);
       if (!response.ok) {
         throw new Error("Failed to fetch content");
       }
@@ -64,7 +75,19 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
 
   useEffect(() => {
     fetchContent();
-  }, [tenantId, page]);
+  }, [tenantId, page, search]);
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setPage(1);
+    setSearch(searchInput);
+  }
+
+  function clearSearch() {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+  }
 
   async function handleDelete(documentId: string) {
     if (!confirm("Are you sure you want to delete this content?")) return;
@@ -155,7 +178,7 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-600">
-            {pagination?.total || 0} documents indexed
+            {pagination?.total || 0} documents {search ? `matching "${search}"` : "indexed"}
           </p>
         </div>
         {isAdmin && (
@@ -167,6 +190,32 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
           </button>
         )}
       </div>
+
+      {/* Search */}
+      <form onSubmit={handleSearch} className="flex gap-2">
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search content..."
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200"
+        >
+          Search
+        </button>
+        {search && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
+          >
+            Clear
+          </button>
+        )}
+      </form>
 
       {/* Add content form */}
       {showAddForm && (
@@ -275,7 +324,7 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
 
         {documents.length === 0 && (
           <div className="text-center py-12 text-gray-500">
-            No content indexed yet
+            {search ? `No content found matching "${search}"` : "No content indexed yet"}
           </div>
         )}
       </div>

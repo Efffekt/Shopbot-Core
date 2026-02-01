@@ -72,19 +72,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const search = searchParams.get("search")?.trim() || "";
     const offset = (page - 1) * limit;
 
-    // Get total count
-    const { count: totalCount } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("documents")
-      .select("*", { count: "exact", head: true })
+      .select("id, content, metadata, created_at", { count: "exact" })
       .eq("store_id", tenantId);
 
+    // Add search filter if provided
+    if (search) {
+      query = query.ilike("content", `%${search}%`);
+    }
+
     // Get documents with pagination
-    const { data: documents, error } = await supabaseAdmin
-      .from("documents")
-      .select("id, content, metadata, created_at")
-      .eq("store_id", tenantId)
+    const { data: documents, count: totalCount, error } = await query
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -99,6 +101,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         total: totalCount || 0,
         totalPages: Math.ceil((totalCount || 0) / limit),
       },
+      search,
     });
   } catch (error) {
     console.error("Content list error:", error);
