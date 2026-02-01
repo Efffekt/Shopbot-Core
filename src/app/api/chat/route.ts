@@ -1,3 +1,4 @@
+// Chat API - Gemini 3.0 Flash
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText } from "ai";
