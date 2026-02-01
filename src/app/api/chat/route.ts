@@ -1,4 +1,5 @@
-// Chat API - Gemini 3 Flash Preview
+// Chat API - Gemini 3 Flash Preview - v2 FORCED NON-STREAMING
+// Force rebuild: 2026-02-01T20:28:00
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
