@@ -118,22 +118,23 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/")) {
     if (request.method === "OPTIONS") {
       return new NextResponse(null, {
-        status: 204,
+        status: 200, // Use 200 instead of 204 for better compatibility
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-          "Access-Control-Expose-Headers": "Content-Type, X-RateLimit-Remaining, X-RateLimit-Reset",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "*", // Allow all headers
+          "Access-Control-Expose-Headers": "*",
           "Access-Control-Max-Age": "86400",
+          "Content-Length": "0",
         },
       });
     }
 
     const response = NextResponse.next();
     response.headers.set("Access-Control-Allow-Origin", "*");
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-    response.headers.set("Access-Control-Expose-Headers", "Content-Type, X-RateLimit-Remaining, X-RateLimit-Reset");
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "*");
+    response.headers.set("Access-Control-Expose-Headers", "*");
     return response;
   }
 
