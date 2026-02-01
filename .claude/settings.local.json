@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: add Product Card formatting to AI responses\n\n- Add markdown Product Card format with image, price, and buy link\n- Limit to max 3 cards per response to avoid clutter\n- Add fallback to text link when price/image is missing\n- Add instructions for extracting product data from context\n- Maintain existing business rules and contact info\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(git -C \"C:\\\\Users\\\\barla\\\\Desktop\\\\Jobb\\\\shopbot-core\" log --oneline --all)"
     ]
   }
 }

@@ -1,7 +1,7 @@
 // Chat API - Gemini 3 Flash Preview
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { embed, streamText } from "ai";
+import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -29,7 +29,24 @@ const chatSchema = z.object({
   messages: z.array(messageSchema).min(1),
   storeId: z.string().optional(),
   sessionId: z.string().optional(),
+  noStream: z.boolean().optional(), // For WebViews/in-app browsers that don't support streaming
 });
+
+// Detect WebView/in-app browsers that don't support streaming
+function isWebView(userAgent: string | null): boolean {
+  if (!userAgent) return false;
+  const ua = userAgent.toLowerCase();
+  return (
+    ua.includes('fban') || // Facebook
+    ua.includes('fbav') || // Facebook
+    ua.includes('instagram') ||
+    ua.includes('messenger') ||
+    ua.includes('webview') ||
+    ua.includes('wv)') || // Android WebView
+    (ua.includes('iphone') && !ua.includes('safari')) || // iOS WebView (no Safari = WebView)
+    (ua.includes('ipad') && !ua.includes('safari'))
+  );
+}
 
 // Patterns that indicate the AI couldn't fully answer
 const UNHANDLED_PATTERNS = [
@@ -166,10 +183,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { messages, sessionId } = parsed.data;
+    const { messages, sessionId, noStream } = parsed.data;
 
     // Extract storeId with fallback to default tenant
     const storeId = parsed.data.storeId || DEFAULT_TENANT;
+
+    // Check if we should use non-streaming mode (WebViews, in-app browsers)
+    const userAgent = request.headers.get("user-agent");
+    const useNonStreaming = noStream || isWebView(userAgent);
 
     // Get tenant-specific configuration
     const tenantConfig = getTenantConfig(storeId);
@@ -308,14 +329,63 @@ export async function POST(request: NextRequest) {
     }
 
     timings.preAI = Date.now() - start;
-    console.log(`⏱️ [${storeId}] Total pre-AI: ${timings.preAI}ms`);
+    console.log(`⏱️ [${storeId}] Total pre-AI: ${timings.preAI}ms${useNonStreaming ? ' (non-streaming mode)' : ''}`);
 
     const aiStart = Date.now();
+    const fullSystemPrompt = context
+      ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
+      : systemPrompt;
+
+    // Non-streaming mode for WebViews/in-app browsers
+    if (useNonStreaming) {
+      const result = await generateText({
+        model: google("gemini-2.0-flash"),
+        system: fullSystemPrompt,
+        messages: normalizedMessages,
+      });
+
+      timings.aiTotal = Date.now() - aiStart;
+      timings.total = Date.now() - start;
+      console.log(`✅ [${storeId}] AI response (non-streaming): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
+
+      // Log conversation
+      logConversation({
+        storeId,
+        sessionId,
+        userQuery: lastUserText,
+        aiResponse: result.text,
+        metadata: {
+          docsFound,
+          timestamp: new Date().toISOString(),
+          tenant: tenantConfig.name,
+          model: "gemini-2.0-flash",
+          timings,
+          nonStreaming: true,
+        },
+      });
+
+      // Return JSON response for non-streaming clients
+      return new Response(
+        JSON.stringify({
+          role: "assistant",
+          content: result.text,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "X-RateLimit-Remaining": String(rateLimit.remaining),
+            "X-RateLimit-Reset": String(rateLimit.resetAt),
+          },
+        }
+      );
+    }
+
+    // Streaming mode (default)
     const result = streamText({
       model: google("gemini-2.0-flash"),
-      system: context
-        ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
-        : systemPrompt,
+      system: fullSystemPrompt,
       messages: normalizedMessages,
       onFinish: async ({ text }) => {
         timings.aiTotal = Date.now() - aiStart;
