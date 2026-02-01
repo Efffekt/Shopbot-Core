@@ -235,62 +235,68 @@ export async function POST(request: NextRequest) {
     // Performance timing
     const start = Date.now();
 
-    // Run embedding and system prompt fetch in parallel
-    const [embeddingResult, systemPrompt] = await Promise.all([
-      embed({
-        model: openai.embedding("text-embedding-3-small"),
-        value: lastUserText,
-        providerOptions: {
-          openai: { dimensions: 1536 },
-        },
-      }),
-      getTenantSystemPrompt(storeId),
-    ]);
-
-    const { embedding } = embeddingResult;
-    const embeddingDone = Date.now();
-    console.log(`⏱️ Embedding + prompt took: ${embeddingDone - start}ms`);
-
-    // Vector search with tenant isolation - CRITICAL for multi-tenancy
-    // match_count: 10 for faster search while maintaining quality
-    const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
-      "match_site_content",
-      {
-        query_embedding: embedding,
-        match_threshold: 0.4,
-        match_count: 10,
-        filter_store_id: storeId,
-      }
-    );
-
-    const dbDone = Date.now();
-    console.log(`⏱️ Supabase search took: ${dbDone - embeddingDone}ms (store: ${storeId})`);
-
-    if (searchError) {
-      console.error("Search error:", searchError);
-      return new Response(
-        JSON.stringify({ error: "Search failed" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
-    }
+    // Fast path: skip embedding/search for very short messages (greetings, etc)
+    const isSimpleMessage = lastUserText.length < 20 && !/produkt|pris|anbefal|kjøp|voks|polish|båt/i.test(lastUserText);
 
     const normalizedMessages = messages.map((m) => ({
       role: m.role as "user" | "assistant" | "system",
       content: extractTextFromMessage(m),
     }));
 
-    const context =
-      relevantDocs && relevantDocs.length > 0
-        ? relevantDocs
-            .map((doc: { content: string; metadata?: { source?: string; url?: string } }) => {
-              const url = doc.metadata?.source || doc.metadata?.url || "NO URL AVAILABLE";
-              return `--- DOCUMENT START ---\nSOURCE-URL: ${url}\nCONTENT: ${doc.content}\n--- DOCUMENT END ---`;
-            })
-            .join("\n\n")
-        : "";
+    let context = "";
+    let systemPrompt: string;
 
-    const aiStart = Date.now();
-    console.log(`⏱️ Total before AI: ${aiStart - start}ms`);
+    if (isSimpleMessage) {
+      // Fast path - just get system prompt, skip embedding/search
+      systemPrompt = await getTenantSystemPrompt(storeId);
+      console.log(`⚡ Fast path: ${Date.now() - start}ms`);
+    } else {
+      // Full path - embedding + search + prompt in parallel where possible
+      const [embeddingResult, promptResult] = await Promise.all([
+        embed({
+          model: openai.embedding("text-embedding-3-small"),
+          value: lastUserText,
+          providerOptions: {
+            openai: { dimensions: 1536 },
+          },
+        }),
+        getTenantSystemPrompt(storeId),
+      ]);
+
+      systemPrompt = promptResult;
+      const { embedding } = embeddingResult;
+      console.log(`⏱️ Embedding + prompt: ${Date.now() - start}ms`);
+
+      // Vector search
+      const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
+        "match_site_content",
+        {
+          query_embedding: embedding,
+          match_threshold: 0.4,
+          match_count: 8,
+          filter_store_id: storeId,
+        }
+      );
+
+      console.log(`⏱️ Total before AI: ${Date.now() - start}ms`);
+
+      if (searchError) {
+        console.error("Search error:", searchError);
+        return new Response(
+          JSON.stringify({ error: "Search failed" }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (relevantDocs && relevantDocs.length > 0) {
+        context = relevantDocs
+          .map((doc: { content: string; metadata?: { source?: string; url?: string } }) => {
+            const url = doc.metadata?.source || doc.metadata?.url || "NO URL AVAILABLE";
+            return `--- DOCUMENT START ---\nSOURCE-URL: ${url}\nCONTENT: ${doc.content}\n--- DOCUMENT END ---`;
+          })
+          .join("\n\n");
+      }
+    }
 
     const result = streamText({
       model: google("gemini-3-flash-preview"),
