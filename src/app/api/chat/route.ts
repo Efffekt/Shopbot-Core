@@ -1,16 +1,10 @@
-// Chat API - Gemini 3.0 Flash via Vertex AI
+// Chat API - Gemini 3 Flash Preview
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { createVertex } from "@ai-sdk/google-vertex";
+import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "@/lib/supabase";
-
-// Use global endpoint for Gemini 3 models (preview)
-const vertex = createVertex({
-  project: process.env.GOOGLE_VERTEX_PROJECT,
-  location: "global",
-});
 import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
 
@@ -294,7 +288,7 @@ export async function POST(request: NextRequest) {
     const systemPrompt = await getTenantSystemPrompt(storeId);
 
     const result = streamText({
-      model: vertex("gemini-3-flash-preview"),
+      model: google("gemini-3-flash-preview"),
       system: context
         ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
         : systemPrompt,
