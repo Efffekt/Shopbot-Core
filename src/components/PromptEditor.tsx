@@ -73,7 +73,7 @@ export default function PromptEditor({
           onChange={(e) => setPrompt(e.target.value)}
           disabled={!isAdmin}
           rows={20}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
         />
       </div>
 

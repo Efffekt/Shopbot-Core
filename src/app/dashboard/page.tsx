@@ -1,6 +1,7 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 interface TenantAccess {
   tenant_id: string;
@@ -21,6 +22,11 @@ export default async function DashboardPage() {
   }
 
   const tenants = (tenantAccess || []) as TenantAccess[];
+
+  // If user has exactly one tenant, redirect directly to it
+  if (tenants.length === 1) {
+    redirect(`/dashboard/${tenants[0].tenant_id}`);
+  }
 
   return (
     <div>

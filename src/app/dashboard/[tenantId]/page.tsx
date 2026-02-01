@@ -30,15 +30,6 @@ export default async function TenantPage({ params }: PageProps) {
 
   return (
     <div>
-      <div className="mb-6">
-        <Link
-          href="/dashboard"
-          className="text-blue-600 hover:text-blue-800 text-sm"
-        >
-          &larr; Back to tenants
-        </Link>
-      </div>
-
       <div className="bg-white rounded-lg shadow p-6">
         <h1 className="text-2xl font-bold text-gray-900">{config.name}</h1>
         <p className="mt-2 text-gray-600">{config.persona}</p>
@@ -99,12 +90,32 @@ export default async function TenantPage({ params }: PageProps) {
         <div className="mt-6 border-t pt-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link
+              href={`/dashboard/${tenantId}/analytics`}
+              className="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <div className="text-2xl mb-2">📊</div>
+              <span className="font-medium text-blue-900">Analytics</span>
+              <span className="text-sm text-blue-700">View chat statistics</span>
+            </Link>
+
             <Link
               href={`/dashboard/${tenantId}/prompt`}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="flex flex-col items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
             >
-              Edit System Prompt
+              <div className="text-2xl mb-2">✏️</div>
+              <span className="font-medium text-green-900">System Prompt</span>
+              <span className="text-sm text-green-700">Edit AI behavior</span>
+            </Link>
+
+            <Link
+              href={`/dashboard/${tenantId}/content`}
+              className="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <div className="text-2xl mb-2">📚</div>
+              <span className="font-medium text-purple-900">Content</span>
+              <span className="text-sm text-purple-700">Manage knowledge base</span>
             </Link>
           </div>
         </div>
