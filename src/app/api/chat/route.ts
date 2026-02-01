@@ -235,26 +235,31 @@ export async function POST(request: NextRequest) {
     // Performance timing
     const start = Date.now();
 
-    const { embedding } = await embed({
-      model: openai.embedding("text-embedding-3-small"),
-      value: lastUserText,
-      providerOptions: {
-        openai: { dimensions: 1536 },
-      },
-    });
+    // Run embedding and system prompt fetch in parallel
+    const [embeddingResult, systemPrompt] = await Promise.all([
+      embed({
+        model: openai.embedding("text-embedding-3-small"),
+        value: lastUserText,
+        providerOptions: {
+          openai: { dimensions: 1536 },
+        },
+      }),
+      getTenantSystemPrompt(storeId),
+    ]);
 
+    const { embedding } = embeddingResult;
     const embeddingDone = Date.now();
-    console.log(`⏱️ Embedding took: ${embeddingDone - start}ms`);
+    console.log(`⏱️ Embedding + prompt took: ${embeddingDone - start}ms`);
 
     // Vector search with tenant isolation - CRITICAL for multi-tenancy
-    // match_count: 15 gives AI more context to find product URLs
+    // match_count: 10 for faster search while maintaining quality
     const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
       "match_site_content",
       {
         query_embedding: embedding,
-        match_threshold: 0.35,
-        match_count: 15,
-        filter_store_id: storeId, // Tenant-isolated vector search
+        match_threshold: 0.4,
+        match_count: 10,
+        filter_store_id: storeId,
       }
     );
 
@@ -269,6 +274,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedMessages = messages.map((m) => ({
+      role: m.role as "user" | "assistant" | "system",
+      content: extractTextFromMessage(m),
+    }));
+
     const context =
       relevantDocs && relevantDocs.length > 0
         ? relevantDocs
@@ -279,17 +289,8 @@ export async function POST(request: NextRequest) {
             .join("\n\n")
         : "";
 
-    const normalizedMessages = messages.map((m) => ({
-      role: m.role as "user" | "assistant" | "system",
-      content: extractTextFromMessage(m),
-    }));
-
     const aiStart = Date.now();
-    console.log(`⏱️ Preparation took: ${aiStart - dbDone}ms`);
     console.log(`⏱️ Total before AI: ${aiStart - start}ms`);
-
-    // Use tenant-specific system prompt (fetches from DB with fallback to hardcoded)
-    const systemPrompt = await getTenantSystemPrompt(storeId);
 
     const result = streamText({
       model: google("gemini-3-flash-preview"),
