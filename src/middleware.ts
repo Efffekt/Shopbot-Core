@@ -1,21 +1,29 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-// Paths that require Basic Authentication
+// Paths that require Basic Authentication (admin panel)
 // SECURITY: All admin/scrape/ingest endpoints require authentication
-const PROTECTED_PATHS = [
+const BASIC_AUTH_PATHS = [
   "/admin",
   "/api/scrape",
   "/api/ingest",
   "/api/admin",
 ];
 
+// Paths that require Supabase Auth (tenant dashboard)
+const SUPABASE_AUTH_PATHS = ["/dashboard"];
+
 // Paths that should remain public (no auth)
 // Only the chat endpoint is public - it has its own domain/rate limiting protection
-const PUBLIC_API_PATHS = ["/api/chat"];
+const PUBLIC_API_PATHS = ["/api/chat", "/api/user/tenants", "/api/tenant"];
 
-function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PATHS.some((path) => pathname.startsWith(path));
+function requiresBasicAuth(pathname: string): boolean {
+  return BASIC_AUTH_PATHS.some((path) => pathname.startsWith(path));
+}
+
+function requiresSupabaseAuth(pathname: string): boolean {
+  return SUPABASE_AUTH_PATHS.some((path) => pathname.startsWith(path));
 }
 
 function isPublicApiPath(pathname: string): boolean {
@@ -54,15 +62,56 @@ function unauthorizedResponse(): NextResponse {
   });
 }
 
-export function middleware(request: NextRequest) {
+async function verifySupabaseAuth(request: NextRequest): Promise<{ authenticated: boolean; response?: NextResponse }> {
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  return { authenticated: !!user, response };
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if path requires authentication
-  if (isProtectedPath(pathname)) {
+  // Check if path requires Basic Authentication (admin panel)
+  if (requiresBasicAuth(pathname)) {
     if (!verifyBasicAuth(request)) {
       console.warn(`🚫 Unauthorized access attempt to: ${pathname}`);
       return unauthorizedResponse();
     }
+  }
+
+  // Check if path requires Supabase Auth (tenant dashboard)
+  if (requiresSupabaseAuth(pathname)) {
+    const { authenticated, response } = await verifySupabaseAuth(request);
+    if (!authenticated) {
+      console.warn(`🚫 Unauthenticated access attempt to dashboard: ${pathname}`);
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return response;
   }
 
   // Handle CORS preflight for API routes
@@ -90,5 +139,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/:path*"],
+  matcher: ["/admin/:path*", "/api/:path*", "/dashboard/:path*"],
 };

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { embed, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getTenantConfig, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
+import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
 
 const partSchema = z.object({
@@ -282,8 +282,8 @@ export async function POST(request: NextRequest) {
     console.log(`⏱️ Preparation took: ${aiStart - dbDone}ms`);
     console.log(`⏱️ Total before AI: ${aiStart - start}ms`);
 
-    // Use tenant-specific system prompt
-    const systemPrompt = tenantConfig.systemPrompt;
+    // Use tenant-specific system prompt (fetches from DB with fallback to hardcoded)
+    const systemPrompt = await getTenantSystemPrompt(storeId);
 
     const result = streamText({
       model: openai("gpt-4o"),
