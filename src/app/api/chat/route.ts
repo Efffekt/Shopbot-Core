@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
     const systemPrompt = await getTenantSystemPrompt(storeId);
 
     const result = streamText({
-      model: google("gemini-2.0-flash"),
+      model: google("gemini-2.5-flash-preview-05-20"),
       system: context
         ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
         : systemPrompt,
@@ -303,7 +303,7 @@ export async function POST(request: NextRequest) {
             docsFound: relevantDocs?.length || 0,
             timestamp: new Date().toISOString(),
             tenant: tenantConfig.name,
-            model: "gemini-2.0-flash",
+            model: "gemini-2.5-flash-preview-05-20",
           },
         });
       },
