@@ -422,8 +422,8 @@ export async function POST(request: NextRequest) {
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    // Use toDataStreamResponse for DefaultChatTransport compatibility
-    return result.toDataStreamResponse({
+    // Use toTextStreamResponse (fallback streaming - should not be reached with useNonStreaming=true)
+    return result.toTextStreamResponse({
       headers: streamHeaders,
     });
   } catch (error: unknown) {
