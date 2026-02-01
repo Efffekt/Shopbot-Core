@@ -234,6 +234,9 @@ export async function POST(request: NextRequest) {
 
     // Performance timing
     const start = Date.now();
+    const timings: Record<string, number> = {};
+
+    console.log(`\n📨 [${storeId}] New request: "${lastUserText.slice(0, 50)}${lastUserText.length > 50 ? '...' : ''}"`);
 
     // Fast path: skip embedding/search for very short messages (greetings, etc)
     const isSimpleMessage = lastUserText.length < 20 && !/produkt|pris|anbefal|kjøp|voks|polish|båt/i.test(lastUserText);
@@ -245,13 +248,16 @@ export async function POST(request: NextRequest) {
 
     let context = "";
     let systemPrompt: string;
+    let docsFound = 0;
 
     if (isSimpleMessage) {
       // Fast path - just get system prompt, skip embedding/search
       systemPrompt = await getTenantSystemPrompt(storeId);
-      console.log(`⚡ Fast path: ${Date.now() - start}ms`);
+      timings.promptFetch = Date.now() - start;
+      console.log(`⚡ [${storeId}] FAST PATH - prompt: ${timings.promptFetch}ms`);
     } else {
       // Full path - embedding + search + prompt in parallel where possible
+      const embeddingStart = Date.now();
       const [embeddingResult, promptResult] = await Promise.all([
         embed({
           model: openai.embedding("text-embedding-3-small"),
@@ -265,9 +271,11 @@ export async function POST(request: NextRequest) {
 
       systemPrompt = promptResult;
       const { embedding } = embeddingResult;
-      console.log(`⏱️ Embedding + prompt: ${Date.now() - start}ms`);
+      timings.embedding = Date.now() - embeddingStart;
+      console.log(`⏱️ [${storeId}] Embedding + prompt: ${timings.embedding}ms`);
 
       // Vector search
+      const searchStart = Date.now();
       const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
         "match_site_content",
         {
@@ -277,8 +285,9 @@ export async function POST(request: NextRequest) {
           filter_store_id: storeId,
         }
       );
-
-      console.log(`⏱️ Total before AI: ${Date.now() - start}ms`);
+      timings.vectorSearch = Date.now() - searchStart;
+      docsFound = relevantDocs?.length || 0;
+      console.log(`⏱️ [${storeId}] Vector search: ${timings.vectorSearch}ms (${docsFound} docs)`);
 
       if (searchError) {
         console.error("Search error:", searchError);
@@ -298,13 +307,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    timings.preAI = Date.now() - start;
+    console.log(`⏱️ [${storeId}] Total pre-AI: ${timings.preAI}ms`);
+
+    const aiStart = Date.now();
     const result = streamText({
-      model: google("gemini-2.5-flash-preview-05-20"),
+      model: google("gemini-2.5-flash"),
       system: context
         ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
         : systemPrompt,
       messages: normalizedMessages,
       onFinish: async ({ text }) => {
+        timings.aiTotal = Date.now() - aiStart;
+        timings.total = Date.now() - start;
+        console.log(`✅ [${storeId}] AI response: ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
+
         // Log conversation after streaming completes (fire and forget)
         logConversation({
           storeId,
@@ -312,10 +329,11 @@ export async function POST(request: NextRequest) {
           userQuery: lastUserText,
           aiResponse: text,
           metadata: {
-            docsFound: relevantDocs?.length || 0,
+            docsFound,
             timestamp: new Date().toISOString(),
             tenant: tenantConfig.name,
-            model: "gemini-2.5-flash-preview-05-20",
+            model: "gemini-2.5-flash",
+            timings,
           },
         });
       },
