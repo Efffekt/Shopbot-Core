@@ -3,8 +3,12 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { supabaseAdmin } from "@/lib/supabase";
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
 import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
 
