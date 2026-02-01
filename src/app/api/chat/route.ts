@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = streamText({
-      model: google("gemini-3-flash-preview"),
+      model: google("gemini-2.5-flash-preview-05-20"),
       system: context
         ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
         : systemPrompt,
@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
             docsFound: relevantDocs?.length || 0,
             timestamp: new Date().toISOString(),
             tenant: tenantConfig.name,
-            model: "gemini-3-flash-preview",
+            model: "gemini-2.5-flash-preview-05-20",
           },
         });
       },
