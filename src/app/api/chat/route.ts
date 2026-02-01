@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
 
     const aiStart = Date.now();
     const result = streamText({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-2.0-flash"),
       system: context
         ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
         : systemPrompt,
@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
             docsFound,
             timestamp: new Date().toISOString(),
             tenant: tenantConfig.name,
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash",
             timings,
           },
         });
