@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
@@ -286,7 +287,7 @@ export async function POST(request: NextRequest) {
     const systemPrompt = await getTenantSystemPrompt(storeId);
 
     const result = streamText({
-      model: openai("gpt-4o"),
+      model: google("gemini-2.0-flash"),
       system: context
         ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
         : systemPrompt,
@@ -302,6 +303,7 @@ export async function POST(request: NextRequest) {
             docsFound: relevantDocs?.length || 0,
             timestamp: new Date().toISOString(),
             tenant: tenantConfig.name,
+            model: "gemini-2.0-flash",
           },
         });
       },
