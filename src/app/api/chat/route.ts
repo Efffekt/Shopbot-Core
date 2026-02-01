@@ -190,7 +190,8 @@ export async function POST(request: NextRequest) {
 
     // Check if we should use non-streaming mode (WebViews, in-app browsers)
     const userAgent = request.headers.get("user-agent");
-    const useNonStreaming = noStream || isWebView(userAgent);
+    const useNonStreaming = noStream === true || isWebView(userAgent);
+    console.log(`📱 [${storeId}] noStream=${noStream}, isWebView=${isWebView(userAgent)}, useNonStreaming=${useNonStreaming}`);
 
     // Get tenant-specific configuration
     const tenantConfig = getTenantConfig(storeId);
