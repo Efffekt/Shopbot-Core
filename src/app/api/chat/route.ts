@@ -351,8 +351,8 @@ export async function POST(request: NextRequest) {
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    // Use toTextStreamResponse for Safari/mobile compatibility (matches streamProtocol: 'text')
-    return result.toTextStreamResponse({
+    // Use toDataStreamResponse for DefaultChatTransport compatibility
+    return result.toDataStreamResponse({
       headers: streamHeaders,
     });
   } catch (error: unknown) {
