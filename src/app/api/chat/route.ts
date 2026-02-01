@@ -341,15 +341,18 @@ export async function POST(request: NextRequest) {
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
+      "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       "Connection": "keep-alive",
       "X-Content-Type-Options": "nosniff",
+      "X-Accel-Buffering": "no",
       "Access-Control-Allow-Origin": "*",
       "X-RateLimit-Remaining": String(rateLimit.remaining),
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    return result.toUIMessageStreamResponse({
+    // Use toTextStreamResponse for Safari/mobile compatibility (matches streamProtocol: 'text')
+    return result.toTextStreamResponse({
       headers: streamHeaders,
     });
   } catch (error: unknown) {
