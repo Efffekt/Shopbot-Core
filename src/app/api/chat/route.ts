@@ -188,10 +188,9 @@ export async function POST(request: NextRequest) {
     // Extract storeId with fallback to default tenant
     const storeId = parsed.data.storeId || DEFAULT_TENANT;
 
-    // Check if we should use non-streaming mode (WebViews, in-app browsers)
-    const userAgent = request.headers.get("user-agent");
-    const useNonStreaming = noStream === true || isWebView(userAgent);
-    console.log(`📱 [${storeId}] noStream=${noStream}, isWebView=${isWebView(userAgent)}, useNonStreaming=${useNonStreaming}`);
+    // ALWAYS use non-streaming for now to fix mobile compatibility
+    const useNonStreaming = true;
+    console.log(`📱 [${storeId}] FORCING non-streaming mode for all requests`);
 
     // Get tenant-specific configuration
     const tenantConfig = getTenantConfig(storeId);
