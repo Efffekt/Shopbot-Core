@@ -368,18 +368,22 @@ export async function getTenantSystemPrompt(storeId: string): Promise<string> {
 
     if (error) {
       if (error.code !== "PGRST116") {
-        console.warn(`Failed to fetch prompt from DB for ${storeId}:`, error.message);
+        console.warn(`⚠️ [${storeId}] Failed to fetch prompt from DB:`, error.message);
+      } else {
+        console.log(`📝 [${storeId}] No custom prompt in DB, using default`);
       }
       return config.systemPrompt;
     }
 
     if (data?.system_prompt) {
+      console.log(`✅ [${storeId}] Using custom prompt from DB (${data.system_prompt.length} chars)`);
       return data.system_prompt;
     }
 
+    console.log(`📝 [${storeId}] DB row exists but empty, using default`);
     return config.systemPrompt;
   } catch (err) {
-    console.error(`Error fetching tenant prompt for ${storeId}:`, err);
+    console.error(`❌ [${storeId}] Error fetching tenant prompt:`, err);
     return config.systemPrompt;
   }
 }

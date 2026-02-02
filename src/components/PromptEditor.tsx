@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface PromptEditorProps {
   tenantId: string;
@@ -17,19 +17,20 @@ export default function PromptEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  async function handleSave() {
+  const savePrompt = useCallback(async (promptToSave: string) => {
     if (!isAdmin) return;
 
     setSaving(true);
     setError(null);
-    setSuccess(false);
 
     try {
       const response = await fetch(`/api/tenant/${tenantId}/prompt`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ systemPrompt: prompt }),
+        body: JSON.stringify({ systemPrompt: promptToSave }),
       });
 
       if (!response.ok) {
@@ -38,12 +39,42 @@ export default function PromptEditor({
       }
 
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setHasChanges(false);
+      setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save prompt");
     } finally {
       setSaving(false);
     }
+  }, [tenantId, isAdmin]);
+
+  // Auto-save with debounce (2 seconds after typing stops)
+  useEffect(() => {
+    if (!isAdmin || prompt === initialPrompt) return;
+
+    setHasChanges(true);
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      savePrompt(prompt);
+    }, 2000);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [prompt, initialPrompt, isAdmin, savePrompt]);
+
+  // Manual save
+  async function handleSave() {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    await savePrompt(prompt);
   }
 
   return (
@@ -78,17 +109,44 @@ export default function PromptEditor({
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-preik-text-muted">
-          {prompt.length} tegn
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-preik-text-muted">
+            {prompt.length} tegn
+          </p>
+          {isAdmin && (
+            <span className="text-xs text-preik-text-muted">
+              {saving ? (
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-preik-accent rounded-full animate-pulse" />
+                  Lagrer...
+                </span>
+              ) : hasChanges ? (
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full" />
+                  Ulagrede endringer
+                </span>
+              ) : success ? (
+                <span className="flex items-center gap-1 text-green-600">
+                  <span className="w-2 h-2 bg-green-500 rounded-full" />
+                  Lagret
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-preik-text-muted/30 rounded-full" />
+                  Auto-lagring aktiv
+                </span>
+              )}
+            </span>
+          )}
+        </div>
 
         {isAdmin ? (
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !hasChanges}
             className="inline-flex items-center px-5 py-2.5 text-sm font-medium rounded-xl text-white bg-preik-accent hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-preik-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {saving ? "Lagrer..." : "Lagre endringer"}
+            {saving ? "Lagrer..." : "Lagre nå"}
           </button>
         ) : (
           <p className="text-sm text-preik-accent">
