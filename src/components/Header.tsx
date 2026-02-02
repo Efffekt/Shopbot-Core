@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Header() {
@@ -20,21 +21,27 @@ export function Header() {
         </nav>
 
         {/* Center - Logo */}
-        <a href="/" className="preik-wordmark text-2xl md:text-3xl">
+        <Link href="/" className="preik-wordmark text-2xl md:text-3xl">
           preik
-        </a>
+        </Link>
 
         {/* Right links */}
-        <div className="hidden md:flex items-center gap-8 flex-1 justify-end">
+        <div className="hidden md:flex items-center gap-6 flex-1 justify-end">
           <a href="#faq" className="text-sm text-preik-text-muted hover:text-preik-text transition-colors">
             FAQ
           </a>
-          <a
-            href="#kontakt"
-            className="text-sm font-medium text-preik-accent hover:text-preik-accent-hover transition-colors"
+          <Link
+            href="/login"
+            className="text-sm text-preik-text-muted hover:text-preik-text transition-colors"
           >
-            Kontakt
-          </a>
+            Logg inn
+          </Link>
+          <Link
+            href="/signup"
+            className="text-sm font-medium bg-preik-accent text-white px-4 py-2 rounded-full hover:bg-preik-accent-hover transition-colors"
+          >
+            Kom i gang
+          </Link>
           <ThemeToggle />
         </div>
 
