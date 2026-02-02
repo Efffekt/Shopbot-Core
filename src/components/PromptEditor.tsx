@@ -49,23 +49,23 @@ export default function PromptEditor({
   return (
     <div className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded-xl text-sm">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-          Prompt saved successfully!
+        <div className="bg-green-500/10 border border-green-500/20 text-green-600 px-4 py-3 rounded-xl text-sm">
+          Prompt lagret!
         </div>
       )}
 
       <div>
         <label
           htmlFor="prompt"
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-preik-text mb-2"
         >
-          System Prompt
+          Systemprompt
         </label>
         <textarea
           id="prompt"
@@ -73,26 +73,26 @@ export default function PromptEditor({
           onChange={(e) => setPrompt(e.target.value)}
           disabled={!isAdmin}
           rows={20}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full px-4 py-3 bg-preik-bg border border-preik-border rounded-xl text-preik-text font-mono text-sm focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         />
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          {prompt.length} characters
+        <p className="text-sm text-preik-text-muted">
+          {prompt.length} tegn
         </p>
 
         {isAdmin ? (
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-5 py-2.5 text-sm font-medium rounded-xl text-white bg-preik-accent hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-preik-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? "Lagrer..." : "Lagre endringer"}
           </button>
         ) : (
-          <p className="text-sm text-yellow-600">
-            You need admin role to edit this prompt
+          <p className="text-sm text-preik-accent">
+            Du trenger admin-tilgang for å redigere denne prompten
           </p>
         )}
       </div>

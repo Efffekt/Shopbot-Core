@@ -30,14 +30,15 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Your Tenants</h1>
+      <h1 className="text-3xl font-brand font-light text-preik-text mb-8">
+        Dine prosjekter
+      </h1>
 
       {tenants.length === 0 ? (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h2 className="text-lg font-medium text-yellow-800">No Access</h2>
-          <p className="mt-2 text-yellow-700">
-            You don&apos;t have access to any tenants yet. Please contact an
-            administrator to grant you access.
+        <div className="bg-preik-accent/10 border border-preik-accent/20 rounded-2xl p-8">
+          <h2 className="text-lg font-medium text-preik-text">Ingen tilgang</h2>
+          <p className="mt-2 text-preik-text-muted">
+            Du har ikke tilgang til noen prosjekter ennå. Kontakt en administrator for å få tilgang.
           </p>
         </div>
       ) : (
@@ -48,16 +49,16 @@ export default async function DashboardPage() {
               <Link
                 key={access.tenant_id}
                 href={`/dashboard/${access.tenant_id}`}
-                className="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
+                className="block bg-preik-surface rounded-2xl border border-preik-border p-6 hover:border-preik-accent transition-colors"
               >
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-preik-text">
                   {config?.name || access.tenant_id}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Role: <span className="capitalize">{access.role}</span>
+                <p className="mt-1 text-sm text-preik-text-muted">
+                  Rolle: <span className="capitalize">{access.role === "admin" ? "Administrator" : "Leser"}</span>
                 </p>
                 {config && (
-                  <p className="mt-2 text-sm text-gray-600">{config.persona}</p>
+                  <p className="mt-3 text-sm text-preik-text-muted">{config.persona}</p>
                 )}
               </Link>
             );

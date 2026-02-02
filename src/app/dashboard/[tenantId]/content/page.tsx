@@ -32,17 +32,20 @@ export default async function ContentPage({ params }: PageProps) {
       <div className="mb-6">
         <Link
           href={`/dashboard/${tenantId}`}
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-sm text-preik-text-muted hover:text-preik-text transition-colors inline-flex items-center gap-1"
         >
-          &larr; Back to {config?.name || tenantId}
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Tilbake til {config?.name || tenantId}
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Content Management</h1>
-          <p className="mt-1 text-gray-600">
-            View and manage your chatbot&apos;s knowledge base
+          <h1 className="text-2xl font-brand font-light text-preik-text">Innholdsadministrasjon</h1>
+          <p className="mt-1 text-preik-text-muted">
+            Se og administrer kunnskapsbasen til chatboten
           </p>
         </div>
 
