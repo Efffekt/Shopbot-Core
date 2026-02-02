@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   description: "Skreddersydde AI-assistenter for norske bedrifter. Ikke mer leting. Bare gode svar.",
 };
 
-// Inline script to set theme before render to prevent flash
-const themeScript = `
+// Inline script to set theme before render
+const initScript = `
   (function() {
     try {
       var stored = localStorage.getItem('preik-theme');
@@ -45,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="no" data-mode="light" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: initScript }} />
       </head>
       <body
         className={`${fraunces.variable} ${jakarta.variable} antialiased`}

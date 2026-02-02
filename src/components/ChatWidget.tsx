@@ -27,11 +27,17 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
   const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Only scroll within the container, not the whole page
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll to bottom when there are messages (not on initial mount)
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   useImperativeHandle(ref, () => ({
