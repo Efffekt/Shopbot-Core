@@ -30,6 +30,9 @@ export function Header() {
           <a href="#faq" className="text-sm text-preik-text-muted hover:text-preik-text transition-colors">
             FAQ
           </a>
+          <a href="#kontakt" className="text-sm text-preik-text-muted hover:text-preik-text transition-colors">
+            Kontakt
+          </a>
           <Link
             href="/login"
             className="text-sm text-preik-text-muted hover:text-preik-text transition-colors"

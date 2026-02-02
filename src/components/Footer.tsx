@@ -2,7 +2,7 @@
 
 export function Footer() {
   return (
-    <footer id="kontakt" className="bg-preik-bg border-t border-preik-border transition-colors duration-200">
+    <footer className="bg-preik-bg border-t border-preik-border transition-colors duration-200">
       <div className="max-w-6xl mx-auto border-l border-r border-preik-border">
         {/* Main footer content */}
         <div className="px-8 py-20">
@@ -32,6 +32,7 @@ export function Footer() {
                 <li><a href="#hvordan" className="hover:text-preik-text transition-colors">Demo</a></li>
                 <li><a href="#priser" className="hover:text-preik-text transition-colors">Priser</a></li>
                 <li><a href="#faq" className="hover:text-preik-text transition-colors">FAQ</a></li>
+                <li><a href="#kontakt" className="hover:text-preik-text transition-colors">Kontakt</a></li>
               </ul>
             </div>
 
