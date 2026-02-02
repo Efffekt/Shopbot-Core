@@ -1,15 +1,34 @@
-// Chat API - Gemini 3 Flash Preview - v2 FORCED NON-STREAMING
-// Force rebuild: 2026-02-01T20:28:00
+// Chat API - Gemini 2.0 Flash with OpenAI fallback for rate limits
+// Force rebuild: 2026-02-02T12:00:00
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+
+// Retry configuration
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
 import { supabaseAdmin } from "@/lib/supabase";
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
+
+// Helper to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Check if error is a rate limit error
+function isRateLimitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return message.includes('429') ||
+           message.includes('rate limit') ||
+           message.includes('resource exhausted') ||
+           message.includes('quota');
+  }
+  return false;
+}
 import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
 
@@ -340,27 +359,55 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      const result = await generateText({
-        model: google("gemini-2.0-flash"),
-        system: fullSystemPrompt,
-        messages: normalizedMessages,
-      });
+      let result: { text: string };
+      let modelUsed = "gemini-2.0-flash";
+
+      // Try Gemini with retries, fall back to OpenAI if rate limited
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          if (attempt < MAX_RETRIES) {
+            // Try Gemini first
+            result = await generateText({
+              model: google("gemini-2.0-flash"),
+              system: fullSystemPrompt,
+              messages: normalizedMessages,
+            });
+          } else {
+            // Final attempt: use OpenAI as fallback
+            console.log(`⚠️ [${storeId}] Gemini rate limited, falling back to OpenAI`);
+            modelUsed = "gpt-4o-mini";
+            result = await generateText({
+              model: openai("gpt-4o-mini"),
+              system: fullSystemPrompt,
+              messages: normalizedMessages,
+            });
+          }
+          break; // Success, exit retry loop
+        } catch (error) {
+          if (isRateLimitError(error) && attempt < MAX_RETRIES) {
+            console.log(`⏳ [${storeId}] Rate limited, retry ${attempt + 1}/${MAX_RETRIES} after ${RETRY_DELAY_MS}ms`);
+            await delay(RETRY_DELAY_MS * (attempt + 1)); // Exponential backoff
+            continue;
+          }
+          throw error; // Non-rate-limit error or out of retries
+        }
+      }
 
       timings.aiTotal = Date.now() - aiStart;
       timings.total = Date.now() - start;
-      console.log(`✅ [${storeId}] AI response (non-streaming): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
+      console.log(`✅ [${storeId}] AI response (non-streaming, ${modelUsed}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
 
       // Log conversation
       logConversation({
         storeId,
         sessionId,
         userQuery: lastUserText,
-        aiResponse: result.text,
+        aiResponse: result!.text,
         metadata: {
           docsFound,
           timestamp: new Date().toISOString(),
           tenant: tenantConfig.name,
-          model: "gemini-2.0-flash",
+          model: modelUsed,
           timings,
           nonStreaming: true,
         },
@@ -370,7 +417,7 @@ export async function POST(request: NextRequest) {
       return new Response(
         JSON.stringify({
           role: "assistant",
-          content: result.text,
+          content: result!.text,
         }),
         {
           status: 200,
@@ -384,32 +431,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Streaming mode (default)
-    const result = streamText({
-      model: google("gemini-2.0-flash"),
-      system: fullSystemPrompt,
-      messages: normalizedMessages,
-      onFinish: async ({ text }) => {
-        timings.aiTotal = Date.now() - aiStart;
-        timings.total = Date.now() - start;
-        console.log(`✅ [${storeId}] AI response: ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
-
-        // Log conversation after streaming completes (fire and forget)
-        logConversation({
-          storeId,
-          sessionId,
-          userQuery: lastUserText,
-          aiResponse: text,
-          metadata: {
-            docsFound,
-            timestamp: new Date().toISOString(),
-            tenant: tenantConfig.name,
-            model: "gemini-2.0-flash",
-            timings,
-          },
-        });
-      },
-    });
+    // Streaming mode (default) - try Gemini with OpenAI fallback
+    let modelUsed = "gemini-2.0-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -423,10 +446,59 @@ export async function POST(request: NextRequest) {
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    // Use toTextStreamResponse (fallback streaming - should not be reached with useNonStreaming=true)
-    return result.toTextStreamResponse({
-      headers: streamHeaders,
-    });
+    // Try Gemini first, fall back to OpenAI if rate limited
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const model = attempt < MAX_RETRIES
+          ? google("gemini-2.0-flash")
+          : openai("gpt-4o-mini");
+
+        if (attempt === MAX_RETRIES) {
+          console.log(`⚠️ [${storeId}] Gemini rate limited, falling back to OpenAI for streaming`);
+          modelUsed = "gpt-4o-mini";
+        }
+
+        const result = streamText({
+          model,
+          system: fullSystemPrompt,
+          messages: normalizedMessages,
+          onFinish: async ({ text }) => {
+            timings.aiTotal = Date.now() - aiStart;
+            timings.total = Date.now() - start;
+            console.log(`✅ [${storeId}] AI response (${modelUsed}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
+
+            // Log conversation after streaming completes (fire and forget)
+            logConversation({
+              storeId,
+              sessionId,
+              userQuery: lastUserText,
+              aiResponse: text,
+              metadata: {
+                docsFound,
+                timestamp: new Date().toISOString(),
+                tenant: tenantConfig.name,
+                model: modelUsed,
+                timings,
+              },
+            });
+          },
+        });
+
+        return result.toTextStreamResponse({
+          headers: streamHeaders,
+        });
+      } catch (error) {
+        if (isRateLimitError(error) && attempt < MAX_RETRIES) {
+          console.log(`⏳ [${storeId}] Streaming rate limited, retry ${attempt + 1}/${MAX_RETRIES} after ${RETRY_DELAY_MS}ms`);
+          await delay(RETRY_DELAY_MS * (attempt + 1));
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    // This should never be reached, but TypeScript needs it
+    throw new Error("All retry attempts exhausted");
   } catch (error: unknown) {
     // Log full error for Vercel Logs debugging
     console.error("❌ Chat API Error:", error);
