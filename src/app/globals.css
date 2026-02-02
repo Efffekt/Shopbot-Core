@@ -52,8 +52,11 @@
   --font-brand: var(--font-fraunces);
 }
 
-html {
-  scroll-behavior: smooth;
+/* Only enable smooth scroll for in-page navigation, not on page load */
+@media (prefers-reduced-motion: no-preference) {
+  html:focus-within {
+    scroll-behavior: smooth;
+  }
 }
 
 html,

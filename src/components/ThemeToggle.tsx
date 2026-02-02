@@ -5,21 +5,15 @@ import { useEffect, useState } from "react";
 type Theme = "light" | "dark";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem("preik-theme") as Theme | null;
-    if (stored) {
-      setTheme(stored);
-      document.documentElement.setAttribute("data-mode", stored);
-    } else {
-      // Default to dark or check system preference
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const initialTheme = prefersDark ? "dark" : "light";
-      setTheme(initialTheme);
-      document.documentElement.setAttribute("data-mode", initialTheme);
+    // Read the actual theme from the DOM (set by inline script in layout)
+    const currentTheme = document.documentElement.getAttribute("data-mode") as Theme;
+    if (currentTheme) {
+      setTheme(currentTheme);
     }
   }, []);
 
