@@ -307,6 +307,65 @@ export function getTenantConfig(storeId: string | undefined | null): TenantConfi
   return TENANT_CONFIGS[storeId];
 }
 
+/**
+ * Fetches tenant config from database, falls back to hardcoded config.
+ * Use this for runtime config that may be stored in DB.
+ */
+export async function getTenantConfigFromDB(storeId: string): Promise<TenantConfig> {
+  // First check hardcoded configs
+  if (TENANT_CONFIGS[storeId]) {
+    return TENANT_CONFIGS[storeId];
+  }
+
+  // Then check database
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("tenants")
+      .select("*")
+      .eq("id", storeId)
+      .single();
+
+    if (error || !data) {
+      console.warn(`Tenant ${storeId} not found in DB, using default`);
+      return TENANT_CONFIGS[DEFAULT_TENANT];
+    }
+
+    // Convert DB format to TenantConfig
+    return {
+      id: data.id,
+      name: data.name,
+      language: data.language || "no",
+      persona: data.persona || "",
+      systemPrompt: "", // Will be fetched separately via getTenantSystemPrompt
+      allowedDomains: data.allowed_domains || [],
+      features: data.features || {
+        synonymMapping: false,
+        codeBlockFormatting: false,
+        boatExpertise: false,
+      },
+    };
+  } catch (err) {
+    console.error(`Error fetching tenant ${storeId} from DB:`, err);
+    return TENANT_CONFIGS[DEFAULT_TENANT];
+  }
+}
+
+/**
+ * Validates origin for database-stored tenants
+ */
+export async function validateOriginFromDB(
+  storeId: string,
+  origin: string | null,
+  referer: string | null
+): Promise<{ allowed: boolean; reason?: string }> {
+  if (process.env.NODE_ENV === "development") {
+    return { allowed: true };
+  }
+
+  const config = await getTenantConfigFromDB(storeId);
+  return validateOrigin(config, origin, referer);
+}
+
 export function getAllTenants(): TenantConfig[] {
   return Object.values(TENANT_CONFIGS);
 }
