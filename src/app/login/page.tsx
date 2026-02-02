@@ -115,10 +115,10 @@ export default function LoginPage() {
               <p className="text-sm text-preik-text-muted">
                 Har du ikke en konto?{" "}
                 <Link
-                  href="/signup"
+                  href="/#kontakt"
                   className="text-preik-accent hover:text-preik-accent-hover font-medium transition-colors"
                 >
-                  Registrer deg
+                  Kontakt oss
                 </Link>
               </p>
             </div>

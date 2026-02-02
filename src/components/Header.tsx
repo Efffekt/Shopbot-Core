@@ -39,12 +39,12 @@ export function Header() {
           >
             Logg inn
           </Link>
-          <Link
-            href="/signup"
+          <a
+            href="#kontakt"
             className="text-sm font-medium bg-preik-accent text-white px-4 py-2 rounded-full hover:bg-preik-accent-hover transition-colors"
           >
             Kom i gang
-          </Link>
+          </a>
           <ThemeToggle />
         </div>
 
