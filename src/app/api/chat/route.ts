@@ -1,10 +1,9 @@
-// Chat API - Gemini 2.0 Flash via Vertex AI with OpenAI fallback
+// Chat API - Gemini 2.0 Flash via Vertex AI (global endpoint) with OpenAI fallback
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createVertex } from "@ai-sdk/google-vertex";
-import { GoogleAuth } from "google-auth-library";
 
 // Retry configuration
 const MAX_RETRIES = 2;
@@ -24,54 +23,36 @@ function getCredentials() {
   console.log(`🔑 [getCredentials] Key length: ${key.length}, starts with: ${key.slice(0, 50)}...`);
 
   try {
-    // First try direct parse (for properly escaped JSON)
-    console.log("🔑 [getCredentials] Trying direct JSON.parse...");
+    // Parse the JSON
+    console.log("🔑 [getCredentials] Parsing JSON...");
     const creds = JSON.parse(key);
 
-    // CRITICAL: Ensure private_key has actual newlines, not escaped \n
-    // Vercel might store the JSON with literal \n instead of newlines
-    if (creds.private_key && typeof creds.private_key === 'string') {
-      const originalLength = creds.private_key.length;
-      // Replace literal \n with actual newlines
-      creds.private_key = creds.private_key.replace(/\\n/g, '\n');
-      console.log(`🔑 [getCredentials] Private key newline fix: ${originalLength} -> ${creds.private_key.length} chars`);
-      console.log(`🔑 [getCredentials] Private key starts with: ${creds.private_key.slice(0, 40)}`);
-      console.log(`🔑 [getCredentials] Private key ends with: ${creds.private_key.slice(-40)}`);
+    // Safety net - ensures newlines are real using split/join method
+    if (creds.private_key) {
+      const originalKey = creds.private_key;
+      creds.private_key = creds.private_key.split(String.raw`\n`).join('\n');
+      console.log(`🔑 [getCredentials] Private key newline fix applied`);
+      console.log(`🔑 [getCredentials] Private key starts with: ${creds.private_key.slice(0, 50)}`);
+      console.log(`🔑 [getCredentials] Private key ends with: ${creds.private_key.slice(-50)}`);
       console.log(`🔑 [getCredentials] Contains actual newlines: ${creds.private_key.includes('\n')}`);
+      console.log(`🔑 [getCredentials] Newline count: ${(creds.private_key.match(/\n/g) || []).length}`);
     }
 
-    console.log("✅ [getCredentials] Direct parse SUCCESS:", {
+    console.log("✅ [getCredentials] Parse SUCCESS:", {
       type: creds.type,
       project_id: creds.project_id,
       client_email: creds.client_email,
       private_key_length: creds.private_key?.length || 0,
     });
     return creds;
-  } catch (e1) {
-    console.error("❌ [getCredentials] Direct parse failed:", (e1 as Error).message);
-
-    // If that fails, try replacing escaped newlines before parsing
-    try {
-      console.log("🔑 [getCredentials] Trying with pre-parse newline replacement...");
-      const fixedKey = key.replace(/\\n/g, '\n');
-      const creds = JSON.parse(fixedKey);
-      console.log("✅ [getCredentials] Newline fix parse SUCCESS:", {
-        type: creds.type,
-        project_id: creds.project_id,
-        client_email: creds.client_email,
-        private_key_length: creds.private_key?.length || 0,
-      });
-      return creds;
-    } catch (e2) {
-      console.error("❌ [getCredentials] Newline fix parse FAILED:", (e2 as Error).message);
-      console.error("❌ [getCredentials] Key preview (first 200 chars):", key.slice(0, 200));
-      console.error("❌ [getCredentials] Key preview (around pos 100-150):", key.slice(100, 150));
-      return undefined;
-    }
+  } catch (e) {
+    console.error("❌ [getCredentials] Parse FAILED:", (e as Error).message);
+    console.error("❌ [getCredentials] Key preview (first 200 chars):", key.slice(0, 200));
+    return undefined;
   }
 }
 
-// Create Vertex AI client
+// Create Vertex AI client with global endpoint (avoids regional burst limits / 429 errors)
 function getVertex() {
   console.log("🏗️ [getVertex] Creating Vertex AI client...");
   const credentials = getCredentials();
@@ -84,23 +65,15 @@ function getVertex() {
   }
 
   const project = process.env.GOOGLE_CLOUD_PROJECT;
-  // Use us-central1 for Gemini models
-  const location = "us-central1";
+  // Use global endpoint to avoid regional burst limits (429 errors)
+  const location = "global";
   console.log(`🏗️ [getVertex] Project: ${project}, Location: ${location}`);
-
-  // Create GoogleAuth client explicitly
-  console.log("🏗️ [getVertex] Creating GoogleAuth client...");
-  const auth = new GoogleAuth({
-    credentials: credentials,
-    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-  });
-  console.log("✅ [getVertex] GoogleAuth client created");
 
   const vertex = createVertex({
     project: project!,
     location: location,
     googleAuthOptions: {
-      authClient: auth,
+      credentials: credentials,
     },
   });
 
