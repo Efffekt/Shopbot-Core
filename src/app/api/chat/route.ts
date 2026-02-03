@@ -364,14 +364,14 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-1.5-flash";
+      let modelUsed = "gemini-2.5-flash";
       let result: { text: string } | undefined;
 
       // Try up to 2 times with Gemini
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           result = await generateText({
-            model: google("gemini-1.5-flash"),
+            model: google("gemini-2.5-flash"),
             system: fullSystemPrompt,
             messages: normalizedMessages,
           });
@@ -429,7 +429,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - use Gemini for speed with quick retry on 429
-    let modelUsed = "gemini-1.5-flash";
+    let modelUsed = "gemini-2.5-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -449,7 +449,7 @@ export async function POST(request: NextRequest) {
         console.log(`🚀 [${storeId}] Starting streamText (attempt ${attempt + 1})...`);
 
         const result = streamText({
-          model: google("gemini-1.5-flash"),
+          model: google("gemini-2.5-flash"),
           system: fullSystemPrompt,
           messages: normalizedMessages,
           onChunk: ({ chunk }) => {
