@@ -11,10 +11,18 @@ const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 500;
 import { supabaseAdmin } from "@/lib/supabase";
 
+// Parse service account credentials from environment variable
+const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+  ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
+  : undefined;
+
 // Use Vertex AI with global endpoint for better availability
 const vertex = createVertex({
   project: process.env.GOOGLE_CLOUD_PROJECT!,
   location: "global",
+  googleAuthOptions: {
+    credentials,
+  },
 });
 
 // Helper to delay execution
