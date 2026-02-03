@@ -26,6 +26,19 @@ function getCredentials() {
     // First try direct parse (for properly escaped JSON)
     console.log("🔑 [getCredentials] Trying direct JSON.parse...");
     const creds = JSON.parse(key);
+
+    // CRITICAL: Ensure private_key has actual newlines, not escaped \n
+    // Vercel might store the JSON with literal \n instead of newlines
+    if (creds.private_key && typeof creds.private_key === 'string') {
+      const originalLength = creds.private_key.length;
+      // Replace literal \n with actual newlines
+      creds.private_key = creds.private_key.replace(/\\n/g, '\n');
+      console.log(`🔑 [getCredentials] Private key newline fix: ${originalLength} -> ${creds.private_key.length} chars`);
+      console.log(`🔑 [getCredentials] Private key starts with: ${creds.private_key.slice(0, 40)}`);
+      console.log(`🔑 [getCredentials] Private key ends with: ${creds.private_key.slice(-40)}`);
+      console.log(`🔑 [getCredentials] Contains actual newlines: ${creds.private_key.includes('\n')}`);
+    }
+
     console.log("✅ [getCredentials] Direct parse SUCCESS:", {
       type: creds.type,
       project_id: creds.project_id,
@@ -36,9 +49,9 @@ function getCredentials() {
   } catch (e1) {
     console.error("❌ [getCredentials] Direct parse failed:", (e1 as Error).message);
 
-    // If that fails, try replacing escaped newlines in private_key
+    // If that fails, try replacing escaped newlines before parsing
     try {
-      console.log("🔑 [getCredentials] Trying with newline replacement...");
+      console.log("🔑 [getCredentials] Trying with pre-parse newline replacement...");
       const fixedKey = key.replace(/\\n/g, '\n');
       const creds = JSON.parse(fixedKey);
       console.log("✅ [getCredentials] Newline fix parse SUCCESS:", {
