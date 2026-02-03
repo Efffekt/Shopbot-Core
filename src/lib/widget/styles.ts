@@ -26,7 +26,7 @@ export const DARK_THEME: ThemeColors = {
   accentText: "#FFFFFF",
 };
 
-export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: string): string {
+export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: string, brandStyle: "normal" | "italic" = "normal"): string {
   return `
     :host {
       --widget-bg: ${colors.bg};
@@ -197,6 +197,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     .brand-name {
       font-family: var(--widget-font-brand);
       font-weight: 600;
+      font-style: ${brandStyle};
       font-size: 17px;
       color: var(--widget-text);
     }

@@ -6,6 +6,7 @@ export interface WidgetConfig {
   textColor: string;
   fontBody: string;
   fontBrand: string;
+  brandStyle: "normal" | "italic";
   position: "bottom-right" | "bottom-left";
   greeting: string;
   placeholder: string;

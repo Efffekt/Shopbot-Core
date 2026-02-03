@@ -10,6 +10,7 @@ const DEFAULT_CONFIG: WidgetConfig = {
   textColor: "#111827",
   fontBody: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   fontBrand: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+  brandStyle: "normal",
   position: "bottom-right",
   greeting: "Hei! Hvordan kan jeg hjelpe deg i dag?",
   placeholder: "Skriv en melding...",
@@ -82,6 +83,7 @@ function parseConfig(): WidgetConfig {
     textColor: script.dataset.textColor || DEFAULT_CONFIG.textColor,
     fontBody: script.dataset.fontBody || DEFAULT_CONFIG.fontBody,
     fontBrand: script.dataset.fontBrand || DEFAULT_CONFIG.fontBrand,
+    brandStyle: (script.dataset.brandStyle as "normal" | "italic") || DEFAULT_CONFIG.brandStyle,
     position: (script.dataset.position as "bottom-right" | "bottom-left") || DEFAULT_CONFIG.position,
     greeting: script.dataset.greeting || DEFAULT_CONFIG.greeting,
     placeholder: script.dataset.placeholder || DEFAULT_CONFIG.placeholder,
@@ -223,7 +225,7 @@ class PreikChatWidget extends HTMLElement {
     const positionClass = this.config.position === "bottom-left" ? "left" : "right";
 
     this.shadow.innerHTML = `
-      <style>${getStyles(colors, this.config.fontBody, this.config.fontBrand)}</style>
+      <style>${getStyles(colors, this.config.fontBody, this.config.fontBrand, this.config.brandStyle)}</style>
 
       <button class="trigger ${positionClass}" aria-label="Open chat">
         ${ICONS.chat}
@@ -343,7 +345,7 @@ class PreikChatWidget extends HTMLElement {
     const colors = getThemeColors(this.config);
     const styleEl = this.shadow.querySelector("style");
     if (styleEl) {
-      styleEl.textContent = getStyles(colors, this.config.fontBody, this.config.fontBrand);
+      styleEl.textContent = getStyles(colors, this.config.fontBody, this.config.fontBrand, this.config.brandStyle);
     }
   }
 
