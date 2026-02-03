@@ -101,9 +101,9 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
   };
 
   return (
-    <div className="bg-[#F9FAFB] rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px] w-full max-w-[400px]">
+    <div className="bg-preik-bg rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px] w-full max-w-[400px] transition-colors">
       {/* Header */}
-      <div className="px-5 py-4 bg-white border-b border-[#E5E7EB] flex items-center justify-between">
+      <div className="px-5 py-4 bg-preik-surface border-b border-preik-border flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -115,8 +115,8 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
             </svg>
           </div>
           <div>
-            <p className="font-brand font-semibold italic text-[17px] text-[#111827]">{brandName}</p>
-            <p className="text-[13px] text-[#6B7280] flex items-center gap-1.5">
+            <p className="font-brand font-semibold italic text-[17px] text-preik-text transition-colors">{brandName}</p>
+            <p className="text-[13px] text-preik-text-muted flex items-center gap-1.5 transition-colors">
               <span className="w-2 h-2 rounded-full bg-green-500" />
               Online
             </p>
@@ -125,7 +125,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         <div className="flex items-center gap-1">
           <button
             onClick={clearMessages}
-            className="p-2 rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] hover:text-red-500 transition-all opacity-70 hover:opacity-100"
+            className="p-2 rounded-lg text-preik-text-muted hover:bg-preik-bg hover:text-red-500 transition-all opacity-70 hover:opacity-100"
             title="Slett samtale"
           >
             <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -140,7 +140,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
       <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
         {messages.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-center px-5">
-            <p className="text-[15px] text-[#6B7280] max-w-[300px] leading-relaxed">
+            <p className="text-[15px] text-preik-text-muted max-w-[300px] leading-relaxed transition-colors">
               {greeting}
             </p>
           </div>
@@ -154,10 +154,10 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
             }`}
           >
             <div
-              className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed ${
+              className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed transition-colors ${
                 message.role === "user"
                   ? "bg-preik-accent text-white rounded-br-sm"
-                  : "bg-white text-[#111827] border border-[#E5E7EB] rounded-bl-sm"
+                  : "bg-preik-surface text-preik-text border border-preik-border rounded-bl-sm"
               }`}
             >
               <p className="whitespace-pre-wrap">{message.content}</p>
@@ -167,10 +167,10 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
 
         {isLoading && (
           <div className="self-start">
-            <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm border border-[#E5E7EB] flex items-center gap-1">
-              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1.4s" }} />
-              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "160ms", animationDuration: "1.4s" }} />
-              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "320ms", animationDuration: "1.4s" }} />
+            <div className="bg-preik-surface px-4 py-3 rounded-2xl rounded-bl-sm border border-preik-border flex items-center gap-1 transition-colors">
+              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1.4s" }} />
+              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "160ms", animationDuration: "1.4s" }} />
+              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "320ms", animationDuration: "1.4s" }} />
             </div>
           </div>
         )}
@@ -179,8 +179,8 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
       </div>
 
       {/* Input area */}
-      <div className="px-5 py-4 bg-white border-t border-[#E5E7EB]">
-        <div className="flex items-center gap-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-full pl-4 pr-1 py-1 focus-within:border-preik-accent focus-within:ring-[3px] focus-within:ring-preik-accent/10 transition-all">
+      <div className="px-5 py-4 bg-preik-surface border-t border-preik-border transition-colors">
+        <div className="flex items-center gap-3 bg-preik-bg border border-preik-border rounded-full pl-4 pr-1 py-1 focus-within:border-preik-accent focus-within:ring-[3px] focus-within:ring-preik-accent/10 transition-all">
           <input
             ref={inputRef}
             type="text"
@@ -188,7 +188,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="flex-1 bg-transparent text-[15px] text-[#111827] placeholder:text-[#6B7280] outline-none min-w-0"
+            className="flex-1 bg-transparent text-[15px] text-preik-text placeholder:text-preik-text-muted outline-none min-w-0 transition-colors"
             disabled={isLoading}
           />
           <button
@@ -208,7 +208,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
           href="https://preik.no"
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-center mt-2.5 text-[11px] text-[#6B7280] no-underline opacity-60 hover:opacity-100 transition-opacity"
+          className="block text-center mt-2.5 text-[11px] text-preik-text-muted no-underline opacity-60 hover:opacity-100 transition-opacity"
         >
           Levert av <span className="font-brand font-semibold italic">preik</span>
         </a>

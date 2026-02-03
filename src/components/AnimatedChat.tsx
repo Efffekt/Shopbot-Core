@@ -86,9 +86,9 @@ export function AnimatedChat() {
   }, []);
 
   return (
-    <div className="w-full max-w-[400px] bg-[#F9FAFB] rounded-2xl shadow-2xl overflow-hidden transition-colors duration-200">
+    <div className="w-full max-w-[400px] bg-preik-bg rounded-2xl shadow-2xl overflow-hidden transition-colors duration-200">
       {/* Header - matches widget exactly */}
-      <div className="px-5 py-4 bg-white border-b border-[#E5E7EB] flex items-center justify-between">
+      <div className="px-5 py-4 bg-preik-surface border-b border-preik-border flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -100,21 +100,21 @@ export function AnimatedChat() {
             </svg>
           </div>
           <div>
-            <p className="font-brand font-semibold italic text-[17px] text-[#111827]">preik</p>
-            <p className="text-[13px] text-[#6B7280] flex items-center gap-1.5">
+            <p className="font-brand font-semibold italic text-[17px] text-preik-text transition-colors">preik</p>
+            <p className="text-[13px] text-preik-text-muted flex items-center gap-1.5 transition-colors">
               <span className="w-2 h-2 rounded-full bg-green-500" />
               Online
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button className="p-2 rounded-lg text-[#6B7280] opacity-70">
+          <button className="p-2 rounded-lg text-preik-text-muted opacity-70 transition-colors">
             <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
           </button>
-          <button className="p-2 rounded-lg text-[#6B7280]">
+          <button className="p-2 rounded-lg text-preik-text-muted transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -132,10 +132,10 @@ export function AnimatedChat() {
             }`}
           >
             <div
-              className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed ${
+              className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed transition-colors ${
                 message.role === "user"
                   ? "bg-preik-accent text-white rounded-br-sm"
-                  : "bg-white text-[#111827] border border-[#E5E7EB] rounded-bl-sm"
+                  : "bg-preik-surface text-preik-text border border-preik-border rounded-bl-sm"
               }`}
             >
               <p>{message.content}</p>
@@ -146,7 +146,7 @@ export function AnimatedChat() {
         {/* Streaming message */}
         {isStreaming && (
           <div className="self-start max-w-[85%] animate-fade-in">
-            <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-white border border-[#E5E7EB] text-[#111827]">
+            <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-preik-surface border border-preik-border text-preik-text transition-colors">
               <p className="text-[15px] leading-relaxed">
                 {streamedText}
                 <span className="inline-block w-0.5 h-4 bg-preik-accent ml-0.5 animate-pulse" />
@@ -158,30 +158,30 @@ export function AnimatedChat() {
         {/* Typing indicator */}
         {isTyping && (
           <div className="self-start animate-fade-in">
-            <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm border border-[#E5E7EB] flex items-center gap-1">
-              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1.4s" }} />
-              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "160ms", animationDuration: "1.4s" }} />
-              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "320ms", animationDuration: "1.4s" }} />
+            <div className="bg-preik-surface px-4 py-3 rounded-2xl rounded-bl-sm border border-preik-border flex items-center gap-1 transition-colors">
+              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1.4s" }} />
+              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "160ms", animationDuration: "1.4s" }} />
+              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "320ms", animationDuration: "1.4s" }} />
             </div>
           </div>
         )}
       </div>
 
       {/* Input area */}
-      <div className="px-5 py-4 bg-white border-t border-[#E5E7EB]">
-        <div className={`flex items-center gap-3 bg-[#F9FAFB] border rounded-full pl-4 pr-1 py-1 transition-all duration-200 ${
+      <div className="px-5 py-4 bg-preik-surface border-t border-preik-border transition-colors">
+        <div className={`flex items-center gap-3 bg-preik-bg border rounded-full pl-4 pr-1 py-1 transition-all duration-200 ${
           userTypingText
             ? "border-preik-accent ring-[3px] ring-preik-accent/10"
-            : "border-[#E5E7EB]"
+            : "border-preik-border"
         }`}>
           <span className="flex-1 text-[15px] min-w-0">
             {userTypingText ? (
-              <span className="text-[#111827]">
+              <span className="text-preik-text transition-colors">
                 {userTypingText}
                 <span className="inline-block w-0.5 h-4 bg-preik-accent ml-0.5 animate-pulse" />
               </span>
             ) : (
-              <span className="text-[#6B7280]">Skriv en melding...</span>
+              <span className="text-preik-text-muted transition-colors">Skriv en melding...</span>
             )}
           </span>
           <div
@@ -197,7 +197,7 @@ export function AnimatedChat() {
         </div>
 
         {/* Watermark */}
-        <p className="text-center mt-2.5 text-[11px] text-[#6B7280] opacity-60">
+        <p className="text-center mt-2.5 text-[11px] text-preik-text-muted opacity-60 transition-colors">
           Levert av <span className="font-brand font-semibold italic">preik</span>
         </p>
       </div>

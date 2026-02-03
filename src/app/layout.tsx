@@ -26,7 +26,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="no" data-mode="light">
+    <html lang="no" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-mode', mode);
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+                  document.documentElement.setAttribute('data-mode', e.matches ? 'dark' : 'light');
+                });
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${fraunces.variable} ${jakarta.variable} antialiased`}
       >
