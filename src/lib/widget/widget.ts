@@ -546,6 +546,7 @@ class PreikChatWidget extends HTMLElement {
 
       const decoder = new TextDecoder();
       let assistantContent = "";
+      let streamingStarted = false;
 
       // Add empty assistant message that we'll update
       const assistantMessage: Message = {
@@ -561,8 +562,17 @@ class PreikChatWidget extends HTMLElement {
         const { done, value } = await reader.read();
         if (done) break;
 
+        streamingStarted = true;
         const chunk = decoder.decode(value, { stream: true });
         assistantContent += chunk;
+        assistantMessage.content = assistantContent;
+        this.updateMessages();
+      }
+
+      // Final decode to flush any remaining bytes
+      const remaining = decoder.decode();
+      if (remaining) {
+        assistantContent += remaining;
         assistantMessage.content = assistantContent;
         this.updateMessages();
       }
@@ -571,9 +581,9 @@ class PreikChatWidget extends HTMLElement {
     } catch (error) {
       clearTimeout(timeoutId);
 
-      // Check if it was a manual cancel (not a timeout)
+      // Check if it was an abort (user cancelled or timeout)
       if ((error as Error).name === "AbortError") {
-        // Show timeout error if loading was still true (meaning it wasn't manually cancelled)
+        // Only show error if we haven't received any response yet
         if (this.state.isLoading) {
           this.state.isLoading = false;
           this.state.error = "Forespørselen tok for lang tid. Prøv igjen.";
