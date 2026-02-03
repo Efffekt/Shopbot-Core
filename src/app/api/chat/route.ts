@@ -518,16 +518,27 @@ export async function POST(request: NextRequest) {
 
       try {
         console.log(`🚀 [${storeId}] Trying ${name}...`);
+        console.log(`📝 [${storeId}] System prompt: ${fullSystemPrompt.length} chars, Messages: ${normalizedMessages.length}`);
+
         const result = streamText({
           model: provider,
           system: fullSystemPrompt,
           messages: normalizedMessages,
+          onChunk: ({ chunk }) => {
+            if (chunk.type === 'text-delta') {
+              console.log(`📦 [${storeId}] Chunk: "${chunk.text.slice(0, 50)}..."`);
+            }
+          },
           onFinish: async ({ text, finishReason, usage }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
             console.log(`✅ [${storeId}] ${modelUsed}: ${timings.aiTotal}ms | ${text.length} chars | ${finishReason}`);
+            console.log(`📄 [${storeId}] Response: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"`);
+            if (usage) {
+              console.log(`📊 [${storeId}] Usage: ${JSON.stringify(usage)}`);
+            }
             if (text.length === 0) {
-              console.error(`❌ [${storeId}] EMPTY RESPONSE! usage: ${JSON.stringify(usage)}`);
+              console.error(`❌ [${storeId}] EMPTY RESPONSE! finishReason: ${finishReason}, usage: ${JSON.stringify(usage)}`);
             }
 
             // Log conversation (fire and forget)
@@ -553,12 +564,16 @@ export async function POST(request: NextRequest) {
           headers: streamHeaders,
         });
       } catch (error) {
+        console.error(`❌ [${storeId}] Error with ${name}:`, error);
+        console.error(`❌ [${storeId}] Error type: ${(error as Error).constructor.name}`);
+        console.error(`❌ [${storeId}] Error message: ${(error as Error).message}`);
+        console.error(`❌ [${storeId}] Error stack: ${(error as Error).stack}`);
+
         const isLast = i === models.length - 1;
         if (isRateLimitError(error) && !isLast) {
           console.log(`⚠️ [${storeId}] ${name} rate limited, trying ${models[i + 1].name}...`);
           continue;
         }
-        console.error(`❌ [${storeId}] Streaming error (${name}):`, error);
         throw error;
       }
     }
