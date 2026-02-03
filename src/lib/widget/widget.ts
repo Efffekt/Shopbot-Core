@@ -273,7 +273,7 @@ class PreikChatWidget extends HTMLElement {
             </button>
           </div>
           <a href="https://preik.no" target="_blank" rel="noopener noreferrer" class="watermark">
-            Levert av <span class="watermark-brand">Preik</span>
+            Levert av <span class="watermark-brand">preik</span>
           </a>
         </div>
       </div>
