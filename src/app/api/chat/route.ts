@@ -520,9 +520,9 @@ export async function POST(request: NextRequest) {
           system: fullSystemPrompt,
           messages: normalizedMessages,
           onChunk: ({ chunk }) => {
-            // Log first chunk to verify streaming is working
+            // Log chunks to verify streaming is working
             if (chunk.type === 'text-delta') {
-              console.log(`📦 [${storeId}] First chunk received: "${chunk.textDelta.slice(0, 50)}..."`);
+              console.log(`📦 [${storeId}] Chunk: "${chunk.text.slice(0, 30)}..."`);
             }
           },
           onFinish: async ({ text, finishReason, usage }) => {
