@@ -462,6 +462,27 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       height: 18px;
     }
 
+    /* Watermark */
+    .watermark {
+      display: block;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--widget-text-muted);
+      text-decoration: none;
+      opacity: 0.6;
+      transition: opacity 0.15s ease;
+    }
+
+    .watermark:hover {
+      opacity: 1;
+    }
+
+    .watermark-brand {
+      font-weight: 600;
+      font-style: italic;
+    }
+
     /* Error State */
     .error {
       display: flex;
