@@ -364,14 +364,14 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-2.5-flash";
+      let modelUsed = "gemini-1.5-flash";
       let result: { text: string } | undefined;
 
       // Try up to 2 times with Gemini
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           result = await generateText({
-            model: google("gemini-2.5-flash-preview-05-20"),
+            model: google("gemini-1.5-flash"),
             system: fullSystemPrompt,
             messages: normalizedMessages,
           });
@@ -429,7 +429,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - use Gemini for speed with quick retry on 429
-    let modelUsed = "gemini-2.5-flash";
+    let modelUsed = "gemini-1.5-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -446,14 +446,27 @@ export async function POST(request: NextRequest) {
     // Try up to 2 times with Gemini (quick retry on rate limit)
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
+        console.log(`🚀 [${storeId}] Starting streamText (attempt ${attempt + 1})...`);
+
         const result = streamText({
-          model: google("gemini-2.5-flash-preview-05-20"),
+          model: google("gemini-1.5-flash"),
           system: fullSystemPrompt,
           messages: normalizedMessages,
-          onFinish: async ({ text }) => {
+          onChunk: ({ chunk }) => {
+            if (chunk.type === 'text-delta') {
+              console.log(`📝 [${storeId}] Chunk: ${chunk.textDelta.slice(0, 50)}...`);
+            }
+          },
+          onFinish: async ({ text, finishReason, usage }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
-            console.log(`✅ [${storeId}] AI response (${modelUsed}, attempt ${attempt + 1}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
+            console.log(`✅ [${storeId}] AI response (${modelUsed}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms | ${text.length} chars | reason: ${finishReason}`);
+            if (usage) {
+              console.log(`📊 [${storeId}] Usage: ${usage.promptTokens} prompt + ${usage.completionTokens} completion = ${usage.totalTokens} total`);
+            }
+            if (text.length === 0) {
+              console.error(`⚠️ [${storeId}] EMPTY RESPONSE from model!`);
+            }
 
             // Log conversation (fire and forget, don't await)
             logConversation({
@@ -468,11 +481,16 @@ export async function POST(request: NextRequest) {
                 model: modelUsed,
                 timings,
                 attempt: attempt + 1,
+                finishReason,
               },
             });
           },
+          onError: (error) => {
+            console.error(`❌ [${storeId}] Stream error callback:`, error);
+          },
         });
 
+        console.log(`📤 [${storeId}] Returning stream response...`);
         return result.toTextStreamResponse({
           headers: streamHeaders,
         });
