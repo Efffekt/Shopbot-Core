@@ -363,6 +363,9 @@ class PreikChatWidget extends HTMLElement {
 
   private updateMessages() {
     if (this.messagesContainer) {
+      const lastMsg = this.state.messages[this.state.messages.length - 1];
+      console.log(`[Preik] 🔄 updateMessages: ${this.state.messages.length} msgs, last content: ${lastMsg?.content?.length || 0} chars`);
+
       this.messagesContainer.innerHTML = this.renderMessages();
       this.scrollToBottom();
 
@@ -555,9 +558,12 @@ class PreikChatWidget extends HTMLElement {
         throw new Error("No response body");
       }
 
+      console.log(`[Preik] 🔄 Starting stream read...`);
+
       const decoder = new TextDecoder();
       let assistantContent = "";
       let streamingStarted = false;
+      let chunkCount = 0;
 
       // Add empty assistant message that we'll update
       const assistantMessage: Message = {
@@ -568,11 +574,18 @@ class PreikChatWidget extends HTMLElement {
       };
       this.state.messages.push(assistantMessage);
       this.state.isLoading = false;
+      console.log(`[Preik] 📝 Added empty assistant message, calling updateMessages...`);
       this.updateMessages();
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+
+        if (done) {
+          console.log(`[Preik] 🏁 Stream done after ${chunkCount} chunks`);
+          break;
+        }
+
+        chunkCount++;
 
         if (!streamingStarted) {
           streamingStarted = true;
@@ -581,14 +594,20 @@ class PreikChatWidget extends HTMLElement {
         }
 
         const chunk = decoder.decode(value, { stream: true });
+        console.log(`[Preik] 📦 Chunk #${chunkCount}: "${chunk.slice(0, 30)}..." (${chunk.length} chars)`);
+
         assistantContent += chunk;
         assistantMessage.content = assistantContent;
+        console.log(`[Preik] 📊 Total content now: ${assistantContent.length} chars`);
+
         this.updateMessages();
+        console.log(`[Preik] ✅ updateMessages() called`);
       }
 
       // Final decode to flush any remaining bytes
       const remaining = decoder.decode();
       if (remaining) {
+        console.log(`[Preik] 📦 Remaining bytes: "${remaining.slice(0, 30)}..." (${remaining.length} chars)`);
         assistantContent += remaining;
         assistantMessage.content = assistantContent;
         this.updateMessages();
@@ -599,7 +618,7 @@ class PreikChatWidget extends HTMLElement {
       if (assistantContent.length === 0) {
         console.warn(`[Preik] ⚠️ Empty response received after ${totalTime}ms`);
       } else {
-        console.log(`[Preik] ✅ Complete: ${totalTime}ms total | ${assistantContent.length} chars`);
+        console.log(`[Preik] ✅ Complete: ${totalTime}ms total | ${assistantContent.length} chars | ${chunkCount} chunks`);
       }
 
       this.saveMessages();
