@@ -6,9 +6,9 @@ import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
-// Retry configuration
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 1000;
+// Retry configuration - fast fallback to avoid slow responses
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 500;
 import { supabaseAdmin } from "@/lib/supabase";
 
 const google = createGoogleGenerativeAI({

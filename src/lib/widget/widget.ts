@@ -490,6 +490,9 @@ class PreikChatWidget extends HTMLElement {
     this.abortController?.abort();
     this.abortController = new AbortController();
 
+    // Add timeout to prevent hanging requests (30 seconds)
+    const timeoutId = setTimeout(() => this.abortController?.abort(), 30000);
+
     try {
       const useNonStreaming = isWebView();
 
@@ -509,6 +512,8 @@ class PreikChatWidget extends HTMLElement {
         }),
         signal: this.abortController.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -564,8 +569,17 @@ class PreikChatWidget extends HTMLElement {
 
       this.saveMessages();
     } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Check if it was a manual cancel (not a timeout)
       if ((error as Error).name === "AbortError") {
-        return; // Request was cancelled
+        // Show timeout error if loading was still true (meaning it wasn't manually cancelled)
+        if (this.state.isLoading) {
+          this.state.isLoading = false;
+          this.state.error = "Forespørselen tok for lang tid. Prøv igjen.";
+          this.updateMessages();
+        }
+        return;
       }
 
       console.error("[Preik] Chat error:", error);
