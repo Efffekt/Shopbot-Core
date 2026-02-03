@@ -367,19 +367,28 @@ export async function POST(request: NextRequest) {
       let modelUsed = "gemini-2.5-flash";
       let result: { text: string } | undefined;
 
-      // Try up to 2 times with Gemini
-      for (let attempt = 0; attempt < 2; attempt++) {
+      // Try Gemini first, fall back to OpenAI
+      const models = [
+        { provider: google("gemini-2.5-flash"), name: "gemini-2.5-flash" },
+        { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
+      ];
+
+      for (let i = 0; i < models.length; i++) {
+        const { provider, name } = models[i];
+        modelUsed = name;
+
         try {
+          console.log(`🚀 [${storeId}] Trying ${name} (non-streaming)...`);
           result = await generateText({
-            model: google("gemini-2.5-flash"),
+            model: provider,
             system: fullSystemPrompt,
             messages: normalizedMessages,
           });
           break;
         } catch (error) {
-          if (isRateLimitError(error) && attempt === 0) {
-            console.log(`⏳ [${storeId}] Gemini 429 (non-streaming), quick retry in 300ms...`);
-            await delay(300);
+          const isLast = i === models.length - 1;
+          if (isRateLimitError(error) && !isLast) {
+            console.log(`⚠️ [${storeId}] ${name} rate limited, trying ${models[i + 1].name}...`);
             continue;
           }
           throw error;
@@ -443,20 +452,23 @@ export async function POST(request: NextRequest) {
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    // Try up to 2 times with Gemini (quick retry on rate limit)
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // Try Gemini first, fall back to OpenAI on rate limit
+    const models = [
+      { provider: google("gemini-2.5-flash"), name: "gemini-2.5-flash" },
+      { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
+    ];
+
+    for (let i = 0; i < models.length; i++) {
+      const { provider, name } = models[i];
+      modelUsed = name;
+
       try {
-        console.log(`🚀 [${storeId}] Starting streamText (attempt ${attempt + 1})...`);
+        console.log(`🚀 [${storeId}] Trying ${name}...`);
 
         const result = streamText({
-          model: google("gemini-2.5-flash"),
+          model: provider,
           system: fullSystemPrompt,
           messages: normalizedMessages,
-          onChunk: ({ chunk }) => {
-            if (chunk.type === 'text-delta') {
-              console.log(`📝 [${storeId}] Chunk: ${chunk.textDelta.slice(0, 50)}...`);
-            }
-          },
           onFinish: async ({ text, finishReason, usage }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
@@ -464,11 +476,8 @@ export async function POST(request: NextRequest) {
             if (usage) {
               console.log(`📊 [${storeId}] Usage: ${usage.promptTokens} prompt + ${usage.completionTokens} completion = ${usage.totalTokens} total`);
             }
-            if (text.length === 0) {
-              console.error(`⚠️ [${storeId}] EMPTY RESPONSE from model!`);
-            }
 
-            // Log conversation (fire and forget, don't await)
+            // Log conversation (fire and forget)
             logConversation({
               storeId,
               sessionId,
@@ -480,27 +489,22 @@ export async function POST(request: NextRequest) {
                 tenant: tenantConfig.name,
                 model: modelUsed,
                 timings,
-                attempt: attempt + 1,
                 finishReason,
               },
             });
           },
-          onError: (error) => {
-            console.error(`❌ [${storeId}] Stream error callback:`, error);
-          },
         });
 
-        console.log(`📤 [${storeId}] Returning stream response...`);
         return result.toTextStreamResponse({
           headers: streamHeaders,
         });
       } catch (error) {
-        if (isRateLimitError(error) && attempt === 0) {
-          console.log(`⏳ [${storeId}] Gemini 429, quick retry in 300ms...`);
-          await delay(300);
+        const isLast = i === models.length - 1;
+        if (isRateLimitError(error) && !isLast) {
+          console.log(`⚠️ [${storeId}] ${name} rate limited, trying ${models[i + 1].name}...`);
           continue;
         }
-        console.error(`❌ [${storeId}] Streaming error:`, error);
+        console.error(`❌ [${storeId}] Streaming error (${name}):`, error);
         throw error;
       }
     }
