@@ -11,19 +11,27 @@ const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 500;
 import { supabaseAdmin } from "@/lib/supabase";
 
-// Parse service account credentials from environment variable
-const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
-  ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
-  : undefined;
+// Parse service account credentials at runtime (not build time)
+function getCredentials() {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) return undefined;
+  try {
+    return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  } catch (e) {
+    console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", e);
+    return undefined;
+  }
+}
 
 // Use Vertex AI with global endpoint for better availability
-const vertex = createVertex({
-  project: process.env.GOOGLE_CLOUD_PROJECT!,
-  location: "global",
-  googleAuthOptions: {
-    credentials,
-  },
-});
+function getVertex() {
+  return createVertex({
+    project: process.env.GOOGLE_CLOUD_PROJECT!,
+    location: "global",
+    googleAuthOptions: {
+      credentials: getCredentials(),
+    },
+  });
+}
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -379,7 +387,7 @@ export async function POST(request: NextRequest) {
 
       // Gemini primary, OpenAI fallback on rate limit
       const models = [
-        { provider: vertex("gemini-2.0-flash"), name: "gemini-2.0-flash" },
+        { provider: getVertex()("gemini-2.0-flash"), name: "gemini-2.0-flash" },
         { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
       ];
 
@@ -464,7 +472,7 @@ export async function POST(request: NextRequest) {
 
     // Gemini primary, OpenAI fallback on rate limit
     const models = [
-      { provider: vertex("gemini-2.0-flash"), name: "gemini-2.0-flash" },
+      { provider: getVertex()("gemini-2.0-flash"), name: "gemini-2.0-flash" },
       { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
     ];
 
