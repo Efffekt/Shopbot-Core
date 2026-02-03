@@ -129,6 +129,11 @@ function getThemeColors(config: WidgetConfig): ThemeColors {
     base.accentHover = darkenColor(config.accentColor, 10);
   }
 
+  // Override text color if provided
+  if (config.textColor && config.textColor !== DEFAULT_CONFIG.textColor) {
+    base.text = config.textColor;
+  }
+
   return base;
 }
 
