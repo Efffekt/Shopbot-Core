@@ -365,18 +365,19 @@ class PreikChatWidget extends HTMLElement {
     if (this.messagesContainer) {
       const lastMsg = this.state.messages[this.state.messages.length - 1];
 
-      // For streaming updates, only update the last bubble's content (no full re-render)
+      // For streaming updates, only update the last bubble's text (no re-render, no markdown)
       if (streamingUpdate && lastMsg?.role === "assistant") {
         const bubbles = this.messagesContainer.querySelectorAll(".message.assistant .bubble");
-        const lastBubble = bubbles[bubbles.length - 1];
+        const lastBubble = bubbles[bubbles.length - 1] as HTMLElement;
         if (lastBubble) {
-          lastBubble.innerHTML = parseMarkdown(lastMsg.content);
+          // Use textContent during streaming to avoid flash (no HTML parsing)
+          lastBubble.textContent = lastMsg.content;
           this.scrollToBottom();
           return;
         }
       }
 
-      // Full re-render for non-streaming updates
+      // Full re-render for non-streaming updates (with markdown parsing)
       this.messagesContainer.innerHTML = this.renderMessages();
       this.scrollToBottom();
 
@@ -656,9 +657,9 @@ class PreikChatWidget extends HTMLElement {
         await new Promise(r => setTimeout(r, 50));
       }
 
-      // Ensure final content is set
+      // Ensure final content is set with markdown parsing
       assistantMessage.content = fullContent;
-      this.updateMessages(true);
+      this.updateMessages(false); // Full re-render with markdown
 
       const totalTime = Math.round(performance.now() - startTime);
 
