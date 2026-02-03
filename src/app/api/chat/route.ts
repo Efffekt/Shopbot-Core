@@ -22,10 +22,15 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 function isRateLimitError(error: unknown): boolean {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    return message.includes('429') ||
+    const isRateLimit = message.includes('429') ||
            message.includes('rate limit') ||
            message.includes('resource exhausted') ||
            message.includes('quota');
+
+    if (isRateLimit) {
+      console.warn(`🚦 Rate limit detected: ${error.message}`);
+    }
+    return isRateLimit;
   }
   return false;
 }
@@ -359,14 +364,14 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-2.0-flash";
+      let modelUsed = "gemini-2.5-flash";
       let result: { text: string } | undefined;
 
       // Try up to 2 times with Gemini
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           result = await generateText({
-            model: google("gemini-2.0-flash"),
+            model: google("gemini-2.5-flash-preview-05-20"),
             system: fullSystemPrompt,
             messages: normalizedMessages,
           });
@@ -424,7 +429,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - use Gemini for speed with quick retry on 429
-    let modelUsed = "gemini-2.0-flash";
+    let modelUsed = "gemini-2.5-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -442,7 +447,7 @@ export async function POST(request: NextRequest) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const result = streamText({
-          model: google("gemini-2.0-flash"),
+          model: google("gemini-2.5-flash-preview-05-20"),
           system: fullSystemPrompt,
           messages: normalizedMessages,
           onFinish: async ({ text }) => {
