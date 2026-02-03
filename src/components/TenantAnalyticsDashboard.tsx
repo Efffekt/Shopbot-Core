@@ -176,27 +176,39 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
         <h3 className="text-base font-semibold text-preik-text mb-4">
           Daglig samtalevolum
         </h3>
-        <div className="flex items-end gap-1 h-32">
-          {data.dailyVolume.map((day, idx) => (
-            <div
-              key={day.date}
-              className="flex-1 flex flex-col items-center group"
-              title={`${day.date}: ${day.count} samtaler`}
-            >
+        <div className="h-40">
+          <div className="flex items-end justify-between h-32 gap-[2px]">
+            {data.dailyVolume.map((day) => (
               <div
-                className="w-full bg-preik-accent rounded-t transition-all group-hover:bg-preik-accent-hover"
-                style={{
-                  height: `${(day.count / maxVolume) * 100}%`,
-                  minHeight: day.count > 0 ? "4px" : "0",
-                }}
-              />
-              {idx % Math.ceil(data.dailyVolume.length / 10) === 0 && (
-                <div className="text-xs text-preik-text-muted mt-2 truncate w-full text-center">
-                  {day.date.slice(5)}
+                key={day.date}
+                className="flex-1 min-w-[8px] max-w-[24px] group relative"
+                title={`${day.date}: ${day.count} samtaler`}
+              >
+                <div
+                  className="w-full bg-preik-accent rounded-sm transition-all group-hover:bg-preik-accent-hover"
+                  style={{
+                    height: maxVolume > 0 ? `${Math.max((day.count / maxVolume) * 100, day.count > 0 ? 8 : 2)}%` : "2%",
+                  }}
+                />
+                {/* Tooltip on hover */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-preik-surface border border-preik-border rounded text-xs text-preik-text whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                  {day.count} samtaler
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
+          {/* Date labels */}
+          <div className="flex justify-between mt-2">
+            <span className="text-xs text-preik-text-muted">
+              {data.dailyVolume[0]?.date.slice(5)}
+            </span>
+            <span className="text-xs text-preik-text-muted">
+              {data.dailyVolume[Math.floor(data.dailyVolume.length / 2)]?.date.slice(5)}
+            </span>
+            <span className="text-xs text-preik-text-muted">
+              {data.dailyVolume[data.dailyVolume.length - 1]?.date.slice(5)}
+            </span>
+          </div>
         </div>
       </div>
 

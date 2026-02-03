@@ -12,7 +12,7 @@ const features = [
 export function PricingSection() {
   return (
     <section id="priser" className="py-32 px-6 bg-preik-surface transition-colors duration-200">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Section header */}
         <div className="text-center mb-16">
           <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">

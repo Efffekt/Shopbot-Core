@@ -24,7 +24,7 @@ export function Footer() {
           <div className="grid md:grid-cols-12 gap-12">
             {/* Branding - takes more space */}
             <div className="md:col-span-5">
-              <p className="preik-wordmark text-3xl mb-4">preik</p>
+              <p className="preik-wordmark text-4xl md:text-5xl mb-4">preik</p>
               <p className="text-preik-text-muted leading-relaxed max-w-sm mb-6">
                 AI som snakker ditt språk. Skreddersydde assistenter for norske bedrifter.
               </p>
