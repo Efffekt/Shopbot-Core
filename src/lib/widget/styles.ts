@@ -28,6 +28,8 @@ export const DARK_THEME: ThemeColors = {
 
 export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: string, brandStyle: "normal" | "italic" = "normal"): string {
   return `
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,600&display=swap');
+
     :host {
       --widget-bg: ${colors.bg};
       --widget-surface: ${colors.surface};
@@ -479,6 +481,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     }
 
     .watermark-brand {
+      font-family: 'Fraunces', Georgia, serif;
       font-weight: 600;
       font-style: italic;
     }
