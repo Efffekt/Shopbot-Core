@@ -361,11 +361,22 @@ class PreikChatWidget extends HTMLElement {
     return html;
   }
 
-  private updateMessages() {
+  private updateMessages(streamingUpdate: boolean = false) {
     if (this.messagesContainer) {
       const lastMsg = this.state.messages[this.state.messages.length - 1];
-      console.log(`[Preik] 🔄 updateMessages: ${this.state.messages.length} msgs, last content: ${lastMsg?.content?.length || 0} chars`);
 
+      // For streaming updates, only update the last bubble's content (no full re-render)
+      if (streamingUpdate && lastMsg?.role === "assistant") {
+        const bubbles = this.messagesContainer.querySelectorAll(".message.assistant .bubble");
+        const lastBubble = bubbles[bubbles.length - 1];
+        if (lastBubble) {
+          lastBubble.innerHTML = parseMarkdown(lastMsg.content);
+          this.scrollToBottom();
+          return;
+        }
+      }
+
+      // Full re-render for non-streaming updates
       this.messagesContainer.innerHTML = this.renderMessages();
       this.scrollToBottom();
 
@@ -600,8 +611,8 @@ class PreikChatWidget extends HTMLElement {
         assistantMessage.content = assistantContent;
         console.log(`[Preik] 📊 Total content now: ${assistantContent.length} chars`);
 
-        this.updateMessages();
-        console.log(`[Preik] ✅ updateMessages() called`);
+        this.updateMessages(true); // streaming update - only update bubble
+        console.log(`[Preik] ✅ updateMessages(streaming) called`);
       }
 
       // Final decode to flush any remaining bytes
@@ -610,7 +621,7 @@ class PreikChatWidget extends HTMLElement {
         console.log(`[Preik] 📦 Remaining bytes: "${remaining.slice(0, 30)}..." (${remaining.length} chars)`);
         assistantContent += remaining;
         assistantMessage.content = assistantContent;
-        this.updateMessages();
+        this.updateMessages(true); // streaming update
       }
 
       const totalTime = Math.round(performance.now() - startTime);
