@@ -476,7 +476,7 @@ export async function POST(request: NextRequest) {
             timings.total = Date.now() - start;
             console.log(`✅ [${storeId}] AI response (${modelUsed}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms | ${text.length} chars | reason: ${finishReason}`);
             if (usage) {
-              console.log(`📊 [${storeId}] Usage: ${usage.promptTokens} prompt + ${usage.completionTokens} completion = ${usage.totalTokens} total`);
+              console.log(`📊 [${storeId}] Usage: ${JSON.stringify(usage)}`);
             }
 
             // Log conversation (fire and forget)
