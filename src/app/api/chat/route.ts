@@ -4,34 +4,17 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { createVertex } from "@ai-sdk/google-vertex";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 // Retry configuration - fast fallback to avoid slow responses
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 500;
 import { supabaseAdmin } from "@/lib/supabase";
 
-// Parse service account credentials at runtime (not build time)
-function getCredentials() {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) return undefined;
-  try {
-    return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-  } catch (e) {
-    console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", e);
-    return undefined;
-  }
-}
-
-// Use Vertex AI with global endpoint for better availability
-function getVertex() {
-  return createVertex({
-    project: process.env.GOOGLE_CLOUD_PROJECT!,
-    location: "global",
-    googleAuthOptions: {
-      credentials: getCredentials(),
-    },
-  });
-}
+// Use Google AI SDK
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -387,7 +370,7 @@ export async function POST(request: NextRequest) {
 
       // Gemini primary, OpenAI fallback on rate limit
       const models = [
-        { provider: getVertex()("gemini-2.0-flash"), name: "gemini-2.0-flash" },
+        { provider: google("gemini-2.0-flash"), name: "gemini-2.0-flash" },
         { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
       ];
 
@@ -472,7 +455,7 @@ export async function POST(request: NextRequest) {
 
     // Gemini primary, OpenAI fallback on rate limit
     const models = [
-      { provider: getVertex()("gemini-2.0-flash"), name: "gemini-2.0-flash" },
+      { provider: google("gemini-2.0-flash"), name: "gemini-2.0-flash" },
       { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
     ];
 
