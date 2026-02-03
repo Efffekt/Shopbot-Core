@@ -359,38 +359,30 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let result: { text: string };
       let modelUsed = "gemini-2.0-flash";
+      let result: { text: string } | undefined;
 
-      // Try Gemini with retries, fall back to OpenAI if rate limited
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      // Try up to 2 times with Gemini
+      for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          if (attempt < MAX_RETRIES) {
-            // Try Gemini first
-            result = await generateText({
-              model: google("gemini-2.0-flash"),
-              system: fullSystemPrompt,
-              messages: normalizedMessages,
-            });
-          } else {
-            // Final attempt: use OpenAI as fallback
-            console.log(`⚠️ [${storeId}] Gemini rate limited, falling back to OpenAI`);
-            modelUsed = "gpt-4o-mini";
-            result = await generateText({
-              model: openai("gpt-4o-mini"),
-              system: fullSystemPrompt,
-              messages: normalizedMessages,
-            });
-          }
-          break; // Success, exit retry loop
+          result = await generateText({
+            model: google("gemini-2.0-flash"),
+            system: fullSystemPrompt,
+            messages: normalizedMessages,
+          });
+          break;
         } catch (error) {
-          if (isRateLimitError(error) && attempt < MAX_RETRIES) {
-            console.log(`⏳ [${storeId}] Rate limited, retry ${attempt + 1}/${MAX_RETRIES} after ${RETRY_DELAY_MS}ms`);
-            await delay(RETRY_DELAY_MS * (attempt + 1)); // Exponential backoff
+          if (isRateLimitError(error) && attempt === 0) {
+            console.log(`⏳ [${storeId}] Gemini 429 (non-streaming), quick retry in 300ms...`);
+            await delay(300);
             continue;
           }
-          throw error; // Non-rate-limit error or out of retries
+          throw error;
         }
+      }
+
+      if (!result) {
+        throw new Error("Failed to generate response");
       }
 
       timings.aiTotal = Date.now() - aiStart;
@@ -431,7 +423,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Streaming mode (default) - try Gemini with OpenAI fallback
+    // Streaming mode (default) - use Gemini for speed with quick retry on 429
     let modelUsed = "gemini-2.0-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
@@ -446,28 +438,19 @@ export async function POST(request: NextRequest) {
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    // Try Gemini first, fall back to OpenAI if rate limited
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    // Try up to 2 times with Gemini (quick retry on rate limit)
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const model = attempt < MAX_RETRIES
-          ? google("gemini-2.0-flash")
-          : openai("gpt-4o-mini");
-
-        if (attempt === MAX_RETRIES) {
-          console.log(`⚠️ [${storeId}] Gemini rate limited, falling back to OpenAI for streaming`);
-          modelUsed = "gpt-4o-mini";
-        }
-
         const result = streamText({
-          model,
+          model: google("gemini-2.0-flash"),
           system: fullSystemPrompt,
           messages: normalizedMessages,
           onFinish: async ({ text }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
-            console.log(`✅ [${storeId}] AI response (${modelUsed}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
+            console.log(`✅ [${storeId}] AI response (${modelUsed}, attempt ${attempt + 1}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
 
-            // Log conversation after streaming completes (fire and forget)
+            // Log conversation (fire and forget, don't await)
             logConversation({
               storeId,
               sessionId,
@@ -479,6 +462,7 @@ export async function POST(request: NextRequest) {
                 tenant: tenantConfig.name,
                 model: modelUsed,
                 timings,
+                attempt: attempt + 1,
               },
             });
           },
@@ -488,11 +472,12 @@ export async function POST(request: NextRequest) {
           headers: streamHeaders,
         });
       } catch (error) {
-        if (isRateLimitError(error) && attempt < MAX_RETRIES) {
-          console.log(`⏳ [${storeId}] Streaming rate limited, retry ${attempt + 1}/${MAX_RETRIES} after ${RETRY_DELAY_MS}ms`);
-          await delay(RETRY_DELAY_MS * (attempt + 1));
+        if (isRateLimitError(error) && attempt === 0) {
+          console.log(`⏳ [${storeId}] Gemini 429, quick retry in 300ms...`);
+          await delay(300);
           continue;
         }
+        console.error(`❌ [${storeId}] Streaming error:`, error);
         throw error;
       }
     }
