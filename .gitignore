@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# widget build output (auto-generated)
+src/lib/widget/dist/
