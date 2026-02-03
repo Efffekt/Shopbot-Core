@@ -197,9 +197,37 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     .brand-name {
       font-family: var(--widget-font-brand);
       font-weight: 600;
-      font-style: italic;
-      font-size: 18px;
+      font-size: 17px;
       color: var(--widget-text);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: var(--widget-text-muted);
+      border-radius: 8px;
+      transition: all 0.15s ease;
+      opacity: 0.7;
+    }
+
+    .clear-btn:hover {
+      background: var(--widget-surface-hover);
+      color: #EF4444;
+      opacity: 1;
+    }
+
+    .clear-btn svg {
+      width: 18px;
+      height: 18px;
+      display: block;
     }
 
     .status {
@@ -257,33 +285,13 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       justify-content: center;
       text-align: center;
       padding: 40px 20px;
-      color: var(--widget-text-muted);
-    }
-
-    .empty-icon {
-      width: 64px;
-      height: 64px;
-      margin-bottom: 16px;
-      color: var(--widget-accent);
-      opacity: 0.8;
-    }
-
-    .empty-icon svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    .empty-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--widget-text);
-      margin-bottom: 8px;
     }
 
     .empty-text {
-      font-size: 14px;
-      max-width: 280px;
+      font-size: 15px;
+      max-width: 300px;
       line-height: 1.6;
+      color: var(--widget-text-muted);
     }
 
     /* Message Bubbles */

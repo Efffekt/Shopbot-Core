@@ -9,7 +9,7 @@ const DEFAULT_CONFIG: WidgetConfig = {
   accentColor: "#F97316",
   textColor: "#111827",
   fontBody: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-  fontBrand: "Georgia, 'Times New Roman', serif",
+  fontBrand: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   position: "bottom-right",
   greeting: "Hei! Hvordan kan jeg hjelpe deg i dag?",
   placeholder: "Skriv en melding...",
@@ -244,9 +244,14 @@ class PreikChatWidget extends HTMLElement {
               </span>
             </div>
           </div>
-          <button class="close-btn" aria-label="Close chat">
-            ${ICONS.close}
-          </button>
+          <div class="header-actions">
+            <button class="clear-btn" aria-label="Clear conversation" title="Slett samtale">
+              ${ICONS.trash}
+            </button>
+            <button class="close-btn" aria-label="Close chat">
+              ${ICONS.close}
+            </button>
+          </div>
         </div>
 
         <div class="messages">
@@ -281,8 +286,6 @@ class PreikChatWidget extends HTMLElement {
     if (this.state.messages.length === 0) {
       return `
         <div class="empty-state">
-          <div class="empty-icon">${ICONS.sparkles}</div>
-          <div class="empty-title">Start en samtale</div>
           <div class="empty-text">${this.escapeHtml(this.config.greeting)}</div>
         </div>
       `;
@@ -350,6 +353,9 @@ class PreikChatWidget extends HTMLElement {
 
     // Close button
     this.shadow.querySelector(".close-btn")?.addEventListener("click", () => this.closeChat());
+
+    // Clear conversation button
+    this.shadow.querySelector(".clear-btn")?.addEventListener("click", () => this.clearMessages());
 
     // Input field
     this.inputField?.addEventListener("input", () => {
@@ -570,6 +576,18 @@ class PreikChatWidget extends HTMLElement {
         timestamp: Date.now(),
       };
       localStorage.setItem(key, JSON.stringify(data));
+    } catch {
+      // localStorage might be unavailable
+    }
+  }
+
+  private clearMessages() {
+    this.state.messages = [];
+    this.state.error = null;
+    this.updateMessages();
+    try {
+      const key = `preik_messages_${this.config.storeId}`;
+      localStorage.removeItem(key);
     } catch {
       // localStorage might be unavailable
     }
