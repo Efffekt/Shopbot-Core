@@ -4,17 +4,17 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createVertex } from "@ai-sdk/google-vertex";
 
 // Retry configuration - fast fallback to avoid slow responses
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 500;
 import { supabaseAdmin } from "@/lib/supabase";
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  // Use global endpoint instead of regional to avoid burst limits
-  baseURL: "https://generativelanguage.googleapis.com/v1beta",
+// Use Vertex AI with global location for better availability
+const vertex = createVertex({
+  project: process.env.GOOGLE_CLOUD_PROJECT!,
+  location: "global",
 });
 
 // Helper to delay execution
@@ -371,7 +371,7 @@ export async function POST(request: NextRequest) {
 
       // Gemini primary, OpenAI fallback on rate limit
       const models = [
-        { provider: google("gemini-2.5-flash"), name: "gemini-2.5-flash" },
+        { provider: vertex("gemini-2.5-flash"), name: "gemini-2.5-flash" },
         { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
       ];
 
@@ -456,7 +456,7 @@ export async function POST(request: NextRequest) {
 
     // Gemini primary, OpenAI fallback on rate limit
     const models = [
-      { provider: google("gemini-2.5-flash"), name: "gemini-2.5-flash" },
+      { provider: vertex("gemini-2.5-flash"), name: "gemini-2.5-flash" },
       { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
     ];
 
