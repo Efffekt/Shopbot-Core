@@ -4,16 +4,17 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createVertex } from "@ai-sdk/google-vertex";
 
 // Retry configuration - fast fallback to avoid slow responses
 const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 500;
 import { supabaseAdmin } from "@/lib/supabase";
 
-// Use Google AI SDK with Gemini
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+// Use Vertex AI with global endpoint for better availability
+const vertex = createVertex({
+  project: process.env.GOOGLE_CLOUD_PROJECT!,
+  location: "global",
 });
 
 // Helper to delay execution
@@ -365,12 +366,12 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-2.0-flash";
+      let modelUsed = "gemini-2.5-flash";
       let result: { text: string } | undefined;
 
       // Gemini primary, OpenAI fallback on rate limit
       const models = [
-        { provider: google("gemini-2.0-flash"), name: "gemini-2.0-flash" },
+        { provider: vertex("gemini-2.5-flash"), name: "gemini-2.5-flash" },
         { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
       ];
 
@@ -439,7 +440,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - Gemini primary, OpenAI fallback
-    let modelUsed = "gemini-2.0-flash";
+    let modelUsed = "gemini-2.5-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -455,7 +456,7 @@ export async function POST(request: NextRequest) {
 
     // Gemini primary, OpenAI fallback on rate limit
     const models = [
-      { provider: google("gemini-2.0-flash"), name: "gemini-2.0-flash" },
+      { provider: vertex("gemini-2.5-flash"), name: "gemini-2.5-flash" },
       { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
     ];
 
