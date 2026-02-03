@@ -445,19 +445,19 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-2.0-flash";
+      let modelUsed = "gemini-2.5-flash-lite";
       let result: { text: string } | undefined;
 
       // Gemini via Vertex AI (global), OpenAI fallback on rate limit
       console.log(`🏗️ [${storeId}] Creating Vertex AI client for non-streaming...`);
       const vertex = getVertex();
       console.log(`🏗️ [${storeId}] Creating model instances (non-streaming)...`);
-      const geminiModel = vertex("gemini-2.0-flash");
+      const geminiModel = vertex("gemini-2.5-flash-lite");
       const openaiModel = openai("gpt-4o-mini");
       console.log(`✅ [${storeId}] Model instances created (non-streaming)`);
 
       const models = [
-        { provider: geminiModel, name: "gemini-2.0-flash" },
+        { provider: geminiModel, name: "gemini-2.5-flash-lite" },
         { provider: openaiModel, name: "gpt-4o-mini" },
       ];
 
@@ -534,7 +534,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - Gemini primary, OpenAI fallback
-    let modelUsed = "gemini-2.0-flash";
+    let modelUsed = "gemini-2.5-flash-lite";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -552,12 +552,12 @@ export async function POST(request: NextRequest) {
     console.log(`🏗️ [${storeId}] Creating Vertex AI client for streaming...`);
     const vertex = getVertex();
     console.log(`🏗️ [${storeId}] Creating model instances...`);
-    const geminiModel = vertex("gemini-2.0-flash");
+    const geminiModel = vertex("gemini-2.5-flash-lite");
     const openaiModel = openai("gpt-4o-mini");
     console.log(`✅ [${storeId}] Model instances created`);
 
     const models = [
-      { provider: geminiModel, name: "gemini-2.0-flash" },
+      { provider: geminiModel, name: "gemini-2.5-flash-lite" },
       { provider: openaiModel, name: "gpt-4o-mini" },
     ];
 
