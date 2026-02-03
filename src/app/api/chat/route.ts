@@ -367,10 +367,10 @@ export async function POST(request: NextRequest) {
       let modelUsed = "gemini-2.5-flash";
       let result: { text: string } | undefined;
 
-      // Try Gemini first, fall back to OpenAI
+      // Try OpenAI first (testing), fall back to Gemini
       const models = [
-        { provider: google("gemini-2.5-flash"), name: "gemini-2.5-flash" },
         { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
+        { provider: google("gemini-2.5-flash"), name: "gemini-2.5-flash" },
       ];
 
       for (let i = 0; i < models.length; i++) {
@@ -437,8 +437,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Streaming mode (default) - use Gemini for speed with quick retry on 429
-    let modelUsed = "gemini-2.5-flash";
+    // Streaming mode (default) - try OpenAI first for testing
+    let modelUsed = "gpt-4o-mini";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -452,10 +452,10 @@ export async function POST(request: NextRequest) {
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    // Try Gemini first, fall back to OpenAI on rate limit
+    // Try OpenAI first (testing), fall back to Gemini
     const models = [
-      { provider: google("gemini-2.5-flash"), name: "gemini-2.5-flash" },
       { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
+      { provider: google("gemini-2.5-flash"), name: "gemini-2.5-flash" },
     ];
 
     for (let i = 0; i < models.length; i++) {
