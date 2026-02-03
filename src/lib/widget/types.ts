@@ -14,6 +14,7 @@ export interface WidgetConfig {
   placeholder: string;
   brandName: string;
   theme: "auto" | "light" | "dark";
+  startOpen: boolean;
 }
 
 export interface Message {

@@ -18,6 +18,7 @@ const DEFAULT_CONFIG: WidgetConfig = {
   placeholder: "Skriv en melding...",
   brandName: "Preik",
   theme: "auto",
+  startOpen: false,
 };
 
 // Generate unique ID
@@ -93,6 +94,7 @@ function parseConfig(): WidgetConfig {
     placeholder: script.dataset.placeholder || DEFAULT_CONFIG.placeholder,
     brandName: script.dataset.brandName || DEFAULT_CONFIG.brandName,
     theme: (script.dataset.theme as "auto" | "light" | "dark") || DEFAULT_CONFIG.theme,
+    startOpen: script.dataset.startOpen === "true",
   };
 }
 
@@ -230,6 +232,12 @@ class PreikChatWidget extends HTMLElement {
         this.updateStyles();
       }
     });
+
+    // Open chat on init if startOpen is true
+    if (this.config.startOpen) {
+      // Small delay to ensure rendering is complete
+      setTimeout(() => this.openChat(), 100);
+    }
   }
 
   disconnectedCallback() {

@@ -2,33 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
-// Simple markdown parser for chat messages
-function parseMarkdown(text: string): string {
-  return text
-    // Links: [text](url)
-    .replace(
-      /\[(.+?)\]\((.+?)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-preik-accent hover:underline">$1</a>'
-    )
-    // Bold: **text**
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    // Italic: *text* or _text_
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/_(.+?)_/g, "<em>$1</em>")
-    // Code: `text`
-    .replace(
-      /`(.+?)`/g,
-      '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>'
-    )
-    // Line breaks
-    .replace(/\n/g, "<br>");
-}
-
 interface PromptEditorWithTestProps {
   tenantId: string;
   initialPrompt: string;
@@ -50,52 +23,41 @@ export default function PromptEditorWithTest({
   const [hasChanges, setHasChanges] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Chat state
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // Widget state
   const [showTest, setShowTest] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [widgetKey, setWidgetKey] = useState(0);
+  const widgetContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  };
+  const savePrompt = useCallback(
+    async (promptToSave: string) => {
+      if (!isAdmin) return;
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom();
-    }
-  }, [messages]);
+      setSaving(true);
+      setError(null);
 
-  const savePrompt = useCallback(async (promptToSave: string) => {
-    if (!isAdmin) return;
+      try {
+        const response = await fetch(`/api/tenant/${tenantId}/prompt`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ systemPrompt: promptToSave }),
+        });
 
-    setSaving(true);
-    setError(null);
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to save prompt");
+        }
 
-    try {
-      const response = await fetch(`/api/tenant/${tenantId}/prompt`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ systemPrompt: promptToSave }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to save prompt");
+        setSuccess(true);
+        setHasChanges(false);
+        setTimeout(() => setSuccess(false), 2000);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to save prompt");
+      } finally {
+        setSaving(false);
       }
-
-      setSuccess(true);
-      setHasChanges(false);
-      setTimeout(() => setSuccess(false), 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save prompt");
-    } finally {
-      setSaving(false);
-    }
-  }, [tenantId, isAdmin]);
+    },
+    [tenantId, isAdmin]
+  );
 
   // Auto-save with debounce
   useEffect(() => {
@@ -125,90 +87,47 @@ export default function PromptEditorWithTest({
     await savePrompt(prompt);
   }
 
-  // Chat functions with streaming support
-  const sendMessage = async () => {
-    const messageToSend = input.trim();
-    if (!messageToSend || isLoading) return;
+  // Load the actual widget
+  useEffect(() => {
+    if (!showTest || !widgetContainerRef.current) return;
 
-    setInput("");
-    const newMessages = [...messages, { role: "user" as const, content: messageToSend }];
-    setMessages(newMessages);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages,
-          storeId: tenantId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to get response");
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-
-      // Handle streaming response
-      if (contentType.includes("text/plain") && response.body) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let assistantContent = "";
-
-        // Add empty assistant message that we'll update
-        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-        setIsLoading(false);
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          assistantContent += chunk;
-
-          // Update the last message with new content
-          setMessages((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = {
-              role: "assistant",
-              content: assistantContent,
-            };
-            return updated;
-          });
-        }
-      } else {
-        // Non-streaming fallback
-        const data = await response.json();
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: data.content },
-        ]);
-        setIsLoading(false);
-      }
-    } catch (err) {
-      console.error("Chat error:", err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Beklager, noe gikk galt. Prøv igjen senere.",
-        },
-      ]);
-      setIsLoading(false);
+    // Remove any existing widget elements
+    const existingWidget = document.querySelector("preik-chat-widget");
+    if (existingWidget) {
+      existingWidget.remove();
     }
-  };
 
-  const clearMessages = () => {
-    setMessages([]);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+    // Remove existing script
+    const existingScript = document.querySelector(
+      'script[data-preik-widget="true"]'
+    );
+    if (existingScript) {
+      existingScript.remove();
     }
+
+    // Create and load the widget script
+    const script = document.createElement("script");
+    script.src = `/widget.js?v=${Date.now()}`; // Cache bust
+    script.async = true;
+    script.setAttribute("data-store-id", tenantId);
+    script.setAttribute("data-brand-name", storeName);
+    script.setAttribute("data-start-open", "true"); // Start with chat open for testing
+    script.setAttribute("data-preik-widget", "true");
+    document.body.appendChild(script);
+
+    return () => {
+      // Cleanup on unmount or when toggled off
+      const widget = document.querySelector("preik-chat-widget");
+      if (widget) {
+        widget.remove();
+      }
+      script.remove();
+    };
+  }, [showTest, tenantId, storeName, widgetKey]);
+
+  // Function to reload widget (e.g., after saving prompt)
+  const reloadWidget = () => {
+    setWidgetKey((prev) => prev + 1);
   };
 
   return (
@@ -247,9 +166,7 @@ export default function PromptEditorWithTest({
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <p className="text-sm text-preik-text-muted">
-                {prompt.length} tegn
-              </p>
+              <p className="text-sm text-preik-text-muted">{prompt.length} tegn</p>
               {isAdmin && (
                 <span className="text-xs text-preik-text-muted">
                   {saving ? (
@@ -294,129 +211,54 @@ export default function PromptEditorWithTest({
         </div>
       </div>
 
-      {/* Right - Test Chat */}
+      {/* Right - Test Chat using actual widget */}
       <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-preik-text">Test chatboten</h2>
-          <button
-            onClick={() => setShowTest(!showTest)}
-            className="text-sm text-preik-accent hover:text-preik-accent-hover transition-colors"
-          >
-            {showTest ? "Skjul" : "Vis"} test
-          </button>
+          <h2 className="text-lg font-semibold text-preik-text">
+            Test chatboten
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={reloadWidget}
+              className="text-sm text-preik-text-muted hover:text-preik-text transition-colors flex items-center gap-1"
+              title="Last widget på nytt"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Last på nytt
+            </button>
+            <button
+              onClick={() => setShowTest(!showTest)}
+              className="text-sm text-preik-accent hover:text-preik-accent-hover transition-colors"
+            >
+              {showTest ? "Skjul" : "Vis"} test
+            </button>
+          </div>
         </div>
 
         {showTest ? (
-          <div className="bg-[#F9FAFB] rounded-2xl shadow-lg overflow-hidden flex flex-col h-[500px]">
-            {/* Header */}
-            <div className="px-4 py-3 bg-white border-b border-[#E5E7EB] flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-preik-accent flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <rect x="3" y="11" width="18" height="10" rx="2"/>
-                    <circle cx="12" cy="5" r="2"/>
-                    <path d="M12 7v4"/>
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-semibold text-[15px] text-[#111827]">{storeName}</p>
-                  <p className="text-[11px] text-[#6B7280] flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                    Test-modus
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={clearMessages}
-                className="p-1.5 rounded-md text-[#6B7280] hover:bg-[#F3F4F6] hover:text-red-500 transition-all opacity-70 hover:opacity-100"
-                title="Tøm samtale"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                </svg>
-              </button>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-              {messages.length === 0 && (
-                <div className="flex-1 flex items-center justify-center text-center px-4">
-                  <div>
-                    <p className="text-[14px] text-[#6B7280] mb-2">
-                      Test chatboten din her
-                    </p>
-                    <p className="text-[12px] text-[#9CA3AF]">
-                      Endringer i prompten krever lagring før de vises i testen
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex flex-col max-w-[85%] animate-fade-in ${
-                    message.role === "user" ? "self-end" : "self-start"
-                  }`}
-                >
-                  <div
-                    className={`px-3 py-2 rounded-2xl text-[14px] leading-relaxed ${
-                      message.role === "user"
-                        ? "bg-preik-accent text-white rounded-br-sm"
-                        : "bg-white text-[#111827] border border-[#E5E7EB] rounded-bl-sm"
-                    }`}
-                  >
-                    {message.role === "user" ? (
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                    ) : (
-                      <div
-                        className="whitespace-pre-wrap"
-                        dangerouslySetInnerHTML={{
-                          __html: parseMarkdown(message.content),
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {isLoading && (
-                <div className="self-start">
-                  <div className="bg-white px-3 py-2 rounded-2xl rounded-bl-sm border border-[#E5E7EB] flex items-center gap-1">
-                    <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1.4s" }} />
-                    <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "160ms", animationDuration: "1.4s" }} />
-                    <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "320ms", animationDuration: "1.4s" }} />
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input */}
-            <div className="px-4 py-3 bg-white border-t border-[#E5E7EB]">
-              <div className="flex items-center gap-2 bg-[#F9FAFB] border border-[#E5E7EB] rounded-full pl-3 pr-1 py-1 focus-within:border-preik-accent focus-within:ring-[3px] focus-within:ring-preik-accent/10 transition-all">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Skriv en testmelding..."
-                  className="flex-1 bg-transparent text-[14px] text-[#111827] placeholder:text-[#6B7280] outline-none min-w-0"
-                  disabled={isLoading}
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={isLoading || !input.trim()}
-                  className="w-8 h-8 rounded-full bg-preik-accent flex items-center justify-center hover:bg-preik-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                >
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <line x1="22" y1="2" x2="11" y2="13"/>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                  </svg>
-                </button>
-              </div>
+          <div
+            ref={widgetContainerRef}
+            className="flex items-center justify-center h-[500px] bg-preik-bg rounded-xl border border-preik-border relative"
+          >
+            <div className="text-center text-preik-text-muted">
+              <p className="text-sm mb-2">
+                Widgeten lastes i nedre høyre hjørne
+              </p>
+              <p className="text-xs">
+                Klikk på chat-ikonet for å åpne
+              </p>
             </div>
           </div>
         ) : (
@@ -428,7 +270,8 @@ export default function PromptEditorWithTest({
         )}
 
         <p className="text-xs text-preik-text-muted mt-4">
-          <strong>Tips:</strong> Lagre endringene i prompten først, så test med nye meldinger for å se effekten.
+          <strong>Tips:</strong> Lagre endringene i prompten først, så klikk
+          &quot;Last på nytt&quot; for å teste med den nye prompten.
         </p>
       </div>
     </div>
