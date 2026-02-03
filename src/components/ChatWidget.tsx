@@ -10,6 +10,8 @@ interface Message {
 interface ChatWidgetProps {
   storeId?: string;
   placeholder?: string;
+  brandName?: string;
+  greeting?: string;
 }
 
 export interface ChatWidgetRef {
@@ -18,7 +20,9 @@ export interface ChatWidgetRef {
 
 export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function ChatWidget({
   storeId = "preik-demo",
-  placeholder = "Spør om Preik...",
+  placeholder = "Skriv en melding...",
+  brandName = "preik",
+  greeting = "Hei! Spør meg om AI-assistenter, priser, eller hvordan vi kan hjelpe bedriften din.",
 }, ref) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -27,14 +31,12 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
   const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
-    // Only scroll within the container, not the whole page
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   };
 
   useEffect(() => {
-    // Only scroll to bottom when there are messages (not on initial mount)
     if (messages.length > 0) {
       scrollToBottom();
     }
@@ -87,6 +89,10 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
     }
   };
 
+  const clearMessages = () => {
+    setMessages([]);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -95,65 +101,76 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
   };
 
   return (
-    <div className="bg-preik-bg rounded-2xl border border-preik-border shadow-lg overflow-hidden transition-colors duration-200 flex flex-col h-[500px]">
-      {/* Chat header - Preik branded */}
-      <div className="px-5 py-4 border-b border-preik-border flex items-center gap-3 flex-shrink-0">
-        <div className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center">
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
+    <div className="bg-[#F9FAFB] rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px] w-full max-w-[400px]">
+      {/* Header */}
+      <div className="px-5 py-4 bg-white border-b border-[#E5E7EB] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <rect x="3" y="11" width="18" height="10" rx="2"/>
+              <circle cx="12" cy="5" r="2"/>
+              <path d="M12 7v4"/>
+              <line x1="8" y1="16" x2="8" y2="16"/>
+              <line x1="16" y1="16" x2="16" y2="16"/>
+            </svg>
+          </div>
+          <div>
+            <p className="font-semibold text-[17px] text-[#111827]">{brandName}</p>
+            <p className="text-[13px] text-[#6B7280] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              Online
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="preik-wordmark text-xl">preik</p>
-          <p className="text-xs text-preik-text-muted">AI-assistent demo</p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500" />
-          <span className="text-xs text-preik-text-muted">Online</span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={clearMessages}
+            className="p-2 rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] hover:text-red-500 transition-all opacity-70 hover:opacity-100"
+            title="Slett samtale"
+          >
+            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-16 h-16 rounded-full bg-preik-accent/10 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
-              </svg>
-            </div>
-            <p className="text-preik-text font-medium mb-1">Hei! Jeg er Preik.</p>
-            <p className="text-preik-text-muted text-sm">Spør meg om AI-assistenter, priser, eller hvordan vi kan hjelpe bedriften din.</p>
+          <div className="flex-1 flex items-center justify-center text-center px-5">
+            <p className="text-[15px] text-[#6B7280] max-w-[300px] leading-relaxed">
+              {greeting}
+            </p>
           </div>
         )}
 
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            className={`flex flex-col max-w-[85%] animate-fade-in ${
+              message.role === "user" ? "self-end" : "self-start"
+            }`}
           >
             <div
-              className={`px-4 py-2 rounded-2xl max-w-[85%] ${
+              className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed ${
                 message.role === "user"
-                  ? "bg-preik-accent text-white rounded-br-md"
-                  : "bg-preik-surface border border-preik-border rounded-bl-md"
+                  ? "bg-preik-accent text-white rounded-br-sm"
+                  : "bg-white text-[#111827] border border-[#E5E7EB] rounded-bl-sm"
               }`}
             >
-              <p className={`text-sm whitespace-pre-wrap ${message.role === "assistant" ? "text-preik-text" : ""}`}>
-                {message.content}
-              </p>
+              <p className="whitespace-pre-wrap">{message.content}</p>
             </div>
           </div>
         ))}
 
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-preik-surface px-4 py-3 rounded-2xl rounded-bl-md border border-preik-border">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
+          <div className="self-start">
+            <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm border border-[#E5E7EB] flex items-center gap-1">
+              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1.4s" }} />
+              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "160ms", animationDuration: "1.4s" }} />
+              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "320ms", animationDuration: "1.4s" }} />
             </div>
           </div>
         )}
@@ -161,9 +178,9 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Chat input */}
-      <div className="px-4 py-3 border-t border-preik-border flex-shrink-0">
-        <div className="flex items-center gap-2 bg-preik-surface rounded-full px-4 py-2 border border-preik-border focus-within:border-preik-accent transition-colors">
+      {/* Input area */}
+      <div className="px-5 py-4 bg-white border-t border-[#E5E7EB]">
+        <div className="flex items-center gap-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-full pl-4 pr-1 py-1 focus-within:border-preik-accent focus-within:ring-[3px] focus-within:ring-preik-accent/10 transition-all">
           <input
             ref={inputRef}
             type="text"
@@ -171,19 +188,30 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="flex-1 bg-transparent text-sm text-preik-text placeholder:text-preik-text-muted outline-none"
+            className="flex-1 bg-transparent text-[15px] text-[#111827] placeholder:text-[#6B7280] outline-none min-w-0"
             disabled={isLoading}
           />
           <button
             onClick={() => sendMessage()}
             disabled={isLoading || !input.trim()}
-            className="w-8 h-8 rounded-full bg-preik-accent flex items-center justify-center hover:bg-preik-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center hover:bg-preik-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+            <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
           </button>
         </div>
+
+        {/* Watermark */}
+        <a
+          href="https://preik.no"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center mt-2.5 text-[11px] text-[#6B7280] no-underline opacity-60 hover:opacity-100 transition-opacity"
+        >
+          Levert av <span className="font-brand font-semibold italic">preik</span>
+        </a>
       </div>
     </div>
   );
