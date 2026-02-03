@@ -1,48 +1,50 @@
 // Chat API - Gemini 2.0 Flash via Vertex AI (global endpoint) with OpenAI fallback
-// Force rebuild: 2026-02-03T14:00:00
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createVertex } from "@ai-sdk/google-vertex";
 
-// Retry configuration - fast fallback to avoid slow responses
-const MAX_RETRIES = 1;
-const RETRY_DELAY_MS = 500;
+// Retry configuration
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 300;
 import { supabaseAdmin } from "@/lib/supabase";
 
-// Debug: Log environment at startup
-console.log("🔧 [STARTUP] Vertex AI Config:", {
-  hasProject: !!process.env.GOOGLE_CLOUD_PROJECT,
-  project: process.env.GOOGLE_CLOUD_PROJECT,
-  hasServiceAccountKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
-  keyLength: process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length || 0,
-});
-
-// Parse service account credentials at runtime (not build time)
+// Parse service account credentials - handle escaped newlines in private_key
 function getCredentials() {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  if (!key) {
     console.error("❌ GOOGLE_SERVICE_ACCOUNT_KEY is not set!");
     return undefined;
   }
+
   try {
-    const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    console.log("✅ Service account parsed:", {
-      type: creds.type,
-      project_id: creds.project_id,
-      client_email: creds.client_email,
-    });
+    // First try direct parse (for properly escaped JSON)
+    const creds = JSON.parse(key);
+    console.log("✅ Service account parsed:", creds.client_email);
     return creds;
-  } catch (e) {
-    console.error("❌ Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", e);
-    return undefined;
+  } catch {
+    // If that fails, try replacing escaped newlines in private_key
+    try {
+      // Replace literal \n with actual newlines for the private key
+      const fixedKey = key.replace(/\\n/g, '\n');
+      const creds = JSON.parse(fixedKey);
+      console.log("✅ Service account parsed (with newline fix):", creds.client_email);
+      return creds;
+    } catch (e2) {
+      console.error("❌ Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", e2);
+      console.error("❌ Key preview:", key.slice(0, 100) + "...");
+      return undefined;
+    }
   }
 }
 
-// Use Vertex AI with global endpoint for better availability (avoids regional burst limits)
+// Create Vertex AI client with global endpoint (avoids regional burst limits)
 function getVertex() {
   const credentials = getCredentials();
-  console.log("🔧 Creating Vertex AI client with global endpoint...");
+  if (!credentials) {
+    console.error("❌ No valid credentials, Vertex AI will fail!");
+  }
   return createVertex({
     project: process.env.GOOGLE_CLOUD_PROJECT!,
     location: "global",
@@ -51,6 +53,11 @@ function getVertex() {
     },
   });
 }
+
+console.log("🔧 [STARTUP] Vertex AI config:", {
+  project: process.env.GOOGLE_CLOUD_PROJECT,
+  hasKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+});
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -404,7 +411,7 @@ export async function POST(request: NextRequest) {
       let modelUsed = "gemini-2.0-flash";
       let result: { text: string } | undefined;
 
-      // Gemini via Vertex AI (global endpoint), OpenAI fallback on rate limit
+      // Gemini via Vertex AI (global), OpenAI fallback on rate limit
       const vertex = getVertex();
       const models = [
         { provider: vertex("gemini-2.0-flash"), name: "gemini-2.0-flash" },
@@ -416,7 +423,7 @@ export async function POST(request: NextRequest) {
         modelUsed = name;
 
         try {
-          console.log(`🚀 [${storeId}] Trying ${name} (non-streaming) via Vertex AI...`);
+          console.log(`🚀 [${storeId}] Trying ${name} (non-streaming)...`);
           console.log(`📝 [${storeId}] System prompt length: ${fullSystemPrompt.length} chars`);
           console.log(`📝 [${storeId}] Messages count: ${normalizedMessages.length}`);
           result = await generateText({
@@ -431,7 +438,7 @@ export async function POST(request: NextRequest) {
           }
           break;
         } catch (error) {
-          console.error(`❌ [${storeId}] Vertex AI error (non-streaming):`, error);
+          console.error(`❌ [${storeId}] Error (non-streaming):`, error);
           const isLast = i === models.length - 1;
           if (isRateLimitError(error) && !isLast) {
             console.log(`⚠️ [${storeId}] ${name} rate limited, trying ${models[i + 1].name}...`);
@@ -498,7 +505,7 @@ export async function POST(request: NextRequest) {
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    // Gemini via Vertex AI (global endpoint), OpenAI fallback on rate limit
+    // Gemini via Vertex AI (global), OpenAI fallback on rate limit
     const vertex = getVertex();
     const models = [
       { provider: vertex("gemini-2.0-flash"), name: "gemini-2.0-flash" },
@@ -510,31 +517,17 @@ export async function POST(request: NextRequest) {
       modelUsed = name;
 
       try {
-        console.log(`🚀 [${storeId}] Trying ${name} via Vertex AI...`);
-        console.log(`📝 [${storeId}] System prompt length: ${fullSystemPrompt.length} chars`);
-        console.log(`📝 [${storeId}] Messages count: ${normalizedMessages.length}`);
-        console.log(`📝 [${storeId}] Last message: "${normalizedMessages[normalizedMessages.length - 1]?.content?.slice(0, 100)}..."`);
-
+        console.log(`🚀 [${storeId}] Trying ${name}...`);
         const result = streamText({
           model: provider,
           system: fullSystemPrompt,
           messages: normalizedMessages,
-          onChunk: ({ chunk }) => {
-            // Log chunks to verify streaming is working
-            if (chunk.type === 'text-delta') {
-              console.log(`📦 [${storeId}] Chunk: "${chunk.text.slice(0, 30)}..."`);
-            }
-          },
           onFinish: async ({ text, finishReason, usage }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
-            console.log(`✅ [${storeId}] AI response (${modelUsed}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms | ${text.length} chars | reason: ${finishReason}`);
-            console.log(`📄 [${storeId}] Response preview: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"`);
-            if (usage) {
-              console.log(`📊 [${storeId}] Usage: ${JSON.stringify(usage)}`);
-            }
+            console.log(`✅ [${storeId}] ${modelUsed}: ${timings.aiTotal}ms | ${text.length} chars | ${finishReason}`);
             if (text.length === 0) {
-              console.error(`❌ [${storeId}] EMPTY RESPONSE! finishReason: ${finishReason}, usage: ${JSON.stringify(usage)}`);
+              console.error(`❌ [${storeId}] EMPTY RESPONSE! usage: ${JSON.stringify(usage)}`);
             }
 
             // Log conversation (fire and forget)
@@ -560,10 +553,6 @@ export async function POST(request: NextRequest) {
           headers: streamHeaders,
         });
       } catch (error) {
-        console.error(`❌ [${storeId}] Vertex AI error:`, error);
-        console.error(`❌ [${storeId}] Error name:`, (error as Error).name);
-        console.error(`❌ [${storeId}] Error message:`, (error as Error).message);
-        console.error(`❌ [${storeId}] Error stack:`, (error as Error).stack);
         const isLast = i === models.length - 1;
         if (isRateLimitError(error) && !isLast) {
           console.log(`⚠️ [${storeId}] ${name} rate limited, trying ${models[i + 1].name}...`);
