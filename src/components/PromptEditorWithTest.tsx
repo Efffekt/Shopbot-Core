@@ -24,7 +24,6 @@ export default function PromptEditorWithTest({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Widget state
-  const [showTest, setShowTest] = useState(true);
   const [widgetKey, setWidgetKey] = useState(0);
   const widgetContainerRef = useRef<HTMLDivElement>(null);
 
@@ -89,7 +88,7 @@ export default function PromptEditorWithTest({
 
   // Load the actual widget
   useEffect(() => {
-    if (!showTest || !widgetContainerRef.current) return;
+    if (!widgetContainerRef.current) return;
 
     // Clear the container
     widgetContainerRef.current.innerHTML = "";
@@ -117,7 +116,7 @@ export default function PromptEditorWithTest({
       }
       script.remove();
     };
-  }, [showTest, tenantId, storeName, widgetKey]);
+  }, [tenantId, storeName, widgetKey]);
 
   // Function to reload widget (e.g., after saving prompt)
   const reloadWidget = () => {
@@ -211,48 +210,32 @@ export default function PromptEditorWithTest({
           <h2 className="text-lg font-semibold text-preik-text">
             Test chatboten
           </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={reloadWidget}
-              className="text-sm text-preik-text-muted hover:text-preik-text transition-colors flex items-center gap-1"
-              title="Last widget på nytt"
+          <button
+            onClick={reloadWidget}
+            className="text-sm text-preik-text-muted hover:text-preik-text transition-colors flex items-center gap-1"
+            title="Last widget på nytt"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              Last på nytt
-            </button>
-            <button
-              onClick={() => setShowTest(!showTest)}
-              className="text-sm text-preik-accent hover:text-preik-accent-hover transition-colors"
-            >
-              {showTest ? "Skjul" : "Vis"} test
-            </button>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Last på nytt
+          </button>
         </div>
 
-        {showTest ? (
-          <div
-            ref={widgetContainerRef}
-            className="h-[500px] rounded-xl overflow-hidden"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-[200px] bg-preik-bg rounded-xl border-2 border-dashed border-preik-border">
-            <p className="text-preik-text-muted text-sm">
-              Klikk &quot;Vis test&quot; for å teste chatboten
-            </p>
-          </div>
-        )}
+        <div
+          ref={widgetContainerRef}
+          className="h-[500px] rounded-xl overflow-hidden"
+        />
 
         <p className="text-xs text-preik-text-muted mt-4">
           <strong>Tips:</strong> Lagre endringene i prompten først, så klikk
