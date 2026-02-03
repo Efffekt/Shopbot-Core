@@ -193,12 +193,9 @@ class PreikChatWidget extends HTMLElement {
   private apiUrl: string;
   private abortController: AbortController | null = null;
 
-  // Smooth streaming state
-  private streamBuffer: string = "";
-  private displayedContent: string = "";
-  private streamingInterval: ReturnType<typeof setInterval> | null = null;
+  // Smooth streaming config
   private readonly CHARS_PER_TICK = 3; // Characters to reveal per tick
-  private readonly TICK_INTERVAL = 20; // Milliseconds between ticks
+  private readonly TICK_INTERVAL = 15; // Milliseconds between ticks
 
   // DOM references
   private trigger: HTMLButtonElement | null = null;
@@ -254,10 +251,6 @@ class PreikChatWidget extends HTMLElement {
 
   disconnectedCallback() {
     this.abortController?.abort();
-    if (this.streamingInterval) {
-      clearInterval(this.streamingInterval);
-      this.streamingInterval = null;
-    }
   }
 
   private render() {
@@ -579,23 +572,27 @@ class PreikChatWidget extends HTMLElement {
       this.state.messages.push(assistantMessage);
       this.state.isLoading = false;
 
-      // Reset smooth streaming state
-      this.streamBuffer = "";
-      this.displayedContent = "";
+      // Smooth streaming: buffer incoming text and reveal gradually
+      let displayedLength = 0;
+      let isRevealing = false;
 
-      // Start smooth reveal interval
-      this.streamingInterval = setInterval(() => {
-        if (this.displayedContent.length < this.streamBuffer.length) {
-          // Reveal a few more characters
-          const endIndex = Math.min(
-            this.displayedContent.length + this.CHARS_PER_TICK,
-            this.streamBuffer.length
-          );
-          this.displayedContent = this.streamBuffer.slice(0, endIndex);
-          assistantMessage.content = this.displayedContent;
-          this.updateMessages();
-        }
-      }, this.TICK_INTERVAL);
+      const revealMore = () => {
+        if (isRevealing) return;
+        isRevealing = true;
+
+        const reveal = () => {
+          if (displayedLength < assistantContent.length) {
+            // Reveal a few characters at a time
+            displayedLength = Math.min(displayedLength + this.CHARS_PER_TICK, assistantContent.length);
+            assistantMessage.content = assistantContent.slice(0, displayedLength);
+            this.updateMessages();
+            setTimeout(reveal, this.TICK_INTERVAL);
+          } else {
+            isRevealing = false;
+          }
+        };
+        reveal();
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -609,35 +606,20 @@ class PreikChatWidget extends HTMLElement {
 
         const chunk = decoder.decode(value, { stream: true });
         assistantContent += chunk;
-        this.streamBuffer = assistantContent;
+
+        // Start revealing if not already
+        revealMore();
       }
 
       // Final decode to flush any remaining bytes
       const remaining = decoder.decode();
       if (remaining) {
         assistantContent += remaining;
-        this.streamBuffer = assistantContent;
       }
 
-      // Wait for smooth reveal to finish
-      await new Promise<void>((resolve) => {
-        const checkComplete = setInterval(() => {
-          if (this.displayedContent.length >= this.streamBuffer.length) {
-            clearInterval(checkComplete);
-            resolve();
-          }
-        }, 50);
-        // Timeout after 5 seconds to prevent hanging
-        setTimeout(() => {
-          clearInterval(checkComplete);
-          resolve();
-        }, 5000);
-      });
-
-      // Stop the streaming interval
-      if (this.streamingInterval) {
-        clearInterval(this.streamingInterval);
-        this.streamingInterval = null;
+      // Wait for reveal to complete
+      while (displayedLength < assistantContent.length) {
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       // Ensure final content is displayed
@@ -655,13 +637,6 @@ class PreikChatWidget extends HTMLElement {
       this.saveMessages();
     } catch (error) {
       clearTimeout(timeoutId);
-
-      // Clean up streaming interval on error
-      if (this.streamingInterval) {
-        clearInterval(this.streamingInterval);
-        this.streamingInterval = null;
-      }
-
       const errorTime = Math.round(performance.now() - startTime);
 
       // Check if it was an abort (user cancelled or timeout)
