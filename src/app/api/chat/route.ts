@@ -12,28 +12,46 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 // Parse service account credentials - handle escaped newlines in private_key
 function getCredentials() {
+  console.log("🔑 [getCredentials] Starting credential parse...");
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+
   if (!key) {
-    console.error("❌ GOOGLE_SERVICE_ACCOUNT_KEY is not set!");
+    console.error("❌ [getCredentials] GOOGLE_SERVICE_ACCOUNT_KEY is not set!");
     return undefined;
   }
 
+  console.log(`🔑 [getCredentials] Key length: ${key.length}, starts with: ${key.slice(0, 50)}...`);
+
   try {
     // First try direct parse (for properly escaped JSON)
+    console.log("🔑 [getCredentials] Trying direct JSON.parse...");
     const creds = JSON.parse(key);
-    console.log("✅ Service account parsed:", creds.client_email);
+    console.log("✅ [getCredentials] Direct parse SUCCESS:", {
+      type: creds.type,
+      project_id: creds.project_id,
+      client_email: creds.client_email,
+      private_key_length: creds.private_key?.length || 0,
+    });
     return creds;
-  } catch {
+  } catch (e1) {
+    console.error("❌ [getCredentials] Direct parse failed:", (e1 as Error).message);
+
     // If that fails, try replacing escaped newlines in private_key
     try {
-      // Replace literal \n with actual newlines for the private key
+      console.log("🔑 [getCredentials] Trying with newline replacement...");
       const fixedKey = key.replace(/\\n/g, '\n');
       const creds = JSON.parse(fixedKey);
-      console.log("✅ Service account parsed (with newline fix):", creds.client_email);
+      console.log("✅ [getCredentials] Newline fix parse SUCCESS:", {
+        type: creds.type,
+        project_id: creds.project_id,
+        client_email: creds.client_email,
+        private_key_length: creds.private_key?.length || 0,
+      });
       return creds;
     } catch (e2) {
-      console.error("❌ Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", e2);
-      console.error("❌ Key preview:", key.slice(0, 100) + "...");
+      console.error("❌ [getCredentials] Newline fix parse FAILED:", (e2 as Error).message);
+      console.error("❌ [getCredentials] Key preview (first 200 chars):", key.slice(0, 200));
+      console.error("❌ [getCredentials] Key preview (around pos 100-150):", key.slice(100, 150));
       return undefined;
     }
   }
@@ -41,23 +59,41 @@ function getCredentials() {
 
 // Create Vertex AI client with global endpoint (avoids regional burst limits)
 function getVertex() {
+  console.log("🏗️ [getVertex] Creating Vertex AI client...");
   const credentials = getCredentials();
+
   if (!credentials) {
-    console.error("❌ No valid credentials, Vertex AI will fail!");
+    console.error("❌ [getVertex] No valid credentials! Vertex AI WILL FAIL!");
+    console.error("❌ [getVertex] Will fall back to metadata service which will timeout on Vercel!");
+  } else {
+    console.log("✅ [getVertex] Got credentials for:", credentials.client_email);
   }
-  return createVertex({
-    project: process.env.GOOGLE_CLOUD_PROJECT!,
+
+  const project = process.env.GOOGLE_CLOUD_PROJECT;
+  console.log(`🏗️ [getVertex] Project: ${project}, Location: global`);
+
+  const vertex = createVertex({
+    project: project!,
     location: "global",
     googleAuthOptions: {
       credentials,
     },
   });
+
+  console.log("✅ [getVertex] Vertex AI client created");
+  return vertex;
 }
 
-console.log("🔧 [STARTUP] Vertex AI config:", {
-  project: process.env.GOOGLE_CLOUD_PROJECT,
-  hasKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
-});
+// Startup logging
+console.log("========================================");
+console.log("🔧 [STARTUP] Chat API initializing...");
+console.log("🔧 [STARTUP] GOOGLE_CLOUD_PROJECT:", process.env.GOOGLE_CLOUD_PROJECT);
+console.log("🔧 [STARTUP] GOOGLE_SERVICE_ACCOUNT_KEY set:", !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+console.log("🔧 [STARTUP] GOOGLE_SERVICE_ACCOUNT_KEY length:", process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length || 0);
+console.log("🔧 [STARTUP] Testing credential parse at startup...");
+const startupCreds = getCredentials();
+console.log("🔧 [STARTUP] Startup credential test:", startupCreds ? "SUCCESS" : "FAILED");
+console.log("========================================");
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -241,8 +277,12 @@ function extractTextFromMessage(message: Message): string {
 }
 
 export async function POST(request: NextRequest) {
+  console.log("\n\n========== NEW REQUEST ==========");
+  console.log("⏰ [POST] Request received at:", new Date().toISOString());
+
   try {
     const body = await request.json();
+    console.log("📥 [POST] Body parsed, storeId:", body.storeId);
     const parsed = chatSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -412,10 +452,16 @@ export async function POST(request: NextRequest) {
       let result: { text: string } | undefined;
 
       // Gemini via Vertex AI (global), OpenAI fallback on rate limit
+      console.log(`🏗️ [${storeId}] Creating Vertex AI client for non-streaming...`);
       const vertex = getVertex();
+      console.log(`🏗️ [${storeId}] Creating model instances (non-streaming)...`);
+      const geminiModel = vertex("gemini-2.0-flash");
+      const openaiModel = openai("gpt-4o-mini");
+      console.log(`✅ [${storeId}] Model instances created (non-streaming)`);
+
       const models = [
-        { provider: vertex("gemini-2.0-flash"), name: "gemini-2.0-flash" },
-        { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
+        { provider: geminiModel, name: "gemini-2.0-flash" },
+        { provider: openaiModel, name: "gpt-4o-mini" },
       ];
 
       for (let i = 0; i < models.length; i++) {
@@ -423,7 +469,7 @@ export async function POST(request: NextRequest) {
         modelUsed = name;
 
         try {
-          console.log(`🚀 [${storeId}] Trying ${name} (non-streaming)...`);
+          console.log(`\n🚀 [${storeId}] ====== TRYING ${name} (non-streaming) ======`);
           console.log(`📝 [${storeId}] System prompt length: ${fullSystemPrompt.length} chars`);
           console.log(`📝 [${storeId}] Messages count: ${normalizedMessages.length}`);
           result = await generateText({
@@ -506,10 +552,16 @@ export async function POST(request: NextRequest) {
     };
 
     // Gemini via Vertex AI (global), OpenAI fallback on rate limit
+    console.log(`🏗️ [${storeId}] Creating Vertex AI client for streaming...`);
     const vertex = getVertex();
+    console.log(`🏗️ [${storeId}] Creating model instances...`);
+    const geminiModel = vertex("gemini-2.0-flash");
+    const openaiModel = openai("gpt-4o-mini");
+    console.log(`✅ [${storeId}] Model instances created`);
+
     const models = [
-      { provider: vertex("gemini-2.0-flash"), name: "gemini-2.0-flash" },
-      { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
+      { provider: geminiModel, name: "gemini-2.0-flash" },
+      { provider: openaiModel, name: "gpt-4o-mini" },
     ];
 
     for (let i = 0; i < models.length; i++) {
@@ -517,8 +569,11 @@ export async function POST(request: NextRequest) {
       modelUsed = name;
 
       try {
-        console.log(`🚀 [${storeId}] Trying ${name}...`);
-        console.log(`📝 [${storeId}] System prompt: ${fullSystemPrompt.length} chars, Messages: ${normalizedMessages.length}`);
+        console.log(`\n🚀 [${storeId}] ====== TRYING ${name} ======`);
+        console.log(`📝 [${storeId}] System prompt: ${fullSystemPrompt.length} chars`);
+        console.log(`📝 [${storeId}] Messages: ${normalizedMessages.length}`);
+        console.log(`📝 [${storeId}] First message role: ${normalizedMessages[0]?.role}`);
+        console.log(`📝 [${storeId}] Last message: "${normalizedMessages[normalizedMessages.length - 1]?.content?.slice(0, 100)}..."`);
 
         const result = streamText({
           model: provider,
@@ -559,10 +614,15 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        console.log(`🔄 [${storeId}] Returning stream response...`);
-        return result.toTextStreamResponse({
+        console.log(`🔄 [${storeId}] streamText() called, preparing response...`);
+        console.log(`🔄 [${storeId}] Converting to text stream response...`);
+        const response = result.toTextStreamResponse({
           headers: streamHeaders,
         });
+        console.log(`✅ [${storeId}] Returning stream response to client!`);
+        console.log(`✅ [${storeId}] Response status: ${response.status}`);
+        console.log(`✅ [${storeId}] Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+        return response;
       } catch (error) {
         console.error(`❌ [${storeId}] Error with ${name}:`, error);
         console.error(`❌ [${storeId}] Error type: ${(error as Error).constructor.name}`);
