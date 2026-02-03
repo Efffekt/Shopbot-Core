@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { verifySuperAdmin } from "@/lib/admin-auth";
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -7,6 +8,12 @@ interface RouteParams {
 
 // GET - Get single tenant with users
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  // Verify super admin access
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
   const { tenantId } = await params;
 
   try {
@@ -58,6 +65,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // PATCH - Update tenant
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  // Verify super admin access
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
   const { tenantId } = await params;
 
   try {
@@ -91,6 +104,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 // DELETE - Delete tenant
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  // Verify super admin access
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
   const { tenantId } = await params;
 
   try {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { supabaseAdmin } from "@/lib/supabase";
+import { verifySuperAdmin } from "@/lib/admin-auth";
 
 const manualIngestSchema = z.object({
   text: z.string().min(1, "Text is required"),
@@ -43,6 +44,12 @@ function splitIntoChunks(text: string, chunkSize: number = 1000): string[] {
 }
 
 export async function POST(request: NextRequest) {
+  // Verify super admin access
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const parsed = manualIngestSchema.safeParse(body);

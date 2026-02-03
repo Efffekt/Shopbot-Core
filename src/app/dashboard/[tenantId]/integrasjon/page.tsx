@@ -52,10 +52,18 @@ export default function IntegrationPage() {
   const [config, setConfig] = useState<WidgetConfig>(defaultConfig);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Get widget URL - use current origin for the embed code
+  const getWidgetUrl = () => {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/widget.js`;
+    }
+    return "https://preik.no/widget.js";
+  };
+
   // Generate embed code based on config
   const generateEmbedCode = () => {
     const attrs: string[] = [
-      `src="https://preik.no/widget.js"`,
+      `src="${getWidgetUrl()}"`,
       `data-store-id="${tenantId}"`,
     ];
 

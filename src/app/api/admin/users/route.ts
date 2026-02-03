@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { verifySuperAdmin } from "@/lib/admin-auth";
 
 // POST - Create a new user and grant tenant access
 export async function POST(request: NextRequest) {
+  // Verify super admin access
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { email, password, tenantId, role } = body;

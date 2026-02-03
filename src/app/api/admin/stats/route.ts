@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig, getAllTenants, DEFAULT_TENANT } from "@/lib/tenants";
-
-// This route is protected by middleware Basic Auth
+import { verifySuperAdmin } from "@/lib/admin-auth";
 
 export async function GET(request: NextRequest) {
+  // Verify super admin access
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get("storeId") || DEFAULT_TENANT;

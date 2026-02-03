@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { verifySuperAdmin } from "@/lib/admin-auth";
 
 // GET - List all tenants
 export async function GET() {
+  // Verify super admin access
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { data: tenants, error } = await supabaseAdmin
       .from("tenants")
@@ -23,6 +30,12 @@ export async function GET() {
 
 // POST - Create a new tenant
 export async function POST(request: NextRequest) {
+  // Verify super admin access
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { id, name, allowed_domains, language, persona } = body;

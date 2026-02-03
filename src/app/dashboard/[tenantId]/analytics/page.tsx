@@ -41,7 +41,8 @@ export default async function AnalyticsPage({ params }: PageProps) {
       </div>
 
       <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
-        <h1 className="text-2xl font-brand font-light text-preik-text mb-6">Analyse</h1>
+        <h1 className="text-2xl font-brand font-light text-preik-text mb-2">Analyse</h1>
+        <p className="text-preik-text-muted mb-6">Se hvordan chatboten din presterer</p>
         <TenantAnalyticsDashboard tenantId={tenantId} />
       </div>
     </div>
