@@ -193,9 +193,6 @@ class PreikChatWidget extends HTMLElement {
   private apiUrl: string;
   private abortController: AbortController | null = null;
 
-  // Smooth streaming config
-  private readonly CHARS_PER_TICK = 3; // Characters to reveal per tick
-  private readonly TICK_INTERVAL = 15; // Milliseconds between ticks
 
   // DOM references
   private trigger: HTMLButtonElement | null = null;
@@ -571,28 +568,7 @@ class PreikChatWidget extends HTMLElement {
       };
       this.state.messages.push(assistantMessage);
       this.state.isLoading = false;
-
-      // Smooth streaming: buffer incoming text and reveal gradually
-      let displayedLength = 0;
-      let isRevealing = false;
-
-      const revealMore = () => {
-        if (isRevealing) return;
-        isRevealing = true;
-
-        const reveal = () => {
-          if (displayedLength < assistantContent.length) {
-            // Reveal a few characters at a time
-            displayedLength = Math.min(displayedLength + this.CHARS_PER_TICK, assistantContent.length);
-            assistantMessage.content = assistantContent.slice(0, displayedLength);
-            this.updateMessages();
-            setTimeout(reveal, this.TICK_INTERVAL);
-          } else {
-            isRevealing = false;
-          }
-        };
-        reveal();
-      };
+      this.updateMessages();
 
       while (true) {
         const { done, value } = await reader.read();
@@ -606,25 +582,17 @@ class PreikChatWidget extends HTMLElement {
 
         const chunk = decoder.decode(value, { stream: true });
         assistantContent += chunk;
-
-        // Start revealing if not already
-        revealMore();
+        assistantMessage.content = assistantContent;
+        this.updateMessages();
       }
 
       // Final decode to flush any remaining bytes
       const remaining = decoder.decode();
       if (remaining) {
         assistantContent += remaining;
+        assistantMessage.content = assistantContent;
+        this.updateMessages();
       }
-
-      // Wait for reveal to complete
-      while (displayedLength < assistantContent.length) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-
-      // Ensure final content is displayed
-      assistantMessage.content = assistantContent;
-      this.updateMessages();
 
       const totalTime = Math.round(performance.now() - startTime);
 
