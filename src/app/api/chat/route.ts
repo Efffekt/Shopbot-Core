@@ -374,12 +374,12 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-2.5-flash";
+      let modelUsed = "gemini-1.5-flash";
       let result: { text: string } | undefined;
 
       // Gemini primary, OpenAI fallback on rate limit
       const models = [
-        { provider: vertex("gemini-2.5-flash"), name: "gemini-2.5-flash" },
+        { provider: vertex("gemini-1.5-flash"), name: "gemini-1.5-flash" },
         { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
       ];
 
@@ -448,7 +448,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - Gemini primary, OpenAI fallback
-    let modelUsed = "gemini-2.5-flash";
+    let modelUsed = "gemini-1.5-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -464,7 +464,7 @@ export async function POST(request: NextRequest) {
 
     // Gemini primary, OpenAI fallback on rate limit
     const models = [
-      { provider: vertex("gemini-2.5-flash"), name: "gemini-2.5-flash" },
+      { provider: vertex("gemini-1.5-flash"), name: "gemini-1.5-flash" },
       { provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" },
     ];
 
