@@ -86,48 +86,68 @@ export function AnimatedChat() {
   }, []);
 
   return (
-    <div className="w-full max-w-md bg-preik-bg rounded-3xl border border-preik-border shadow-2xl overflow-hidden transition-colors duration-200">
-      {/* Chat header - Preik branded */}
-      <div className="px-6 py-5 border-b border-preik-border flex items-center gap-4">
-        <div className="w-11 h-11 rounded-full bg-preik-accent flex items-center justify-center">
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
+    <div className="w-full max-w-[400px] bg-[#F9FAFB] rounded-2xl shadow-2xl overflow-hidden transition-colors duration-200">
+      {/* Header - matches widget exactly */}
+      <div className="px-5 py-4 bg-white border-b border-[#E5E7EB] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <rect x="3" y="11" width="18" height="10" rx="2"/>
+              <circle cx="12" cy="5" r="2"/>
+              <path d="M12 7v4"/>
+              <line x1="8" y1="16" x2="8" y2="16"/>
+              <line x1="16" y1="16" x2="16" y2="16"/>
+            </svg>
+          </div>
+          <div>
+            <p className="font-semibold text-[17px] text-[#111827]">preik</p>
+            <p className="text-[13px] text-[#6B7280] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              Online
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="preik-wordmark text-xl">preik</p>
-          <p className="text-xs text-preik-text-muted">AI-assistent</p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs text-preik-text-muted">Online</span>
+        <div className="flex items-center gap-1">
+          <button className="p-2 rounded-lg text-[#6B7280] opacity-70">
+            <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
+          <button className="p-2 rounded-lg text-[#6B7280]">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* Chat messages */}
-      <div className="p-6 h-[360px] overflow-hidden flex flex-col justify-end gap-4">
+      {/* Messages */}
+      <div className="p-5 h-[340px] overflow-hidden flex flex-col justify-end gap-4">
         {displayedMessages.map((message, index) => (
           <div
             key={index}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}
+            className={`flex flex-col max-w-[85%] animate-fade-in ${
+              message.role === "user" ? "self-end" : "self-start"
+            }`}
           >
             <div
-              className={`px-4 py-2.5 rounded-2xl max-w-[85%] ${
+              className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed ${
                 message.role === "user"
-                  ? "bg-preik-accent text-white rounded-br-md"
-                  : "bg-preik-surface border border-preik-border rounded-bl-md text-preik-text"
+                  ? "bg-preik-accent text-white rounded-br-sm"
+                  : "bg-white text-[#111827] border border-[#E5E7EB] rounded-bl-sm"
               }`}
             >
-              <p className="text-sm leading-relaxed">{message.content}</p>
+              <p>{message.content}</p>
             </div>
           </div>
         ))}
 
         {/* Streaming message */}
         {isStreaming && (
-          <div className="flex justify-start animate-fade-in">
-            <div className="px-4 py-2.5 rounded-2xl rounded-bl-md max-w-[85%] bg-preik-surface border border-preik-border text-preik-text">
-              <p className="text-sm leading-relaxed">
+          <div className="self-start max-w-[85%] animate-fade-in">
+            <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-white border border-[#E5E7EB] text-[#111827]">
+              <p className="text-[15px] leading-relaxed">
                 {streamedText}
                 <span className="inline-block w-0.5 h-4 bg-preik-accent ml-0.5 animate-pulse" />
               </p>
@@ -137,39 +157,49 @@ export function AnimatedChat() {
 
         {/* Typing indicator */}
         {isTyping && (
-          <div className="flex justify-start animate-fade-in">
-            <div className="bg-preik-surface px-4 py-3 rounded-2xl rounded-bl-md border border-preik-border">
-              <div className="flex gap-1.5">
-                <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
+          <div className="self-start animate-fade-in">
+            <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm border border-[#E5E7EB] flex items-center gap-1">
+              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1.4s" }} />
+              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "160ms", animationDuration: "1.4s" }} />
+              <span className="w-2 h-2 bg-[#6B7280] rounded-full animate-bounce" style={{ animationDelay: "320ms", animationDuration: "1.4s" }} />
             </div>
           </div>
         )}
       </div>
 
-      {/* Animated input */}
-      <div className="px-6 py-5 border-t border-preik-border">
-        <div className={`flex items-center gap-3 bg-preik-surface rounded-full px-5 py-3.5 border transition-all duration-200 ${userTypingText ? "border-preik-accent shadow-sm shadow-preik-accent/20" : "border-preik-border"}`}>
-          <span className="flex-1 text-sm">
+      {/* Input area */}
+      <div className="px-5 py-4 bg-white border-t border-[#E5E7EB]">
+        <div className={`flex items-center gap-3 bg-[#F9FAFB] border rounded-full pl-4 pr-1 py-1 transition-all duration-200 ${
+          userTypingText
+            ? "border-preik-accent ring-[3px] ring-preik-accent/10"
+            : "border-[#E5E7EB]"
+        }`}>
+          <span className="flex-1 text-[15px] min-w-0">
             {userTypingText ? (
-              <span className="text-preik-text">
+              <span className="text-[#111827]">
                 {userTypingText}
                 <span className="inline-block w-0.5 h-4 bg-preik-accent ml-0.5 animate-pulse" />
               </span>
             ) : (
-              <span className="text-preik-text-muted">Spør om noe...</span>
+              <span className="text-[#6B7280]">Skriv en melding...</span>
             )}
           </span>
           <div
-            className={`w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center transition-all duration-150 ${isButtonPressed ? "scale-90 bg-preik-accent-hover" : "scale-100"}`}
+            className={`w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
+              isButtonPressed ? "scale-90 bg-preik-accent-hover" : "scale-100"
+            }`}
           >
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+            <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
           </div>
         </div>
+
+        {/* Watermark */}
+        <p className="text-center mt-2.5 text-[11px] text-[#6B7280] opacity-60">
+          Levert av <span className="font-brand font-semibold italic">preik</span>
+        </p>
       </div>
     </div>
   );
