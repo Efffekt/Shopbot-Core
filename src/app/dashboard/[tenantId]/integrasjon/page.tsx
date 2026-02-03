@@ -7,6 +7,8 @@ import Link from "next/link";
 interface WidgetConfig {
   accentColor: string;
   textColor: string;
+  bgColor: string;
+  surfaceColor: string;
   fontBody: string;
   fontBrand: string;
   brandStyle: "normal" | "italic";
@@ -20,6 +22,8 @@ interface WidgetConfig {
 const defaultConfig: WidgetConfig = {
   accentColor: "#F97316",
   textColor: "",
+  bgColor: "",
+  surfaceColor: "",
   fontBody: "",
   fontBrand: "",
   brandStyle: "normal",
@@ -60,6 +64,12 @@ export default function IntegrationPage() {
     }
     if (config.textColor) {
       attrs.push(`data-text-color="${config.textColor}"`);
+    }
+    if (config.bgColor) {
+      attrs.push(`data-bg-color="${config.bgColor}"`);
+    }
+    if (config.surfaceColor) {
+      attrs.push(`data-surface-color="${config.surfaceColor}"`);
     }
     if (config.fontBody) {
       attrs.push(`data-font-body="${config.fontBody}"`);
@@ -113,8 +123,8 @@ export default function IntegrationPage() {
     const greeting = config.greeting || "Hei! Hvordan kan jeg hjelpe deg i dag?";
     const placeholder = config.placeholder || "Skriv en melding...";
     const isDark = config.theme === "dark";
-    const bgColor = isDark ? "#111827" : "#F9FAFB";
-    const surfaceColor = isDark ? "#1F2937" : "#FFFFFF";
+    const bgColor = config.bgColor || (isDark ? "#111827" : "#F9FAFB");
+    const surfaceColor = config.surfaceColor || (isDark ? "#1F2937" : "#FFFFFF");
     const textColor = config.textColor || (isDark ? "#F9FAFB" : "#111827");
     const mutedColor = isDark ? "#9CA3AF" : "#6B7280";
     const borderColor = isDark ? "#374151" : "#E5E7EB";
@@ -290,6 +300,79 @@ export default function IntegrationPage() {
                 ))}
               </div>
             </div>
+
+            {/* Dark mode colors - only show when dark mode is selected */}
+            {config.theme === "dark" && (
+              <div className="mb-6 p-4 bg-preik-bg rounded-xl border border-preik-border space-y-4">
+                <p className="text-sm font-medium text-preik-text">Mørk modus-farger</p>
+
+                {/* Background Color */}
+                <div>
+                  <label className="block text-xs text-preik-text-muted mb-2">
+                    Bakgrunnsfarge
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.bgColor || "#111827"}
+                      onChange={(e) => updateConfig("bgColor", e.target.value)}
+                      className="w-10 h-10 rounded-lg cursor-pointer border border-preik-border"
+                    />
+                    <input
+                      type="text"
+                      value={config.bgColor}
+                      onChange={(e) => updateConfig("bgColor", e.target.value)}
+                      className="flex-1 px-3 py-2 bg-preik-surface border border-preik-border rounded-lg text-sm text-preik-text font-mono"
+                      placeholder="#111827"
+                    />
+                    {config.bgColor && (
+                      <button
+                        onClick={() => updateConfig("bgColor", "")}
+                        className="p-2 text-preik-text-muted hover:text-red-500 transition-colors"
+                        title="Tilbakestill"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Surface Color */}
+                <div>
+                  <label className="block text-xs text-preik-text-muted mb-2">
+                    Overflate/kort-farge
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.surfaceColor || "#1F2937"}
+                      onChange={(e) => updateConfig("surfaceColor", e.target.value)}
+                      className="w-10 h-10 rounded-lg cursor-pointer border border-preik-border"
+                    />
+                    <input
+                      type="text"
+                      value={config.surfaceColor}
+                      onChange={(e) => updateConfig("surfaceColor", e.target.value)}
+                      className="flex-1 px-3 py-2 bg-preik-surface border border-preik-border rounded-lg text-sm text-preik-text font-mono"
+                      placeholder="#1F2937"
+                    />
+                    {config.surfaceColor && (
+                      <button
+                        onClick={() => updateConfig("surfaceColor", "")}
+                        className="p-2 text-preik-text-muted hover:text-red-500 transition-colors"
+                        title="Tilbakestill"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Position */}
             <div>

@@ -131,7 +131,9 @@ export default function DocsPage() {
   data-store-id="din-butikk-id"
   data-accent-color="#F97316"
   data-text-color="#111827"
-  data-theme="light"
+  data-bg-color="#111827"
+  data-surface-color="#1F2937"
+  data-theme="dark"
   data-position="bottom-right"
   data-greeting="Hei! Hvordan kan jeg hjelpe deg?"
   data-placeholder="Skriv en melding..."
@@ -174,6 +176,16 @@ export default function DocsPage() {
                 <tr>
                   <td className="px-6 py-4 font-mono text-preik-accent">data-text-color</td>
                   <td className="px-6 py-4 text-preik-text-muted">Tekstfarge (overstyrer tema)</td>
+                  <td className="px-6 py-4 text-preik-text-muted">Basert på tema</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-mono text-preik-accent">data-bg-color</td>
+                  <td className="px-6 py-4 text-preik-text-muted">Bakgrunnsfarge for widget</td>
+                  <td className="px-6 py-4 text-preik-text-muted">Basert på tema</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-mono text-preik-accent">data-surface-color</td>
+                  <td className="px-6 py-4 text-preik-text-muted">Farge for header, input-område og meldingsbobler</td>
                   <td className="px-6 py-4 text-preik-text-muted">Basert på tema</td>
                 </tr>
                 <tr>
@@ -266,6 +278,31 @@ export default function DocsPage() {
                 Normalt settes tekstfargen automatisk basert på tema. Bruk <code className="bg-preik-bg px-2 py-0.5 rounded">data-text-color</code> for
                 å overstyre dette.
               </p>
+            </div>
+
+            <div>
+              <h3 className="font-medium text-preik-text mb-3">Bakgrunnsfarger (for mørk modus)</h3>
+              <p className="text-sm text-preik-text-muted mb-4">
+                For mørk modus kan du tilpasse bakgrunns- og overflatefargene for å matche merkevaren din bedre.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-preik-bg rounded-xl p-4">
+                  <p className="font-mono text-sm text-preik-accent mb-2">data-bg-color</p>
+                  <p className="text-xs text-preik-text-muted">Hovedbakgrunn for widgeten</p>
+                  <div className="mt-2 h-6 rounded" style={{ backgroundColor: "#111827" }}></div>
+                </div>
+                <div className="bg-preik-bg rounded-xl p-4">
+                  <p className="font-mono text-sm text-preik-accent mb-2">data-surface-color</p>
+                  <p className="text-xs text-preik-text-muted">Header, input og meldingsbobler</p>
+                  <div className="mt-2 h-6 rounded" style={{ backgroundColor: "#1F2937" }}></div>
+                </div>
+              </div>
+              <div className="bg-preik-bg rounded-xl p-4 font-mono text-sm mt-4">
+                <pre className="text-preik-text-muted">
+{`data-bg-color="#0A0F1A"
+data-surface-color="#151B28"`}
+                </pre>
+              </div>
             </div>
           </div>
         </section>

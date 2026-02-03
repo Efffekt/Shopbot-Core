@@ -7,7 +7,9 @@ import { getStyles, LIGHT_THEME, DARK_THEME } from "./styles";
 const DEFAULT_CONFIG: WidgetConfig = {
   storeId: "",
   accentColor: "#F97316",
-  textColor: "#111827",
+  textColor: "",
+  bgColor: "",
+  surfaceColor: "",
   fontBody: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   fontBrand: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   brandStyle: "normal",
@@ -81,6 +83,8 @@ function parseConfig(): WidgetConfig {
     storeId: script.dataset.storeId || DEFAULT_CONFIG.storeId,
     accentColor: script.dataset.accentColor || DEFAULT_CONFIG.accentColor,
     textColor: script.dataset.textColor || DEFAULT_CONFIG.textColor,
+    bgColor: script.dataset.bgColor || DEFAULT_CONFIG.bgColor,
+    surfaceColor: script.dataset.surfaceColor || DEFAULT_CONFIG.surfaceColor,
     fontBody: script.dataset.fontBody || DEFAULT_CONFIG.fontBody,
     fontBrand: script.dataset.fontBrand || DEFAULT_CONFIG.fontBrand,
     brandStyle: (script.dataset.brandStyle as "normal" | "italic") || DEFAULT_CONFIG.brandStyle,
@@ -126,14 +130,26 @@ function getThemeColors(config: WidgetConfig): ThemeColors {
   const base = isDark ? { ...DARK_THEME } : { ...LIGHT_THEME };
 
   // Override accent color if provided
-  if (config.accentColor && config.accentColor !== DEFAULT_CONFIG.accentColor) {
+  if (config.accentColor) {
     base.accent = config.accentColor;
     base.accentHover = darkenColor(config.accentColor, 10);
   }
 
   // Override text color if provided
-  if (config.textColor && config.textColor !== DEFAULT_CONFIG.textColor) {
+  if (config.textColor) {
     base.text = config.textColor;
+  }
+
+  // Override background color if provided
+  if (config.bgColor) {
+    base.bg = config.bgColor;
+  }
+
+  // Override surface color if provided
+  if (config.surfaceColor) {
+    base.surface = config.surfaceColor;
+    // Also adjust surface hover to be slightly different
+    base.surfaceHover = darkenColor(config.surfaceColor, isDark ? -10 : 5);
   }
 
   return base;

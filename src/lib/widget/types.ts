@@ -4,6 +4,8 @@ export interface WidgetConfig {
   storeId: string;
   accentColor: string;
   textColor: string;
+  bgColor: string;
+  surfaceColor: string;
   fontBody: string;
   fontBrand: string;
   brandStyle: "normal" | "italic";
