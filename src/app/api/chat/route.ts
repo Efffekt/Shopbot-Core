@@ -1,4 +1,4 @@
-// Chat API - Gemini 3 Flash Preview via Vertex AI (global endpoint) with OpenAI fallback
+// Chat API - Gemini 2.0 Flash via Vertex AI (global endpoint) with OpenAI fallback
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
@@ -445,19 +445,19 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-3-flash-preview";
+      let modelUsed = "gemini-2.0-flash";
       let result: { text: string } | undefined;
 
       // Gemini via Vertex AI (global), OpenAI fallback on rate limit
       console.log(`🏗️ [${storeId}] Creating Vertex AI client for non-streaming...`);
       const vertex = getVertex();
       console.log(`🏗️ [${storeId}] Creating model instances (non-streaming)...`);
-      const geminiModel = vertex("gemini-3-flash-preview");
+      const geminiModel = vertex("gemini-2.0-flash");
       const openaiModel = openai("gpt-4o-mini");
       console.log(`✅ [${storeId}] Model instances created (non-streaming)`);
 
       const models = [
-        { provider: geminiModel, name: "gemini-3-flash-preview" },
+        { provider: geminiModel, name: "gemini-2.0-flash" },
         { provider: openaiModel, name: "gpt-4o-mini" },
       ];
 
@@ -534,7 +534,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - Gemini primary, OpenAI fallback
-    let modelUsed = "gemini-3-flash-preview";
+    let modelUsed = "gemini-2.0-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders = {
@@ -552,12 +552,12 @@ export async function POST(request: NextRequest) {
     console.log(`🏗️ [${storeId}] Creating Vertex AI client for streaming...`);
     const vertex = getVertex();
     console.log(`🏗️ [${storeId}] Creating model instances...`);
-    const geminiModel = vertex("gemini-3-flash-preview");
+    const geminiModel = vertex("gemini-2.0-flash");
     const openaiModel = openai("gpt-4o-mini");
     console.log(`✅ [${storeId}] Model instances created`);
 
     const models = [
-      { provider: geminiModel, name: "gemini-3-flash-preview" },
+      { provider: geminiModel, name: "gemini-2.0-flash" },
       { provider: openaiModel, name: "gpt-4o-mini" },
     ];
 
