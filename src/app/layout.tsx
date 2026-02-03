@@ -20,33 +20,13 @@ export const metadata: Metadata = {
   description: "Skreddersydde AI-assistenter for norske bedrifter. Ikke mer leting. Bare gode svar.",
 };
 
-// Inline script to set theme before render
-const initScript = `
-  (function() {
-    try {
-      var stored = localStorage.getItem('preik-theme');
-      if (stored) {
-        document.documentElement.setAttribute('data-mode', stored);
-      } else {
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.setAttribute('data-mode', prefersDark ? 'dark' : 'light');
-      }
-    } catch (e) {
-      document.documentElement.setAttribute('data-mode', 'light');
-    }
-  })();
-`;
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="no" data-mode="light" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: initScript }} />
-      </head>
+    <html lang="no" data-mode="light">
       <body
         className={`${fraunces.variable} ${jakarta.variable} antialiased`}
       >
