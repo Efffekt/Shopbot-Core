@@ -519,13 +519,15 @@ class PreikChatWidget extends HTMLElement {
       });
 
       clearTimeout(timeoutId);
+      const responseTime = Math.round(performance.now() - startTime);
+      const contentType = response.headers.get("content-type") || "";
+      console.log(`[Preik] 📥 Response: ${response.status} | ${contentType} | ${responseTime}ms`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error(`[Preik] ❌ API Error:`, errorData);
         throw new Error(errorData.message || `Error: ${response.status}`);
       }
-
-      const contentType = response.headers.get("content-type") || "";
 
       // Non-streaming response (JSON)
       if (contentType.includes("application/json")) {
@@ -591,7 +593,12 @@ class PreikChatWidget extends HTMLElement {
       }
 
       const totalTime = Math.round(performance.now() - startTime);
-      console.log(`[Preik] ✅ Complete: ${totalTime}ms total | ${assistantContent.length} chars`);
+
+      if (assistantContent.length === 0) {
+        console.warn(`[Preik] ⚠️ Empty response received after ${totalTime}ms`);
+      } else {
+        console.log(`[Preik] ✅ Complete: ${totalTime}ms total | ${assistantContent.length} chars`);
+      }
 
       this.saveMessages();
     } catch (error) {
