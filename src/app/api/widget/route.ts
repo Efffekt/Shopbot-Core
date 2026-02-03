@@ -1,4 +1,5 @@
 // API route to serve the bundled widget.js
+// Force rebuild: 2026-02-03
 import { NextResponse } from "next/server";
 
 // Import the pre-built widget bundle

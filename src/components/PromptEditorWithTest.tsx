@@ -7,6 +7,28 @@ interface Message {
   content: string;
 }
 
+// Simple markdown parser for chat messages
+function parseMarkdown(text: string): string {
+  return text
+    // Links: [text](url)
+    .replace(
+      /\[(.+?)\]\((.+?)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-preik-accent hover:underline">$1</a>'
+    )
+    // Bold: **text**
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    // Italic: *text* or _text_
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/_(.+?)_/g, "<em>$1</em>")
+    // Code: `text`
+    .replace(
+      /`(.+?)`/g,
+      '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>'
+    )
+    // Line breaks
+    .replace(/\n/g, "<br>");
+}
+
 interface PromptEditorWithTestProps {
   tenantId: string;
   initialPrompt: string;
@@ -103,13 +125,14 @@ export default function PromptEditorWithTest({
     await savePrompt(prompt);
   }
 
-  // Chat functions
+  // Chat functions with streaming support
   const sendMessage = async () => {
     const messageToSend = input.trim();
     if (!messageToSend || isLoading) return;
 
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: messageToSend }]);
+    const newMessages = [...messages, { role: "user" as const, content: messageToSend }];
+    setMessages(newMessages);
     setIsLoading(true);
 
     try {
@@ -117,9 +140,8 @@ export default function PromptEditorWithTest({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, { role: "user", content: messageToSend }],
+          messages: newMessages,
           storeId: tenantId,
-          noStream: true,
         }),
       });
 
@@ -127,11 +149,44 @@ export default function PromptEditorWithTest({
         throw new Error("Failed to get response");
       }
 
-      const data = await response.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.content },
-      ]);
+      const contentType = response.headers.get("content-type") || "";
+
+      // Handle streaming response
+      if (contentType.includes("text/plain") && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantContent = "";
+
+        // Add empty assistant message that we'll update
+        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+        setIsLoading(false);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          assistantContent += chunk;
+
+          // Update the last message with new content
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              role: "assistant",
+              content: assistantContent,
+            };
+            return updated;
+          });
+        }
+      } else {
+        // Non-streaming fallback
+        const data = await response.json();
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: data.content },
+        ]);
+        setIsLoading(false);
+      }
     } catch (err) {
       console.error("Chat error:", err);
       setMessages((prev) => [
@@ -141,7 +196,6 @@ export default function PromptEditorWithTest({
           content: "Beklager, noe gikk galt. Prøv igjen senere.",
         },
       ]);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -313,7 +367,16 @@ export default function PromptEditorWithTest({
                         : "bg-white text-[#111827] border border-[#E5E7EB] rounded-bl-sm"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    {message.role === "user" ? (
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    ) : (
+                      <div
+                        className="whitespace-pre-wrap"
+                        dangerouslySetInnerHTML={{
+                          __html: parseMarkdown(message.content),
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               ))}
