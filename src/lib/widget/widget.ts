@@ -654,12 +654,32 @@ if (!customElements.get("preik-chat-widget")) {
 
 // Auto-initialize widget when script loads
 function initWidget() {
-  if (document.querySelector("preik-chat-widget")) {
-    return; // Already initialized
+  const script =
+    (document.currentScript as HTMLScriptElement) ||
+    document.querySelector('script[data-store-id]');
+
+  const isContained = script?.dataset.contained === "true";
+
+  // In contained mode, check if widget already exists in parent container
+  // In normal mode, check if widget exists anywhere
+  if (isContained) {
+    if (script?.parentElement?.querySelector("preik-chat-widget")) {
+      return; // Already initialized in this container
+    }
+  } else {
+    if (document.querySelector("preik-chat-widget")) {
+      return; // Already initialized
+    }
   }
 
   const widget = document.createElement("preik-chat-widget");
-  document.body.appendChild(widget);
+
+  // In contained mode, append to script's parent; otherwise append to body
+  if (isContained && script?.parentElement) {
+    script.parentElement.appendChild(widget);
+  } else {
+    document.body.appendChild(widget);
+  }
 }
 
 // Initialize on DOM ready
