@@ -572,9 +572,11 @@ class PreikChatWidget extends HTMLElement {
       console.log(`[Preik] 🔄 Starting stream read...`);
 
       const decoder = new TextDecoder();
-      let assistantContent = "";
+      let fullContent = "";  // All received content
+      let displayedContent = ""; // What's shown to user
       let streamingStarted = false;
       let chunkCount = 0;
+      let streamDone = false;
 
       // Add empty assistant message that we'll update
       const assistantMessage: Message = {
@@ -588,11 +590,46 @@ class PreikChatWidget extends HTMLElement {
       console.log(`[Preik] 📝 Added empty assistant message, calling updateMessages...`);
       this.updateMessages();
 
+      // Word-by-word reveal function
+      const WORDS_PER_TICK = 2;
+      const TICK_MS = 30;
+
+      const revealWords = () => {
+        if (displayedContent.length >= fullContent.length && streamDone) {
+          // All done
+          return;
+        }
+
+        // Find next words to reveal
+        const remaining = fullContent.slice(displayedContent.length);
+        const words = remaining.split(/(\s+)/); // Split keeping whitespace
+        let toAdd = "";
+
+        for (let i = 0; i < WORDS_PER_TICK * 2 && i < words.length; i++) {
+          toAdd += words[i];
+        }
+
+        if (toAdd) {
+          displayedContent += toAdd;
+          assistantMessage.content = displayedContent;
+          this.updateMessages(true);
+        }
+
+        // Continue revealing if there's more
+        if (displayedContent.length < fullContent.length || !streamDone) {
+          setTimeout(revealWords, TICK_MS);
+        }
+      };
+
+      // Start the reveal loop
+      setTimeout(revealWords, TICK_MS);
+
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
           console.log(`[Preik] 🏁 Stream done after ${chunkCount} chunks`);
+          streamDone = true;
           break;
         }
 
@@ -605,31 +642,30 @@ class PreikChatWidget extends HTMLElement {
         }
 
         const chunk = decoder.decode(value, { stream: true });
-        console.log(`[Preik] 📦 Chunk #${chunkCount}: "${chunk.slice(0, 30)}..." (${chunk.length} chars)`);
-
-        assistantContent += chunk;
-        assistantMessage.content = assistantContent;
-        console.log(`[Preik] 📊 Total content now: ${assistantContent.length} chars`);
-
-        this.updateMessages(true); // streaming update - only update bubble
-        console.log(`[Preik] ✅ updateMessages(streaming) called`);
+        fullContent += chunk;
       }
 
       // Final decode to flush any remaining bytes
       const remaining = decoder.decode();
       if (remaining) {
-        console.log(`[Preik] 📦 Remaining bytes: "${remaining.slice(0, 30)}..." (${remaining.length} chars)`);
-        assistantContent += remaining;
-        assistantMessage.content = assistantContent;
-        this.updateMessages(true); // streaming update
+        fullContent += remaining;
       }
+
+      // Wait for reveal to catch up
+      while (displayedContent.length < fullContent.length) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+
+      // Ensure final content is set
+      assistantMessage.content = fullContent;
+      this.updateMessages(true);
 
       const totalTime = Math.round(performance.now() - startTime);
 
-      if (assistantContent.length === 0) {
+      if (fullContent.length === 0) {
         console.warn(`[Preik] ⚠️ Empty response received after ${totalTime}ms`);
       } else {
-        console.log(`[Preik] ✅ Complete: ${totalTime}ms total | ${assistantContent.length} chars | ${chunkCount} chunks`);
+        console.log(`[Preik] ✅ Complete: ${totalTime}ms total | ${fullContent.length} chars | ${chunkCount} chunks`);
       }
 
       this.saveMessages();
