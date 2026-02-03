@@ -1,9 +1,10 @@
-// Chat API - Gemini 2.0 Flash via Vertex AI (global endpoint) with OpenAI fallback
+// Chat API - Gemini 2.0 Flash via Vertex AI with OpenAI fallback
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createVertex } from "@ai-sdk/google-vertex";
+import { GoogleAuth } from "google-auth-library";
 
 // Retry configuration
 const MAX_RETRIES = 2;
@@ -70,7 +71,7 @@ function getCredentials() {
   }
 }
 
-// Create Vertex AI client with global endpoint (avoids regional burst limits)
+// Create Vertex AI client
 function getVertex() {
   console.log("🏗️ [getVertex] Creating Vertex AI client...");
   const credentials = getCredentials();
@@ -83,13 +84,23 @@ function getVertex() {
   }
 
   const project = process.env.GOOGLE_CLOUD_PROJECT;
-  console.log(`🏗️ [getVertex] Project: ${project}, Location: global`);
+  // Use us-central1 for Gemini models
+  const location = "us-central1";
+  console.log(`🏗️ [getVertex] Project: ${project}, Location: ${location}`);
+
+  // Create GoogleAuth client explicitly
+  console.log("🏗️ [getVertex] Creating GoogleAuth client...");
+  const auth = new GoogleAuth({
+    credentials: credentials,
+    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  });
+  console.log("✅ [getVertex] GoogleAuth client created");
 
   const vertex = createVertex({
     project: project!,
-    location: "global",
+    location: location,
     googleAuthOptions: {
-      credentials,
+      authClient: auth,
     },
   });
 
