@@ -15,6 +15,7 @@ export interface WidgetConfig {
   brandName: string;
   theme: "auto" | "light" | "dark";
   startOpen: boolean;
+  contained: boolean; // Render inside container instead of fixed to viewport
 }
 
 export interface Message {

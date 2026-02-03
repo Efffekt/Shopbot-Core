@@ -91,19 +91,8 @@ export default function PromptEditorWithTest({
   useEffect(() => {
     if (!showTest || !widgetContainerRef.current) return;
 
-    // Remove any existing widget elements
-    const existingWidget = document.querySelector("preik-chat-widget");
-    if (existingWidget) {
-      existingWidget.remove();
-    }
-
-    // Remove existing script
-    const existingScript = document.querySelector(
-      'script[data-preik-widget="true"]'
-    );
-    if (existingScript) {
-      existingScript.remove();
-    }
+    // Clear the container
+    widgetContainerRef.current.innerHTML = "";
 
     // Create and load the widget script
     const script = document.createElement("script");
@@ -111,15 +100,20 @@ export default function PromptEditorWithTest({
     script.async = true;
     script.setAttribute("data-store-id", tenantId);
     script.setAttribute("data-brand-name", storeName);
-    script.setAttribute("data-start-open", "true"); // Start with chat open for testing
+    script.setAttribute("data-contained", "true"); // Render inside container
+    script.setAttribute("data-theme", "light"); // Force light theme for dashboard
     script.setAttribute("data-preik-widget", "true");
-    document.body.appendChild(script);
+
+    // Add script to the container div so widget renders inside it
+    widgetContainerRef.current.appendChild(script);
 
     return () => {
       // Cleanup on unmount or when toggled off
-      const widget = document.querySelector("preik-chat-widget");
-      if (widget) {
-        widget.remove();
+      if (widgetContainerRef.current) {
+        const widget = widgetContainerRef.current.querySelector("preik-chat-widget");
+        if (widget) {
+          widget.remove();
+        }
       }
       script.remove();
     };
@@ -250,17 +244,8 @@ export default function PromptEditorWithTest({
         {showTest ? (
           <div
             ref={widgetContainerRef}
-            className="flex items-center justify-center h-[500px] bg-preik-bg rounded-xl border border-preik-border relative"
-          >
-            <div className="text-center text-preik-text-muted">
-              <p className="text-sm mb-2">
-                Widgeten lastes i nedre høyre hjørne
-              </p>
-              <p className="text-xs">
-                Klikk på chat-ikonet for å åpne
-              </p>
-            </div>
-          </div>
+            className="h-[500px] rounded-xl overflow-hidden"
+          />
         ) : (
           <div className="flex items-center justify-center h-[200px] bg-preik-bg rounded-xl border-2 border-dashed border-preik-border">
             <p className="text-preik-text-muted text-sm">

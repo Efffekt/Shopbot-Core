@@ -19,6 +19,7 @@ const DEFAULT_CONFIG: WidgetConfig = {
   brandName: "Preik",
   theme: "auto",
   startOpen: false,
+  contained: false,
 };
 
 // Generate unique ID
@@ -95,6 +96,7 @@ function parseConfig(): WidgetConfig {
     brandName: script.dataset.brandName || DEFAULT_CONFIG.brandName,
     theme: (script.dataset.theme as "auto" | "light" | "dark") || DEFAULT_CONFIG.theme,
     startOpen: script.dataset.startOpen === "true",
+    contained: script.dataset.contained === "true",
   };
 }
 
@@ -125,7 +127,10 @@ function darkenColor(hex: string, percent: number): string {
 
 // Get theme colors based on config
 function getThemeColors(config: WidgetConfig): ThemeColors {
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  // Check host page's data-mode attribute first, then system preference
+  const hostMode = document.documentElement.getAttribute("data-mode");
+  const prefersDark = hostMode === "dark" ||
+    (hostMode !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const isDark =
     config.theme === "dark" || (config.theme === "auto" && prefersDark);
 
@@ -233,8 +238,8 @@ class PreikChatWidget extends HTMLElement {
       }
     });
 
-    // Open chat on init if startOpen is true
-    if (this.config.startOpen) {
+    // Open chat on init if startOpen is true or in contained mode
+    if (this.config.startOpen || this.config.contained) {
       // Small delay to ensure rendering is complete
       setTimeout(() => this.openChat(), 100);
     }
@@ -249,7 +254,7 @@ class PreikChatWidget extends HTMLElement {
     const positionClass = this.config.position === "bottom-left" ? "left" : "right";
 
     this.shadow.innerHTML = `
-      <style>${getStyles(colors, this.config.fontBody, this.config.fontBrand, this.config.brandStyle)}</style>
+      <style>${getStyles(colors, this.config.fontBody, this.config.fontBrand, this.config.brandStyle, this.config.contained)}</style>
 
       <button class="trigger ${positionClass}" aria-label="Open chat">
         ${ICONS.chat}
@@ -372,7 +377,7 @@ class PreikChatWidget extends HTMLElement {
     const colors = getThemeColors(this.config);
     const styleEl = this.shadow.querySelector("style");
     if (styleEl) {
-      styleEl.textContent = getStyles(colors, this.config.fontBody, this.config.fontBrand, this.config.brandStyle);
+      styleEl.textContent = getStyles(colors, this.config.fontBody, this.config.fontBrand, this.config.brandStyle, this.config.contained);
     }
   }
 

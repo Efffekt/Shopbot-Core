@@ -26,7 +26,35 @@ export const DARK_THEME: ThemeColors = {
   accentText: "#FFFFFF",
 };
 
-export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: string, brandStyle: "normal" | "italic" = "normal"): string {
+export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: string, brandStyle: "normal" | "italic" = "normal", contained: boolean = false): string {
+  const containedStyles = contained ? `
+    /* Contained mode overrides */
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .trigger {
+      display: none !important;
+    }
+
+    .chat-window {
+      position: relative !important;
+      bottom: auto !important;
+      right: auto !important;
+      left: auto !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      border-radius: 1rem;
+      box-shadow: none;
+      opacity: 1 !important;
+      transform: none !important;
+      pointer-events: auto !important;
+    }
+  ` : '';
+
   return `
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,600&display=swap');
 
@@ -158,6 +186,8 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
         padding: 12px 20px;
       }
     }
+
+    ${containedStyles}
 
     /* Header */
     .header {
