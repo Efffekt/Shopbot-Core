@@ -115,7 +115,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
             </svg>
           </div>
           <div>
-            <p className="font-semibold text-[17px] text-[#111827]">{brandName}</p>
+            <p className="font-brand font-semibold italic text-[17px] text-[#111827]">{brandName}</p>
             <p className="text-[13px] text-[#6B7280] flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-green-500" />
               Online
