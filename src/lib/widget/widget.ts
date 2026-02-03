@@ -481,10 +481,6 @@ class PreikChatWidget extends HTMLElement {
     const text = (this.inputField?.value || "").trim();
     if (!text || this.state.isLoading) return;
 
-    // Performance timing
-    const startTime = performance.now();
-    console.log(`[Preik] 📤 Sending: "${text.slice(0, 50)}${text.length > 50 ? '...' : ''}"`);
-
     // Clear input
     if (this.inputField) {
       this.inputField.value = "";
@@ -512,7 +508,6 @@ class PreikChatWidget extends HTMLElement {
 
     // Add timeout to prevent hanging requests (30 seconds)
     const timeoutId = setTimeout(() => this.abortController?.abort(), 30000);
-    let firstChunkTime: number | null = null;
 
     try {
       const useNonStreaming = isWebView();
@@ -535,21 +530,16 @@ class PreikChatWidget extends HTMLElement {
       });
 
       clearTimeout(timeoutId);
-      const responseTime = Math.round(performance.now() - startTime);
       const contentType = response.headers.get("content-type") || "";
-      console.log(`[Preik] 📥 Response: ${response.status} | ${contentType} | ${responseTime}ms`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error(`[Preik] ❌ API Error:`, errorData);
         throw new Error(errorData.message || `Error: ${response.status}`);
       }
 
       // Non-streaming response (JSON)
       if (contentType.includes("application/json")) {
         const data = await response.json();
-        const totalTime = Math.round(performance.now() - startTime);
-        console.log(`[Preik] ✅ Response (non-streaming): ${totalTime}ms`);
 
         const assistantMessage: Message = {
           id: generateId(),
@@ -570,13 +560,10 @@ class PreikChatWidget extends HTMLElement {
         throw new Error("No response body");
       }
 
-      console.log(`[Preik] 🔄 Starting stream read...`);
-
       const decoder = new TextDecoder();
       let fullContent = "";  // All received content
       let displayedContent = ""; // What's shown to user
       let streamingStarted = false;
-      let chunkCount = 0;
       let streamDone = false;
 
       // Add empty assistant message that we'll update
@@ -588,7 +575,6 @@ class PreikChatWidget extends HTMLElement {
       };
       this.state.messages.push(assistantMessage);
       this.state.isLoading = false;
-      console.log(`[Preik] 📝 Added empty assistant message, calling updateMessages...`);
       this.updateMessages();
 
       // Word-by-word reveal function
@@ -629,17 +615,12 @@ class PreikChatWidget extends HTMLElement {
         const { done, value } = await reader.read();
 
         if (done) {
-          console.log(`[Preik] 🏁 Stream done after ${chunkCount} chunks`);
           streamDone = true;
           break;
         }
 
-        chunkCount++;
-
         if (!streamingStarted) {
           streamingStarted = true;
-          firstChunkTime = performance.now() - startTime;
-          console.log(`[Preik] ⚡ First chunk: ${Math.round(firstChunkTime)}ms`);
         }
 
         const chunk = decoder.decode(value, { stream: true });
@@ -660,23 +641,12 @@ class PreikChatWidget extends HTMLElement {
       // Ensure final content is set with markdown parsing
       assistantMessage.content = fullContent;
       this.updateMessages(false); // Full re-render with markdown
-
-      const totalTime = Math.round(performance.now() - startTime);
-
-      if (fullContent.length === 0) {
-        console.warn(`[Preik] ⚠️ Empty response received after ${totalTime}ms`);
-      } else {
-        console.log(`[Preik] ✅ Complete: ${totalTime}ms total | ${fullContent.length} chars | ${chunkCount} chunks`);
-      }
-
       this.saveMessages();
     } catch (error) {
       clearTimeout(timeoutId);
-      const errorTime = Math.round(performance.now() - startTime);
 
       // Check if it was an abort (user cancelled or timeout)
       if ((error as Error).name === "AbortError") {
-        console.log(`[Preik] ⏱️ Aborted at ${errorTime}ms`);
         // Only show error if we haven't received any response yet
         if (this.state.isLoading) {
           this.state.isLoading = false;
@@ -686,7 +656,6 @@ class PreikChatWidget extends HTMLElement {
         return;
       }
 
-      console.error(`[Preik] ❌ Error at ${errorTime}ms:`, error);
       this.state.isLoading = false;
       this.state.error =
         error instanceof Error
