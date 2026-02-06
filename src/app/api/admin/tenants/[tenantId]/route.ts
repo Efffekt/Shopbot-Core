@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { resetCredits } from "@/lib/credits";
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -75,13 +76,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   try {
     const body = await request.json();
-    const { name, allowed_domains, language, persona } = body;
+    const { name, allowed_domains, language, persona, credit_limit } = body;
 
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
     if (allowed_domains !== undefined) updates.allowed_domains = allowed_domains;
     if (language !== undefined) updates.language = language;
     if (persona !== undefined) updates.persona = persona;
+    if (credit_limit !== undefined) updates.credit_limit = credit_limit;
 
     const { data: tenant, error } = await supabaseAdmin
       .from("tenants")
@@ -98,6 +100,34 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ tenant });
   } catch (error) {
     console.error("Error updating tenant:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// POST - Actions (reset credits)
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
+  const { tenantId } = await params;
+
+  try {
+    const body = await request.json();
+    const { action } = body;
+
+    if (action === "reset_credits") {
+      const success = await resetCredits(tenantId);
+      if (!success) {
+        return NextResponse.json({ error: "Failed to reset credits" }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, message: "Credits reset successfully" });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (error) {
+    console.error("Error performing tenant action:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

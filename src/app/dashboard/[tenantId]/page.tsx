@@ -2,6 +2,7 @@ import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { getCreditStatus } from "@/lib/credits";
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
@@ -27,6 +28,9 @@ export default async function TenantPage({ params }: PageProps) {
   if (!config) {
     notFound();
   }
+
+  const credits = await getCreditStatus(tenantId);
+  const percentUsed = credits?.percentUsed ?? 0;
 
   return (
     <div>
@@ -118,6 +122,28 @@ export default async function TenantPage({ params }: PageProps) {
           <span className="text-sm text-preik-text-muted">Konto og passord</span>
         </Link>
       </div>
+
+      {/* Credit Usage */}
+      {credits && (
+        <div className="bg-preik-surface rounded-2xl border border-preik-border p-6 mb-8">
+          <h2 className="text-lg font-semibold text-preik-text mb-4">Kredittforbruk denne måneden</h2>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="w-full bg-preik-border rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full transition-all ${
+                    percentUsed > 80 ? "bg-red-500" : percentUsed > 60 ? "bg-yellow-500" : "bg-green-500"
+                  }`}
+                  style={{ width: `${Math.min(percentUsed, 100)}%` }}
+                />
+              </div>
+            </div>
+            <span className="text-sm text-preik-text-muted whitespace-nowrap">
+              {credits.creditsUsed.toLocaleString("nb-NO")} av {credits.creditLimit.toLocaleString("nb-NO")} kreditter brukt
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Configuration */}
       <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">

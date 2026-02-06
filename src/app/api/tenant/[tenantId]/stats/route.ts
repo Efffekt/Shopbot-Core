@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig } from "@/lib/tenants";
+import { getCreditStatus } from "@/lib/credits";
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -145,6 +146,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .select("*", { count: "exact", head: true })
       .eq("store_id", tenantId);
 
+    // Get credit status
+    const creditStatus = await getCreditStatus(tenantId);
+
     return NextResponse.json({
       success: true,
       tenantId,
@@ -155,6 +159,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       unansweredQueries: unansweredData || [],
       dailyVolume,
       documentCount: documentCount || 0,
+      credits: creditStatus,
     });
   } catch (error) {
     console.error("Analytics API error:", error);

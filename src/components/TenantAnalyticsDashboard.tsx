@@ -29,6 +29,15 @@ interface DailyVolume {
   count: number;
 }
 
+interface CreditStatus {
+  creditLimit: number;
+  creditsUsed: number;
+  creditsRemaining: number;
+  percentUsed: number;
+  billingCycleStart: string;
+  billingCycleEnd: string;
+}
+
 interface AnalyticsData {
   stats: Stats;
   topSearchTerms: SearchTerm[];
@@ -36,6 +45,7 @@ interface AnalyticsData {
   dailyVolume: DailyVolume[];
   documentCount: number;
   period: string;
+  credits: CreditStatus | null;
 }
 
 interface TenantAnalyticsDashboardProps {
@@ -113,7 +123,7 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-preik-accent/10 flex items-center justify-center">
@@ -169,6 +179,34 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
           </div>
           <div className="text-sm text-preik-text-muted">Dokumenter</div>
         </div>
+
+        {data.credits && (
+          <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                data.credits.percentUsed > 80
+                  ? "bg-red-500/10"
+                  : data.credits.percentUsed > 60
+                    ? "bg-yellow-500/10"
+                    : "bg-green-500/10"
+              }`}>
+                <svg className={`w-5 h-5 ${
+                  data.credits.percentUsed > 80
+                    ? "text-red-500"
+                    : data.credits.percentUsed > 60
+                      ? "text-yellow-500"
+                      : "text-green-500"
+                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-2xl font-semibold text-preik-text">
+              {data.credits.percentUsed}%
+            </div>
+            <div className="text-sm text-preik-text-muted">Kreditter brukt</div>
+          </div>
+        )}
       </div>
 
       {/* Daily volume chart */}

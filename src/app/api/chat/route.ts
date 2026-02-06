@@ -113,6 +113,7 @@ function isRateLimitError(error: unknown): boolean {
 }
 import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
+import { checkAndIncrementCredits } from "@/lib/credits";
 
 const partSchema = z.object({
   type: z.string(),
@@ -347,7 +348,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🏪 Chat request for tenant: ${storeId} (${tenantConfig.name}) [${rateLimit.remaining} remaining]`);
+    // === CREDIT CHECK ===
+    const creditCheck = await checkAndIncrementCredits(storeId);
+    if (!creditCheck.allowed) {
+      console.warn(`🚫 Credit limit reached for tenant ${storeId}: ${creditCheck.creditsUsed}/${creditCheck.creditLimit}`);
+      return new Response(
+        JSON.stringify({
+          role: "assistant",
+          content: "Chatboten har nådd sin månedlige grense. Kontakt bedriften direkte for hjelp.",
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    console.log(`🏪 Chat request for tenant: ${storeId} (${tenantConfig.name}) [${rateLimit.remaining} remaining] [credits: ${creditCheck.creditsUsed}/${creditCheck.creditLimit}]`);
 
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 

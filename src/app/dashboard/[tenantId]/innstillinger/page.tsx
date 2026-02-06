@@ -3,6 +3,7 @@ import { TENANT_CONFIGS } from "@/lib/tenants";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import AccountSettings from "@/components/AccountSettings";
+import { getCreditStatus } from "@/lib/credits";
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
@@ -25,6 +26,14 @@ export default async function SettingsPage({ params }: PageProps) {
   }
 
   const config = TENANT_CONFIGS[tenantId];
+  const credits = await getCreditStatus(tenantId);
+
+  const percentUsed = credits?.percentUsed ?? 0;
+  const barColor = percentUsed > 80
+    ? "bg-red-500"
+    : percentUsed > 60
+      ? "bg-yellow-500"
+      : "bg-green-500";
 
   return (
     <div>
@@ -47,26 +56,53 @@ export default async function SettingsPage({ params }: PageProps) {
           <AccountSettings userEmail={user?.email || ""} />
         </div>
 
-        {/* Subscription Info - Placeholder for manual billing */}
+        {/* Credit Usage */}
         <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
-          <h2 className="text-lg font-semibold text-preik-text mb-4">Abonnement</h2>
-          <div className="bg-preik-bg rounded-xl p-4 border border-preik-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-preik-text font-medium">Aktiv</p>
-                <p className="text-sm text-preik-text-muted">Ditt abonnement er aktivt</p>
+          <h2 className="text-lg font-semibold text-preik-text mb-4">Kredittforbruk</h2>
+          {credits ? (
+            <>
+              <div className="bg-preik-bg rounded-xl p-4 border border-preik-border space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-preik-text font-medium">
+                    {credits.creditsUsed.toLocaleString("nb-NO")} av {credits.creditLimit.toLocaleString("nb-NO")} kreditter brukt
+                  </p>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                    percentUsed > 80
+                      ? "bg-red-500/10 text-red-600"
+                      : percentUsed > 60
+                        ? "bg-yellow-500/10 text-yellow-600"
+                        : "bg-green-500/10 text-green-600"
+                  }`}>
+                    {percentUsed}%
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full bg-preik-border rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full transition-all ${barColor}`}
+                    style={{ width: `${Math.min(percentUsed, 100)}%` }}
+                  />
+                </div>
+
+                <div className="flex justify-between text-xs text-preik-text-muted">
+                  <span>
+                    Periode: {new Date(credits.billingCycleStart).toLocaleDateString("nb-NO")} – {new Date(credits.billingCycleEnd).toLocaleDateString("nb-NO")}
+                  </span>
+                  <span>{credits.creditsRemaining.toLocaleString("nb-NO")} gjenstående</span>
+                </div>
               </div>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600">
-                Aktiv
-              </span>
-            </div>
-          </div>
-          <p className="text-sm text-preik-text-muted mt-4">
-            For sporsmal om faktura eller abonnement, kontakt{" "}
-            <a href="mailto:hei@preik.no" className="text-preik-accent hover:underline">
-              hei@preik.no
-            </a>
-          </p>
+              <p className="text-sm text-preik-text-muted mt-4">
+                Trenger du flere kreditter? Kontakt{" "}
+                <a href="mailto:hei@preik.no" className="text-preik-accent hover:underline">
+                  hei@preik.no
+                </a>{" "}
+                for å oppgradere.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-preik-text-muted">Kunne ikke hente kredittinformasjon.</p>
+          )}
         </div>
 
         {/* Support */}

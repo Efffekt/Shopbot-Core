@@ -9,6 +9,9 @@ interface Tenant {
   language: string;
   persona: string;
   created_at: string;
+  credit_limit: number;
+  credits_used: number;
+  billing_cycle_start: string;
 }
 
 interface TenantUser {
@@ -220,6 +223,27 @@ export default function CustomerManagement() {
                 >
                   <p className="font-medium text-gray-900">{tenant.name}</p>
                   <p className="text-sm text-gray-500">{tenant.id}</p>
+                  {tenant.credit_limit > 0 && (
+                    <div className="mt-1">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                          <div
+                            className={`h-1.5 rounded-full ${
+                              (tenant.credits_used / tenant.credit_limit) * 100 > 80
+                                ? "bg-red-500"
+                                : (tenant.credits_used / tenant.credit_limit) * 100 > 60
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                            }`}
+                            style={{ width: `${Math.min((tenant.credits_used / tenant.credit_limit) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {tenant.credits_used}/{tenant.credit_limit}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -260,6 +284,15 @@ export default function CustomerManagement() {
                   </p>
                 </div>
               </div>
+
+              {/* Credit Management */}
+              <CreditManagement
+                tenant={selectedTenant}
+                onUpdate={() => {
+                  fetchTenantDetails(selectedTenant.id);
+                  fetchTenants();
+                }}
+              />
 
               {/* Users */}
               <div className="border-t pt-4">
@@ -453,6 +486,112 @@ export default function CustomerManagement() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () => void }) {
+  const [editLimit, setEditLimit] = useState(String(tenant.credit_limit));
+  const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  const percentUsed = tenant.credit_limit > 0
+    ? Math.round((tenant.credits_used / tenant.credit_limit) * 100)
+    : 0;
+
+  async function handleSaveLimit() {
+    const newLimit = parseInt(editLimit, 10);
+    if (isNaN(newLimit) || newLimit < 0) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credit_limit: newLimit }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      onUpdate();
+    } catch (error) {
+      console.error("Failed to update credit limit:", error);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm("Nullstill kreditter for denne kunden? Dette kan ikke angres.")) return;
+    setResetting(true);
+    try {
+      const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_credits" }),
+      });
+      if (!res.ok) throw new Error("Failed to reset");
+      onUpdate();
+    } catch (error) {
+      console.error("Failed to reset credits:", error);
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  return (
+    <div className="border-t pt-4 mb-4">
+      <h3 className="font-medium text-gray-900 mb-3">Kreditter</h3>
+      <div className="space-y-3">
+        {/* Progress bar */}
+        <div>
+          <div className="flex justify-between text-sm mb-1">
+            <span className="text-gray-600">{tenant.credits_used} / {tenant.credit_limit} brukt</span>
+            <span className={`font-medium ${
+              percentUsed > 80 ? "text-red-600" : percentUsed > 60 ? "text-yellow-600" : "text-green-600"
+            }`}>{percentUsed}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full ${
+                percentUsed > 80 ? "bg-red-500" : percentUsed > 60 ? "bg-yellow-500" : "bg-green-500"
+              }`}
+              style={{ width: `${Math.min(percentUsed, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Edit limit */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600 whitespace-nowrap">Grense:</label>
+          <input
+            type="number"
+            min={0}
+            value={editLimit}
+            onChange={(e) => setEditLimit(e.target.value)}
+            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+          />
+          <button
+            onClick={handleSaveLimit}
+            disabled={saving || editLimit === String(tenant.credit_limit)}
+            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            {saving ? "..." : "Lagre"}
+          </button>
+        </div>
+
+        {/* Reset button */}
+        <button
+          onClick={handleReset}
+          disabled={resetting || tenant.credits_used === 0}
+          className="px-3 py-1.5 bg-yellow-100 text-yellow-800 text-sm font-medium rounded hover:bg-yellow-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+        >
+          {resetting ? "Nullstiller..." : "Nullstill kreditter"}
+        </button>
+
+        {tenant.billing_cycle_start && (
+          <p className="text-xs text-gray-500">
+            Syklus startet: {new Date(tenant.billing_cycle_start).toLocaleDateString("nb-NO")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
