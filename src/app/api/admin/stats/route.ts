@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig, getAllTenants, DEFAULT_TENANT } from "@/lib/tenants";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/stats");
 
 export async function GET(request: NextRequest) {
   // Verify super admin access
@@ -18,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Get tenant config for display name
     const tenantConfig = getTenantConfig(storeId);
 
-    console.log(`📊 Analytics request: storeId=${storeId} (${tenantConfig.name}), days=${days}`);
+    log.debug("Analytics request", { storeId, tenant: tenantConfig.name, days });
 
     // Calculate date threshold
     const dateThreshold = new Date();
@@ -33,11 +36,11 @@ export async function GET(request: NextRequest) {
       .gte("created_at", dateString);
 
     if (convError) {
-      console.error("❌ Conversations query error:", convError);
+      log.error("Conversations query failed", { storeId, error: convError });
       throw convError;
     }
 
-    console.log(`📊 Found ${allConversations?.length || 0} conversations for store: ${storeId}`);
+    log.debug("Conversations found", { storeId, count: allConversations?.length || 0 });
 
     // Calculate stats from the data
     const conversations = allConversations || [];
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
         : 100,
     };
 
-    console.log(`📊 Stats calculated:`, stats);
+    log.debug("Stats calculated", stats);
 
     // 2. Get top search terms (simple word extraction) - filtered by store_id
     const { data: queryData, error: queryError } = await supabaseAdmin
@@ -63,7 +66,7 @@ export async function GET(request: NextRequest) {
       .gte("created_at", dateString);
 
     if (queryError) {
-      console.error("❌ Query data error:", queryError);
+      log.error("Query data fetch failed", { storeId, error: queryError });
     }
 
     // Extract and count words - comprehensive Norwegian stop-word filtering
@@ -120,7 +123,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
 
-    console.log(`📊 Top search terms:`, topSearchTerms.slice(0, 5));
+    log.debug("Top search terms", { top5: topSearchTerms.slice(0, 5) });
 
     // 3. Get unanswered queries - filtered by store_id
     const { data: unansweredData, error: unansweredError } = await supabaseAdmin
@@ -132,10 +135,10 @@ export async function GET(request: NextRequest) {
       .limit(20);
 
     if (unansweredError) {
-      console.error("❌ Unanswered query error:", unansweredError);
+      log.error("Unanswered query fetch failed", { storeId, error: unansweredError });
     }
 
-    console.log(`📊 Unanswered queries: ${unansweredData?.length || 0}`);
+    log.debug("Unanswered queries", { count: unansweredData?.length || 0 });
 
     // 4. Get daily volume (last 14 days) - filtered by store_id
     const volumeThreshold = new Date();
@@ -148,7 +151,7 @@ export async function GET(request: NextRequest) {
       .gte("created_at", volumeThreshold.toISOString());
 
     if (volumeError) {
-      console.error("❌ Volume query error:", volumeError);
+      log.error("Volume query failed", { storeId, error: volumeError });
     }
 
     // Group by date
@@ -170,7 +173,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`📊 Daily volume (last 3 days):`, dailyVolume.slice(-3));
+    log.debug("Daily volume", { last3: dailyVolume.slice(-3) });
 
     // 5. Get document count for this tenant
     const { count: documentCount, error: docCountError } = await supabaseAdmin
@@ -179,7 +182,7 @@ export async function GET(request: NextRequest) {
       .eq("store_id", storeId);
 
     if (docCountError) {
-      console.error("❌ Document count error:", docCountError);
+      log.error("Document count query failed", { storeId, error: docCountError });
     }
 
     return NextResponse.json({
@@ -195,7 +198,7 @@ export async function GET(request: NextRequest) {
       availableTenants: getAllTenants().map((t) => ({ id: t.id, name: t.name })),
     });
   } catch (error) {
-    console.error("❌ Analytics API error:", error);
+    log.error("Analytics API error", { error: error as Error });
     return NextResponse.json(
       {
         error: "Failed to fetch analytics",

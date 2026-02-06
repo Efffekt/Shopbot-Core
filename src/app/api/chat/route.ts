@@ -4,70 +4,50 @@ import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createVertex } from "@ai-sdk/google-vertex";
+import { createLogger } from "@/lib/logger";
 
 // Retry configuration
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 300;
 import { supabaseAdmin } from "@/lib/supabase";
 
+const log = createLogger("api/chat");
+
 // Parse service account credentials - handle escaped newlines in private_key
 function getCredentials() {
-  console.log("🔑 [getCredentials] Starting credential parse...");
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 
   if (!key) {
-    console.error("❌ [getCredentials] GOOGLE_SERVICE_ACCOUNT_KEY is not set!");
+    log.error("GOOGLE_SERVICE_ACCOUNT_KEY is not set");
     return undefined;
   }
 
-  console.log(`🔑 [getCredentials] Key length: ${key.length}, starts with: ${key.slice(0, 50)}...`);
-
   try {
-    // Parse the JSON
-    console.log("🔑 [getCredentials] Parsing JSON...");
     const creds = JSON.parse(key);
 
     // Safety net - ensures newlines are real using split/join method
     if (creds.private_key) {
-      const originalKey = creds.private_key;
       creds.private_key = creds.private_key.split(String.raw`\n`).join('\n');
-      console.log(`🔑 [getCredentials] Private key newline fix applied`);
-      console.log(`🔑 [getCredentials] Private key starts with: ${creds.private_key.slice(0, 50)}`);
-      console.log(`🔑 [getCredentials] Private key ends with: ${creds.private_key.slice(-50)}`);
-      console.log(`🔑 [getCredentials] Contains actual newlines: ${creds.private_key.includes('\n')}`);
-      console.log(`🔑 [getCredentials] Newline count: ${(creds.private_key.match(/\n/g) || []).length}`);
     }
 
-    console.log("✅ [getCredentials] Parse SUCCESS:", {
-      type: creds.type,
-      project_id: creds.project_id,
-      client_email: creds.client_email,
-      private_key_length: creds.private_key?.length || 0,
-    });
     return creds;
   } catch (e) {
-    console.error("❌ [getCredentials] Parse FAILED:", (e as Error).message);
-    console.error("❌ [getCredentials] Key preview (first 200 chars):", key.slice(0, 200));
+    log.error("Failed to parse service account credentials", { error: e as Error });
     return undefined;
   }
 }
 
 // Create Vertex AI client with global endpoint (avoids regional burst limits / 429 errors)
 function getVertex() {
-  console.log("🏗️ [getVertex] Creating Vertex AI client...");
   const credentials = getCredentials();
 
   if (!credentials) {
-    console.error("❌ [getVertex] No valid credentials! Vertex AI WILL FAIL!");
-    console.error("❌ [getVertex] Will fall back to metadata service which will timeout on Vercel!");
-  } else {
-    console.log("✅ [getVertex] Got credentials for:", credentials.client_email);
+    log.error("No valid credentials — Vertex AI will fail");
   }
 
   const project = process.env.GOOGLE_CLOUD_PROJECT;
   // Use global endpoint to avoid regional burst limits (429 errors)
   const location = "global";
-  console.log(`🏗️ [getVertex] Project: ${project}, Location: ${location}`);
 
   const vertex = createVertex({
     project: project!,
@@ -77,20 +57,12 @@ function getVertex() {
     },
   });
 
-  console.log("✅ [getVertex] Vertex AI client created");
   return vertex;
 }
 
-// Startup logging
-console.log("========================================");
-console.log("🔧 [STARTUP] Chat API initializing...");
-console.log("🔧 [STARTUP] GOOGLE_CLOUD_PROJECT:", process.env.GOOGLE_CLOUD_PROJECT);
-console.log("🔧 [STARTUP] GOOGLE_SERVICE_ACCOUNT_KEY set:", !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-console.log("🔧 [STARTUP] GOOGLE_SERVICE_ACCOUNT_KEY length:", process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.length || 0);
-console.log("🔧 [STARTUP] Testing credential parse at startup...");
+// Startup: verify credentials once
 const startupCreds = getCredentials();
-console.log("🔧 [STARTUP] Startup credential test:", startupCreds ? "SUCCESS" : "FAILED");
-console.log("========================================");
+log.info("Chat API initialized", { credentialsOk: !!startupCreds });
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -99,15 +71,10 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 function isRateLimitError(error: unknown): boolean {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    const isRateLimit = message.includes('429') ||
+    return message.includes('429') ||
            message.includes('rate limit') ||
            message.includes('resource exhausted') ||
            message.includes('quota');
-
-    if (isRateLimit) {
-      console.warn(`🚦 Rate limit detected: ${error.message}`);
-    }
-    return isRateLimit;
   }
   return false;
 }
@@ -258,7 +225,7 @@ async function logConversation(data: {
     });
   } catch (error) {
     // Don't fail the request if logging fails
-    console.error("Failed to log conversation:", error);
+    log.error("Failed to log conversation", { error: error as Error });
   }
 }
 
@@ -274,13 +241,16 @@ function extractTextFromMessage(message: Message): string {
   return message.content || "";
 }
 
+// Generate a short request ID for log correlation
+function requestId() {
+  return Math.random().toString(36).slice(2, 8);
+}
+
 export async function POST(request: NextRequest) {
-  console.log("\n\n========== NEW REQUEST ==========");
-  console.log("⏰ [POST] Request received at:", new Date().toISOString());
+  const reqId = requestId();
 
   try {
     const body = await request.json();
-    console.log("📥 [POST] Body parsed, storeId:", body.storeId);
     const parsed = chatSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -298,7 +268,6 @@ export async function POST(request: NextRequest) {
     // Use non-streaming for mobile/WebViews, streaming for desktop
     const userAgent = request.headers.get("user-agent");
     const useNonStreaming = noStream === true || isWebView(userAgent);
-    console.log(`📱 [${storeId}] noStream=${noStream}, useNonStreaming=${useNonStreaming}`);
 
     // Get tenant-specific configuration
     const tenantConfig = getTenantConfig(storeId);
@@ -309,7 +278,7 @@ export async function POST(request: NextRequest) {
     const originValidation = validateOrigin(tenantConfig, origin, referer);
 
     if (!originValidation.allowed) {
-      console.warn(`🚫 Origin blocked: ${originValidation.reason}`);
+      log.warn("Origin blocked", { reqId, storeId, reason: originValidation.reason });
       return new Response(
         JSON.stringify({ error: "Forbidden", message: "Origin not allowed" }),
         {
@@ -328,7 +297,7 @@ export async function POST(request: NextRequest) {
     const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.chat);
 
     if (!rateLimit.allowed) {
-      console.warn(`🚫 Rate limited: ${clientId} for tenant ${storeId}`);
+      log.warn("Rate limited", { reqId, storeId, clientId });
       return new Response(
         JSON.stringify({
           error: "Too Many Requests",
@@ -351,7 +320,7 @@ export async function POST(request: NextRequest) {
     // === CREDIT CHECK ===
     const creditCheck = await checkAndIncrementCredits(storeId);
     if (!creditCheck.allowed) {
-      console.warn(`🚫 Credit limit reached for tenant ${storeId}: ${creditCheck.creditsUsed}/${creditCheck.creditLimit}`);
+      log.warn("Credit limit reached", { reqId, storeId, used: creditCheck.creditsUsed, limit: creditCheck.creditLimit });
       return new Response(
         JSON.stringify({
           role: "assistant",
@@ -366,8 +335,6 @@ export async function POST(request: NextRequest) {
         }
       );
     }
-
-    console.log(`🏪 Chat request for tenant: ${storeId} (${tenantConfig.name}) [${rateLimit.remaining} remaining] [credits: ${creditCheck.creditsUsed}/${creditCheck.creditLimit}]`);
 
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
 
@@ -384,7 +351,16 @@ export async function POST(request: NextRequest) {
     const start = Date.now();
     const timings: Record<string, number> = {};
 
-    console.log(`\n📨 [${storeId}] New request: "${lastUserText.slice(0, 50)}${lastUserText.length > 50 ? '...' : ''}"`);
+    log.info("Chat request", {
+      reqId,
+      storeId,
+      tenant: tenantConfig.name,
+      query: lastUserText.slice(0, 80),
+      messageCount: messages.length,
+      nonStreaming: useNonStreaming,
+      creditsUsed: creditCheck.creditsUsed,
+      rateLimitRemaining: rateLimit.remaining,
+    });
 
     // Fast path: skip embedding/search for very short messages (greetings, etc)
     const isSimpleMessage = lastUserText.length < 20 && !/produkt|pris|anbefal|kjøp|voks|polish|båt/i.test(lastUserText);
@@ -402,7 +378,6 @@ export async function POST(request: NextRequest) {
       // Fast path - just get system prompt, skip embedding/search
       systemPrompt = await getTenantSystemPrompt(storeId);
       timings.promptFetch = Date.now() - start;
-      console.log(`⚡ [${storeId}] FAST PATH - prompt: ${timings.promptFetch}ms`);
     } else {
       // Full path - embedding + search + prompt in parallel where possible
       const embeddingStart = Date.now();
@@ -420,7 +395,6 @@ export async function POST(request: NextRequest) {
       systemPrompt = promptResult;
       const { embedding } = embeddingResult;
       timings.embedding = Date.now() - embeddingStart;
-      console.log(`⏱️ [${storeId}] Embedding + prompt: ${timings.embedding}ms`);
 
       // Vector search
       const searchStart = Date.now();
@@ -435,10 +409,9 @@ export async function POST(request: NextRequest) {
       );
       timings.vectorSearch = Date.now() - searchStart;
       docsFound = relevantDocs?.length || 0;
-      console.log(`⏱️ [${storeId}] Vector search: ${timings.vectorSearch}ms (${docsFound} docs)`);
 
       if (searchError) {
-        console.error("Search error:", searchError);
+        log.error("Vector search failed", { reqId, storeId, error: searchError });
         return new Response(
           JSON.stringify({ error: "Search failed" }),
           { status: 500, headers: { "Content-Type": "application/json" } }
@@ -456,7 +429,6 @@ export async function POST(request: NextRequest) {
     }
 
     timings.preAI = Date.now() - start;
-    console.log(`⏱️ [${storeId}] Total pre-AI: ${timings.preAI}ms${useNonStreaming ? ' (non-streaming mode)' : ''}`);
 
     const aiStart = Date.now();
     const fullSystemPrompt = context
@@ -468,13 +440,9 @@ export async function POST(request: NextRequest) {
       let modelUsed = "gemini-2.5-flash";
       let result: { text: string } | undefined;
 
-      // Gemini via Vertex AI (global), OpenAI fallback on rate limit
-      console.log(`🏗️ [${storeId}] Creating Vertex AI client for non-streaming...`);
       const vertex = getVertex();
-      console.log(`🏗️ [${storeId}] Creating model instances (non-streaming)...`);
       const geminiModel = vertex("gemini-2.5-flash");
       const openaiModel = openai("gpt-4o-mini");
-      console.log(`✅ [${storeId}] Model instances created (non-streaming)`);
 
       const models = [
         { provider: geminiModel, name: "gemini-2.5-flash" },
@@ -486,25 +454,19 @@ export async function POST(request: NextRequest) {
         modelUsed = name;
 
         try {
-          console.log(`\n🚀 [${storeId}] ====== TRYING ${name} (non-streaming) ======`);
-          console.log(`📝 [${storeId}] System prompt length: ${fullSystemPrompt.length} chars`);
-          console.log(`📝 [${storeId}] Messages count: ${normalizedMessages.length}`);
           result = await generateText({
             model: provider,
             system: fullSystemPrompt,
             messages: normalizedMessages,
           });
-          console.log(`✅ [${storeId}] Got response: ${result.text.length} chars`);
-          console.log(`📄 [${storeId}] Response preview: "${result.text.slice(0, 200)}..."`);
           if (result.text.length === 0) {
-            console.error(`❌ [${storeId}] EMPTY RESPONSE in non-streaming mode!`);
+            log.error("Empty AI response", { reqId, storeId, model: name, mode: "non-streaming" });
           }
           break;
         } catch (error) {
-          console.error(`❌ [${storeId}] Error (non-streaming):`, error);
           const isLast = i === models.length - 1;
           if (isRateLimitError(error) && !isLast) {
-            console.log(`⚠️ [${storeId}] ${name} rate limited, trying ${models[i + 1].name}...`);
+            log.warn("Model rate limited, falling back", { reqId, storeId, from: name, to: models[i + 1].name });
             continue;
           }
           throw error;
@@ -517,7 +479,11 @@ export async function POST(request: NextRequest) {
 
       timings.aiTotal = Date.now() - aiStart;
       timings.total = Date.now() - start;
-      console.log(`✅ [${storeId}] AI response (non-streaming, ${modelUsed}): ${timings.aiTotal}ms | TOTAL: ${timings.total}ms`);
+
+      log.info("Request complete", {
+        reqId, storeId, model: modelUsed, mode: "non-streaming",
+        docsFound, ...timings,
+      });
 
       // Log conversation
       logConversation({
@@ -568,13 +534,9 @@ export async function POST(request: NextRequest) {
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
 
-    // Gemini via Vertex AI (global), OpenAI fallback on rate limit
-    console.log(`🏗️ [${storeId}] Creating Vertex AI client for streaming...`);
     const vertex = getVertex();
-    console.log(`🏗️ [${storeId}] Creating model instances...`);
     const geminiModel = vertex("gemini-2.5-flash");
     const openaiModel = openai("gpt-4o-mini");
-    console.log(`✅ [${storeId}] Model instances created`);
 
     const models = [
       { provider: geminiModel, name: "gemini-2.5-flash" },
@@ -586,31 +548,23 @@ export async function POST(request: NextRequest) {
       modelUsed = name;
 
       try {
-        console.log(`\n🚀 [${storeId}] ====== TRYING ${name} ======`);
-        console.log(`📝 [${storeId}] System prompt: ${fullSystemPrompt.length} chars`);
-        console.log(`📝 [${storeId}] Messages: ${normalizedMessages.length}`);
-        console.log(`📝 [${storeId}] First message role: ${normalizedMessages[0]?.role}`);
-        console.log(`📝 [${storeId}] Last message: "${normalizedMessages[normalizedMessages.length - 1]?.content?.slice(0, 100)}..."`);
-
         const result = streamText({
           model: provider,
           system: fullSystemPrompt,
           messages: normalizedMessages,
-          onChunk: ({ chunk }) => {
-            if (chunk.type === 'text-delta') {
-              console.log(`📦 [${storeId}] Chunk: "${chunk.text.slice(0, 50)}..."`);
-            }
-          },
           onFinish: async ({ text, finishReason, usage }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
-            console.log(`✅ [${storeId}] ${modelUsed}: ${timings.aiTotal}ms | ${text.length} chars | ${finishReason}`);
-            console.log(`📄 [${storeId}] Response: "${text.slice(0, 200)}${text.length > 200 ? '...' : ''}"`);
-            if (usage) {
-              console.log(`📊 [${storeId}] Usage: ${JSON.stringify(usage)}`);
-            }
+
+            log.info("Request complete", {
+              reqId, storeId, model: modelUsed, mode: "streaming",
+              docsFound, responseLength: text.length, finishReason,
+              ...(usage && { usage }),
+              ...timings,
+            });
+
             if (text.length === 0) {
-              console.error(`❌ [${storeId}] EMPTY RESPONSE! finishReason: ${finishReason}, usage: ${JSON.stringify(usage)}`);
+              log.error("Empty AI response", { reqId, storeId, model: modelUsed, finishReason });
             }
 
             // Log conversation (fire and forget)
@@ -631,24 +585,13 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        console.log(`🔄 [${storeId}] streamText() called, preparing response...`);
-        console.log(`🔄 [${storeId}] Converting to text stream response...`);
-        const response = result.toTextStreamResponse({
+        return result.toTextStreamResponse({
           headers: streamHeaders,
         });
-        console.log(`✅ [${storeId}] Returning stream response to client!`);
-        console.log(`✅ [${storeId}] Response status: ${response.status}`);
-        console.log(`✅ [${storeId}] Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
-        return response;
       } catch (error) {
-        console.error(`❌ [${storeId}] Error with ${name}:`, error);
-        console.error(`❌ [${storeId}] Error type: ${(error as Error).constructor.name}`);
-        console.error(`❌ [${storeId}] Error message: ${(error as Error).message}`);
-        console.error(`❌ [${storeId}] Error stack: ${(error as Error).stack}`);
-
         const isLast = i === models.length - 1;
         if (isRateLimitError(error) && !isLast) {
-          console.log(`⚠️ [${storeId}] ${name} rate limited, trying ${models[i + 1].name}...`);
+          log.warn("Model rate limited, falling back", { reqId, storeId, from: name, to: models[i + 1].name });
           continue;
         }
         throw error;
@@ -658,9 +601,7 @@ export async function POST(request: NextRequest) {
     // This should never be reached, but TypeScript needs it
     throw new Error("All retry attempts exhausted");
   } catch (error: unknown) {
-    // Log full error for Vercel Logs debugging
-    console.error("❌ Chat API Error:", error);
-    console.error("❌ Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    log.error("Chat API error", { reqId, error: error as Error });
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
@@ -676,4 +617,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-// 1769953427

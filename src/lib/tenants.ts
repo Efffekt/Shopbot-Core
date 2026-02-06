@@ -1,5 +1,8 @@
 // Tenant Configuration Registry
 import { supabaseAdmin } from "./supabase";
+import { createLogger } from "./logger";
+
+const log = createLogger("tenants");
 
 export interface TenantConfig {
   id: string;
@@ -329,7 +332,7 @@ export async function getTenantConfigFromDB(storeId: string): Promise<TenantConf
       .single();
 
     if (error || !data) {
-      console.warn(`Tenant ${storeId} not found in DB, using default`);
+      log.debug("Tenant not found in DB, using default", { storeId });
       return TENANT_CONFIGS[DEFAULT_TENANT];
     }
 
@@ -348,7 +351,7 @@ export async function getTenantConfigFromDB(storeId: string): Promise<TenantConf
       },
     };
   } catch (err) {
-    console.error(`Error fetching tenant ${storeId} from DB:`, err);
+    log.error("Error fetching tenant from DB", { storeId, error: err as Error });
     return TENANT_CONFIGS[DEFAULT_TENANT];
   }
 }
@@ -430,22 +433,22 @@ export async function getTenantSystemPrompt(storeId: string): Promise<string> {
 
     if (error) {
       if (error.code !== "PGRST116") {
-        console.warn(`⚠️ [${storeId}] Failed to fetch prompt from DB:`, error.message);
+        log.warn("Failed to fetch prompt from DB", { storeId, error: error.message });
       } else {
-        console.log(`📝 [${storeId}] No custom prompt in DB, using default`);
+        log.debug("No custom prompt in DB, using default", { storeId });
       }
       return config.systemPrompt;
     }
 
     if (data?.system_prompt) {
-      console.log(`✅ [${storeId}] Using custom prompt from DB (${data.system_prompt.length} chars)`);
+      log.debug("Using custom prompt from DB", { storeId, length: data.system_prompt.length });
       return data.system_prompt;
     }
 
-    console.log(`📝 [${storeId}] DB row exists but empty, using default`);
+    log.debug("DB row exists but empty, using default", { storeId });
     return config.systemPrompt;
   } catch (err) {
-    console.error(`❌ [${storeId}] Error fetching tenant prompt:`, err);
+    log.error("Error fetching tenant prompt", { storeId, error: err as Error });
     return config.systemPrompt;
   }
 }
