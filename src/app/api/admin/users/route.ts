@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 
-// POST - Create a new user and grant tenant access
+// POST - Invite a new user and grant tenant access
 export async function POST(request: NextRequest) {
   // Verify super admin access
   const { authorized, error: authError } = await verifySuperAdmin();
@@ -12,35 +12,30 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, password, tenantId, role } = body;
+    const { email, tenantId, role } = body;
 
-    if (!email || !password || !tenantId) {
+    if (!email || !tenantId) {
       return NextResponse.json(
-        { error: "Email, password, and tenantId are required" },
+        { error: "Email and tenantId are required" },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Password must be at least 6 characters" },
-        { status: 400 }
-      );
-    }
+    // Build redirect URL from request origin
+    const origin = request.headers.get("origin") || "https://preik.ai";
 
-    // Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // Invite user via Supabase Auth — sends magic link email through configured SMTP
+    const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       email,
-      password,
-      email_confirm: true, // Auto-confirm email
-    });
+      { redirectTo: `${origin}/tilbakestill-passord` }
+    );
 
-    if (authError) {
-      console.error("Failed to create user:", authError);
-      if (authError.message.includes("already been registered")) {
+    if (inviteError) {
+      console.error("Failed to invite user:", inviteError);
+      if (inviteError.message.includes("already been registered")) {
         return NextResponse.json({ error: "User already exists" }, { status: 409 });
       }
-      return NextResponse.json({ error: authError.message }, { status: 500 });
+      return NextResponse.json({ error: inviteError.message }, { status: 500 });
     }
 
     const userId = authData.user.id;
@@ -56,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     if (accessError) {
       console.error("Failed to grant tenant access:", accessError);
-      // Don't fail - user is created, just access grant failed
+      // Don't fail - user is invited, just access grant failed
     }
 
     return NextResponse.json({
@@ -64,10 +59,10 @@ export async function POST(request: NextRequest) {
         id: userId,
         email: authData.user.email,
       },
-      message: "User created successfully",
+      message: "Invitation sent",
     }, { status: 201 });
   } catch (error) {
-    console.error("Error creating user:", error);
+    console.error("Error inviting user:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

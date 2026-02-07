@@ -37,7 +37,6 @@ export default function CustomerManagement() {
   });
   const [newUser, setNewUser] = useState({
     email: "",
-    password: "",
     role: "admin",
   });
   const [status, setStatus] = useState<{ type: "success" | "error" | null; message: string }>({
@@ -121,7 +120,6 @@ export default function CustomerManagement() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: newUser.email,
-          password: newUser.password,
           tenantId: selectedTenant.id,
           role: newUser.role,
         }),
@@ -133,8 +131,8 @@ export default function CustomerManagement() {
         throw new Error(data.error || "Failed to create user");
       }
 
-      setStatus({ type: "success", message: `Bruker ${newUser.email} opprettet!` });
-      setNewUser({ email: "", password: "", role: "admin" });
+      setStatus({ type: "success", message: `Invitasjon sendt til ${newUser.email}!` });
+      setNewUser({ email: "", role: "admin" });
       setShowCreateUser(false);
       fetchTenantDetails(selectedTenant.id);
     } catch (error) {
@@ -423,7 +421,7 @@ export default function CustomerManagement() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Opprett bruker for {selectedTenant.name}
+              Inviter bruker til {selectedTenant.name}
             </h2>
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
@@ -439,21 +437,7 @@ export default function CustomerManagement() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Passord *
-                </label>
-                <input
-                  type="text"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  placeholder="Minst 6 tegn"
-                  required
-                  minLength={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">Send dette til kunden så de kan logge inn.</p>
-              </div>
+              <p className="text-sm text-gray-500">Brukeren mottar en e-post med invitasjonslenke for å sette passord.</p>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Rolle
@@ -479,7 +463,7 @@ export default function CustomerManagement() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                 >
-                  Opprett
+                  Send invitasjon
                 </button>
               </div>
             </form>

@@ -6,6 +6,11 @@ import { openai } from "@ai-sdk/openai";
 import { createVertex } from "@ai-sdk/google-vertex";
 import { createLogger } from "@/lib/logger";
 
+// Limits
+const MAX_BODY_BYTES = 32_000; // ~32KB max request body
+const MAX_MESSAGE_LENGTH = 4_000; // per-message text limit
+const MAX_MESSAGES = 50; // max conversation history
+
 // Retry configuration
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 300;
@@ -80,26 +85,27 @@ function isRateLimitError(error: unknown): boolean {
 }
 import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
-import { checkAndIncrementCredits } from "@/lib/credits";
+import { checkAndIncrementCredits, shouldSendWarningEmail } from "@/lib/credits";
+import { sendCreditWarningIfNeeded } from "@/lib/email";
 
 const partSchema = z.object({
   type: z.string(),
-  text: z.string().optional(),
+  text: z.string().max(MAX_MESSAGE_LENGTH).optional(),
 });
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
-  content: z.string().optional(),
+  content: z.string().max(MAX_MESSAGE_LENGTH).optional(),
   parts: z.array(partSchema).optional(),
   id: z.string().optional(),
   createdAt: z.union([z.string(), z.date()]).optional(),
 });
 
 const chatSchema = z.object({
-  messages: z.array(messageSchema).min(1),
-  storeId: z.string().optional(),
-  sessionId: z.string().optional(),
-  noStream: z.boolean().optional(), // For WebViews/in-app browsers that don't support streaming
+  messages: z.array(messageSchema).min(1).max(MAX_MESSAGES),
+  storeId: z.string().max(100).optional(),
+  sessionId: z.string().max(100).optional(),
+  noStream: z.boolean().optional(),
 });
 
 // Detect WebView/in-app browsers that don't support streaming
@@ -250,6 +256,15 @@ export async function POST(request: NextRequest) {
   const reqId = requestId();
 
   try {
+    // === SECURITY: Request size limit ===
+    const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+    if (contentLength > MAX_BODY_BYTES) {
+      return new Response(
+        JSON.stringify({ error: "Request too large" }),
+        { status: 413, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await request.json();
     const parsed = chatSchema.safeParse(body);
 
@@ -265,6 +280,9 @@ export async function POST(request: NextRequest) {
     // Extract storeId with fallback to default tenant
     const storeId = parsed.data.storeId || DEFAULT_TENANT;
 
+    // Capture request origin for CORS — used only after origin validation passes
+    const corsOrigin = request.headers.get("origin") || "*";
+
     // Use non-streaming for mobile/WebViews, streaming for desktop
     const userAgent = request.headers.get("user-agent");
     const useNonStreaming = noStream === true || isWebView(userAgent);
@@ -279,15 +297,10 @@ export async function POST(request: NextRequest) {
 
     if (!originValidation.allowed) {
       log.warn("Origin blocked", { reqId, storeId, reason: originValidation.reason });
+      // No CORS header — browser will block the response for unvalidated origins
       return new Response(
         JSON.stringify({ error: "Forbidden", message: "Origin not allowed" }),
-        {
-          status: 403,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
+        { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -311,7 +324,8 @@ export async function POST(request: NextRequest) {
             "Retry-After": String(Math.ceil((rateLimit.retryAfterMs || 60000) / 1000)),
             "X-RateLimit-Remaining": "0",
             "X-RateLimit-Reset": String(rateLimit.resetAt),
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": corsOrigin,
+            ...(corsOrigin !== "*" && { "Vary": "Origin" }),
           },
         }
       );
@@ -330,10 +344,17 @@ export async function POST(request: NextRequest) {
           status: 200,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": corsOrigin,
+            ...(corsOrigin !== "*" && { "Vary": "Origin" }),
           },
         }
       );
+    }
+
+    // Fire-and-forget credit warning email if threshold crossed
+    const warningLevel = shouldSendWarningEmail(creditCheck.creditsUsed, creditCheck.creditLimit);
+    if (warningLevel) {
+      sendCreditWarningIfNeeded(storeId, warningLevel).catch(() => {});
     }
 
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
@@ -511,7 +532,8 @@ export async function POST(request: NextRequest) {
           status: 200,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": corsOrigin,
+            ...(corsOrigin !== "*" && { "Vary": "Origin" }),
             "X-RateLimit-Remaining": String(rateLimit.remaining),
             "X-RateLimit-Reset": String(rateLimit.resetAt),
           },
@@ -523,16 +545,19 @@ export async function POST(request: NextRequest) {
     let modelUsed = "gemini-2.5-flash";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
-    const streamHeaders = {
+    const streamHeaders: Record<string, string> = {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       "Connection": "keep-alive",
       "X-Content-Type-Options": "nosniff",
       "X-Accel-Buffering": "no",
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": corsOrigin,
       "X-RateLimit-Remaining": String(rateLimit.remaining),
       "X-RateLimit-Reset": String(rateLimit.resetAt),
     };
+    if (corsOrigin !== "*") {
+      streamHeaders["Vary"] = "Origin";
+    }
 
     const vertex = getVertex();
     const geminiModel = vertex("gemini-2.5-flash");
@@ -605,13 +630,15 @@ export async function POST(request: NextRequest) {
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
+    // Use wildcard for catch-all errors since corsOrigin may not be in scope
     return new Response(
       JSON.stringify({ error: "Internal server error", details: errorMessage }),
       {
         status: 500,
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Origin": request.headers.get("origin") || "*",
+          "Vary": "Origin",
         }
       }
     );
