@@ -63,40 +63,48 @@ interface AnalyticsData {
   availableTenants: Tenant[];
 }
 
-export default function AnalyticsDashboard() {
+interface AnalyticsDashboardProps {
+  selectedTenantId?: string | null;
+  selectedTenantName?: string | null;
+}
+
+export default function AnalyticsDashboard({ selectedTenantId, selectedTenantName }: AnalyticsDashboardProps) {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [days, setDays] = useState(30);
-  const [selectedTenant, setSelectedTenant] = useState("baatpleiebutikken");
+  const [selectedTenant, setSelectedTenant] = useState(selectedTenantId || "baatpleiebutikken");
   const [availableTenants, setAvailableTenants] = useState<Tenant[]>([]);
+
+  // Update when parent changes selection
+  useEffect(() => {
+    if (selectedTenantId) {
+      setSelectedTenant(selectedTenantId);
+    }
+  }, [selectedTenantId]);
 
   const fetchData = async () => {
     setIsLoading(true);
     setError("");
 
     try {
-      console.log(`🔄 Fetching analytics for storeId=${selectedTenant}, days=${days}`);
       const res = await fetch(
         `/api/admin/stats?storeId=${selectedTenant}&days=${days}`
       );
 
       const json = await res.json();
-      console.log("📊 API Response:", json);
 
       if (!res.ok) {
-        throw new Error(json.details || json.error || "Failed to fetch analytics");
+        throw new Error(json.details || json.error || "Kunne ikke hente analyse");
       }
 
       setData(json);
 
-      // Update available tenants from response
       if (json.availableTenants && json.availableTenants.length > 0) {
         setAvailableTenants(json.availableTenants);
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to load data";
-      console.error("❌ Analytics fetch error:", errorMsg);
+      const errorMsg = err instanceof Error ? err.message : "Kunne ikke laste data";
       setError(errorMsg);
     } finally {
       setIsLoading(false);
@@ -110,22 +118,22 @@ export default function AnalyticsDashboard() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-3">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-gray-500 text-sm">Loading analytics for {selectedTenant}...</p>
+        <RefreshCw className="h-8 w-8 animate-spin text-preik-accent" />
+        <p className="text-preik-text-muted text-sm">Laster analyse for {selectedTenantName || selectedTenant}...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-700 font-medium">Error loading analytics</p>
+      <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl">
+        <p className="text-red-600 font-medium">Feil ved lasting av analyse</p>
         <p className="text-red-600 text-sm mt-1">{error}</p>
         <button
           onClick={fetchData}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
+          className="mt-3 px-4 py-2 bg-red-500/10 text-red-600 rounded-xl text-sm hover:bg-red-500/20 transition-colors"
         >
-          Try again
+          Prøv igjen
         </button>
       </div>
     );
@@ -135,9 +143,8 @@ export default function AnalyticsDashboard() {
 
   const { stats, topSearchTerms, unansweredQueries, dailyVolume, documentCount, tenantName } = data;
 
-  // Format daily volume for chart
   const chartData = dailyVolume.map((d) => ({
-    date: new Date(d.date).toLocaleDateString("no-NO", {
+    date: new Date(d.date).toLocaleDateString("nb-NO", {
       day: "numeric",
       month: "short",
     }),
@@ -154,19 +161,19 @@ export default function AnalyticsDashboard() {
       {/* Header with Tenant Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Chatbot Analytics</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Viewing: <span className="font-medium text-gray-700">{tenantName}</span>
+          <h2 className="text-xl font-semibold text-preik-text">Chatbot-analyse</h2>
+          <p className="text-sm text-preik-text-muted mt-1">
+            Viser: <span className="font-medium text-preik-text">{tenantName}</span>
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* Tenant Selector */}
           <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-gray-400" />
+            <Building2 className="h-4 w-4 text-preik-text-muted" />
             <select
               value={selectedTenant}
               onChange={(e) => setSelectedTenant(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white font-medium"
+              className="px-3 py-1.5 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text font-medium focus:ring-preik-accent focus:border-preik-accent"
             >
               {availableTenants.length > 0 ? (
                 availableTenants.map((tenant) => (
@@ -187,17 +194,17 @@ export default function AnalyticsDashboard() {
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
+            className="px-3 py-1.5 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text focus:ring-preik-accent focus:border-preik-accent"
           >
-            <option value={7}>Last 7 days</option>
-            <option value={30}>Last 30 days</option>
-            <option value={90}>Last 90 days</option>
+            <option value={7}>Siste 7 dager</option>
+            <option value={30}>Siste 30 dager</option>
+            <option value={90}>Siste 90 dager</option>
           </select>
 
           <button
             onClick={fetchData}
-            className="p-2 text-gray-500 hover:text-gray-700"
-            title="Refresh"
+            className="p-2 text-preik-text-muted hover:text-preik-text transition-colors"
+            title="Oppdater"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -208,32 +215,32 @@ export default function AnalyticsDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           icon={<MessageSquare className="h-5 w-5" />}
-          label="Total Chats"
+          label="Totale samtaler"
           value={stats.total_conversations}
-          color="blue"
-        />
-        <StatCard
-          icon={<Database className="h-5 w-5" />}
-          label="Documents"
-          value={documentCount}
-          color="indigo"
-        />
-        <StatCard
-          icon={<Mail className="h-5 w-5" />}
-          label="Email Referrals"
-          value={stats.email_referrals}
-          color="purple"
-        />
-        <StatCard
-          icon={<AlertCircle className="h-5 w-5" />}
-          label="Knowledge Gaps"
-          value={`${gapPercentage}%`}
-          subtext={`${stats.unhandled_count} queries`}
           color="orange"
         />
         <StatCard
+          icon={<Database className="h-5 w-5" />}
+          label="Dokumenter"
+          value={documentCount}
+          color="purple"
+        />
+        <StatCard
+          icon={<Mail className="h-5 w-5" />}
+          label="E-posthenvising"
+          value={stats.email_referrals}
+          color="indigo"
+        />
+        <StatCard
+          icon={<AlertCircle className="h-5 w-5" />}
+          label="Kunnskapshull"
+          value={`${gapPercentage}%`}
+          subtext={`${stats.unhandled_count} henvendelser`}
+          color="red"
+        />
+        <StatCard
           icon={<TrendingUp className="h-5 w-5" />}
-          label="Handled Rate"
+          label="Besvarsandel"
           value={`${stats.handled_rate || 0}%`}
           color="green"
         />
@@ -242,8 +249,8 @@ export default function AnalyticsDashboard() {
       {/* Charts Row */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Chat Volume Chart */}
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-4">Chat Volume</h3>
+        <div className="bg-preik-surface p-4 rounded-2xl border border-preik-border">
+          <h3 className="font-medium text-preik-text mb-4">Samtalevolum</h3>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={chartData}>
@@ -251,21 +258,21 @@ export default function AnalyticsDashboard() {
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="chats" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="chats" fill="#F97316" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-gray-400">
-              No data yet
+            <div className="h-[200px] flex items-center justify-center text-preik-text-muted">
+              Ingen data ennå
             </div>
           )}
         </div>
 
         {/* Top Search Terms */}
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-preik-surface p-4 rounded-2xl border border-preik-border">
+          <h3 className="font-medium text-preik-text mb-4 flex items-center gap-2">
             <Search className="h-4 w-4" />
-            Top Search Terms
+            Populære søkeord
           </h3>
           {topSearchTerms.length > 0 ? (
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -274,30 +281,30 @@ export default function AnalyticsDashboard() {
                   key={term.term}
                   className="flex items-center justify-between"
                 >
-                  <span className="text-sm text-gray-700">
-                    <span className="text-gray-400 mr-2">{i + 1}.</span>
+                  <span className="text-sm text-preik-text">
+                    <span className="text-preik-text-muted mr-2">{i + 1}.</span>
                     {term.term}
                   </span>
-                  <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+                  <span className="text-xs bg-preik-bg px-2 py-0.5 rounded-full text-preik-text-muted">
                     {term.count}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-gray-400">
-              No search data yet
+            <div className="h-[200px] flex items-center justify-center text-preik-text-muted">
+              Ingen søkedata ennå
             </div>
           )}
         </div>
       </div>
 
       {/* Unanswered Queries */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+      <div className="bg-preik-surface p-4 rounded-2xl border border-preik-border">
+        <h3 className="font-medium text-preik-text mb-4 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 text-orange-500" />
-          Unanswered Queries
-          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+          Ubesvarte henvendelser
+          <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full">
             {unansweredQueries.length}
           </span>
         </h3>
@@ -306,52 +313,52 @@ export default function AnalyticsDashboard() {
             {unansweredQueries.map((q) => (
               <div
                 key={q.id}
-                className="p-3 bg-orange-50 border border-orange-100 rounded-md"
+                className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm text-gray-800 font-medium">
+                  <p className="text-sm text-preik-text font-medium">
                     &ldquo;{q.user_query}&rdquo;
                   </p>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">
-                    {new Date(q.created_at).toLocaleDateString("no-NO")}
+                  <span className="text-xs text-preik-text-muted whitespace-nowrap">
+                    {new Date(q.created_at).toLocaleDateString("nb-NO")}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                <p className="text-xs text-preik-text-muted mt-1 line-clamp-2">
                   AI: {q.ai_response.slice(0, 150)}...
                 </p>
               </div>
             ))}
           </div>
         ) : (
-          <div className="py-8 text-center text-gray-400">
-            No unanswered queries - great job!
+          <div className="py-8 text-center text-preik-text-muted">
+            Ingen ubesvarte henvendelser - bra jobbet!
           </div>
         )}
       </div>
 
       {/* Intent Breakdown */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <h3 className="font-medium text-gray-900 mb-4">Query Types</h3>
+      <div className="bg-preik-surface p-4 rounded-2xl border border-preik-border">
+        <h3 className="font-medium text-preik-text mb-4">Henvendelsestyper</h3>
         <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-700">
+          <div className="p-3 bg-preik-accent/10 rounded-xl">
+            <div className="text-2xl font-bold text-preik-accent">
               {stats.product_queries}
             </div>
-            <div className="text-xs text-blue-600">Product Queries</div>
+            <div className="text-xs text-preik-accent">Produktspørsmål</div>
           </div>
-          <div className="p-3 bg-purple-50 rounded-lg">
-            <div className="text-2xl font-bold text-purple-700">
+          <div className="p-3 bg-purple-500/10 rounded-xl">
+            <div className="text-2xl font-bold text-purple-600">
               {stats.support_queries}
             </div>
-            <div className="text-xs text-purple-600">Support Requests</div>
+            <div className="text-xs text-purple-600">Supporthenvendelser</div>
           </div>
-          <div className="p-3 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-700">
+          <div className="p-3 bg-preik-bg rounded-xl">
+            <div className="text-2xl font-bold text-preik-text-muted">
               {stats.total_conversations -
                 stats.product_queries -
                 stats.support_queries}
             </div>
-            <div className="text-xs text-gray-600">General/Other</div>
+            <div className="text-xs text-preik-text-muted">Generelt/Annet</div>
           </div>
         </div>
       </div>
@@ -371,24 +378,24 @@ function StatCard({
   label: string;
   value: string | number;
   subtext?: string;
-  color: "blue" | "purple" | "orange" | "green" | "indigo";
+  color: "orange" | "purple" | "indigo" | "red" | "green";
 }) {
   const colors = {
-    blue: "bg-blue-50 text-blue-600",
-    purple: "bg-purple-50 text-purple-600",
-    orange: "bg-orange-50 text-orange-600",
-    green: "bg-green-50 text-green-600",
-    indigo: "bg-indigo-50 text-indigo-600",
+    orange: "bg-orange-500/10 text-orange-600",
+    purple: "bg-purple-500/10 text-purple-600",
+    indigo: "bg-indigo-500/10 text-indigo-600",
+    red: "bg-red-500/10 text-red-600",
+    green: "bg-green-500/10 text-green-600",
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200">
-      <div className={`inline-flex p-2 rounded-lg ${colors[color]} mb-2`}>
+    <div className="bg-preik-surface p-4 rounded-xl border border-preik-border">
+      <div className={`inline-flex p-2 rounded-xl ${colors[color]} mb-2`}>
         {icon}
       </div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <div className="text-sm text-gray-500">{label}</div>
-      {subtext && <div className="text-xs text-gray-400 mt-1">{subtext}</div>}
+      <div className="text-2xl font-bold text-preik-text">{value}</div>
+      <div className="text-sm text-preik-text-muted">{label}</div>
+      {subtext && <div className="text-xs text-preik-text-muted mt-1">{subtext}</div>}
     </div>
   );
 }

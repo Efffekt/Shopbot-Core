@@ -20,13 +20,19 @@ interface TenantUser {
   role: string;
 }
 
-export default function CustomerManagement() {
+interface CustomerManagementProps {
+  onSelectTenant: (id: string, name: string) => void;
+  onNavigateToContent: () => void;
+}
+
+export default function CustomerManagement({ onSelectTenant, onNavigateToContent }: CustomerManagementProps) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [tenantUsers, setTenantUsers] = useState<TenantUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateTenant, setShowCreateTenant] = useState(false);
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const [justCreatedTenantId, setJustCreatedTenantId] = useState<string | null>(null);
 
   // Form states
   const [newTenant, setNewTenant] = useState({
@@ -67,6 +73,7 @@ export default function CustomerManagement() {
       const data = await res.json();
       setSelectedTenant(data.tenant);
       setTenantUsers(data.users || []);
+      onSelectTenant(data.tenant.id, data.tenant.name);
     } catch (error) {
       console.error("Failed to fetch tenant details:", error);
     }
@@ -98,6 +105,7 @@ export default function CustomerManagement() {
       }
 
       setStatus({ type: "success", message: "Kunde opprettet!" });
+      setJustCreatedTenantId(newTenant.id);
       setNewTenant({ id: "", name: "", allowed_domains: "", persona: "" });
       setShowCreateTenant(false);
       fetchTenants();
@@ -172,7 +180,7 @@ export default function CustomerManagement() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-preik-accent"></div>
       </div>
     );
   }
@@ -182,49 +190,76 @@ export default function CustomerManagement() {
       {/* Status message */}
       {status.type && (
         <div
-          className={`p-4 rounded-md ${
+          className={`p-4 rounded-xl ${
             status.type === "success"
-              ? "bg-green-50 text-green-800 border border-green-200"
-              : "bg-red-50 text-red-800 border border-red-200"
+              ? "bg-green-500/10 text-green-600 border border-green-500/20"
+              : "bg-red-500/10 text-red-600 border border-red-500/20"
           }`}
         >
           {status.message}
         </div>
       )}
 
+      {/* Next step workflow card after creating tenant */}
+      {justCreatedTenantId && (
+        <div className="bg-preik-accent/10 border border-preik-accent/20 rounded-2xl p-6">
+          <h3 className="text-lg font-medium text-preik-text mb-2">Neste steg</h3>
+          <p className="text-preik-text-muted text-sm mb-4">
+            Kunden <span className="font-medium text-preik-text">{justCreatedTenantId}</span> er opprettet. Legg til innhold slik at chatboten har noe å svare med.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                onSelectTenant(justCreatedTenantId, justCreatedTenantId);
+                onNavigateToContent();
+              }}
+              className="px-5 py-2.5 bg-preik-accent text-white rounded-xl hover:bg-preik-accent-hover transition-colors text-sm font-medium"
+            >
+              Legg til innhold
+            </button>
+            <button
+              onClick={() => setJustCreatedTenantId(null)}
+              className="px-5 py-2.5 border border-preik-border text-preik-text-muted rounded-xl hover:bg-preik-bg transition-colors text-sm"
+            >
+              Senere
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-6">
         {/* Tenant List */}
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Kunder</h2>
+            <h2 className="text-lg font-semibold text-preik-text">Kunder</h2>
             <button
               onClick={() => setShowCreateTenant(true)}
-              className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+              className="px-3 py-1.5 bg-preik-accent text-white text-sm font-medium rounded-xl hover:bg-preik-accent-hover transition-colors"
             >
               + Ny kunde
             </button>
           </div>
 
           {tenants.length === 0 ? (
-            <p className="text-gray-500 text-sm">Ingen kunder ennå</p>
+            <p className="text-preik-text-muted text-sm">Ingen kunder ennå</p>
           ) : (
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-preik-border">
               {tenants.map((tenant) => (
                 <li
                   key={tenant.id}
                   onClick={() => fetchTenantDetails(tenant.id)}
-                  className={`py-3 px-2 cursor-pointer rounded transition-colors ${
+                  className={`py-3 px-2 cursor-pointer rounded-xl transition-colors ${
                     selectedTenant?.id === tenant.id
-                      ? "bg-blue-50"
-                      : "hover:bg-gray-50"
+                      ? "bg-preik-accent/10"
+                      : "hover:bg-preik-bg"
                   }`}
                 >
-                  <p className="font-medium text-gray-900">{tenant.name}</p>
-                  <p className="text-sm text-gray-500">{tenant.id}</p>
+                  <p className="font-medium text-preik-text">{tenant.name}</p>
+                  <p className="text-sm text-preik-text-muted">{tenant.id}</p>
                   {tenant.credit_limit > 0 && (
                     <div className="mt-1">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                        <div className="flex-1 bg-preik-bg rounded-full h-1.5">
                           <div
                             className={`h-1.5 rounded-full ${
                               (tenant.credits_used / tenant.credit_limit) * 100 > 80
@@ -236,7 +271,7 @@ export default function CustomerManagement() {
                             style={{ width: `${Math.min((tenant.credits_used / tenant.credit_limit) * 100, 100)}%` }}
                           />
                         </div>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-preik-text-muted">
                           {tenant.credits_used}/{tenant.credit_limit}
                         </span>
                       </div>
@@ -249,14 +284,14 @@ export default function CustomerManagement() {
         </div>
 
         {/* Tenant Details */}
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
           {selectedTenant ? (
             <>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">{selectedTenant.name}</h2>
+                <h2 className="text-lg font-semibold text-preik-text">{selectedTenant.name}</h2>
                 <button
                   onClick={() => handleDeleteTenant(selectedTenant.id)}
-                  className="px-3 py-1.5 bg-red-100 text-red-700 text-sm font-medium rounded-md hover:bg-red-200"
+                  className="px-3 py-1.5 bg-red-500/10 text-red-600 text-sm font-medium rounded-xl hover:bg-red-500/20 transition-colors"
                 >
                   Slett
                 </button>
@@ -264,21 +299,21 @@ export default function CustomerManagement() {
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Store ID</p>
-                  <p className="text-gray-900 font-mono">{selectedTenant.id}</p>
+                  <p className="text-sm font-medium text-preik-text-muted">Store ID</p>
+                  <p className="text-preik-text font-mono">{selectedTenant.id}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Tillatte domener</p>
-                  <p className="text-gray-900">
+                  <p className="text-sm font-medium text-preik-text-muted">Tillatte domener</p>
+                  <p className="text-preik-text">
                     {selectedTenant.allowed_domains?.length > 0
                       ? selectedTenant.allowed_domains.join(", ")
                       : "Ingen konfigurert"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Opprettet</p>
-                  <p className="text-gray-900">
-                    {new Date(selectedTenant.created_at).toLocaleDateString("no-NO")}
+                  <p className="text-sm font-medium text-preik-text-muted">Opprettet</p>
+                  <p className="text-preik-text">
+                    {new Date(selectedTenant.created_at).toLocaleDateString("nb-NO")}
                   </p>
                 </div>
               </div>
@@ -293,25 +328,25 @@ export default function CustomerManagement() {
               />
 
               {/* Users */}
-              <div className="border-t pt-4">
+              <div className="border-t border-preik-border pt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-gray-900">Brukere</h3>
+                  <h3 className="font-medium text-preik-text">Brukere</h3>
                   <button
                     onClick={() => setShowCreateUser(true)}
-                    className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+                    className="px-3 py-1.5 bg-preik-accent text-white text-sm font-medium rounded-xl hover:bg-preik-accent-hover transition-colors"
                   >
                     + Ny bruker
                   </button>
                 </div>
 
                 {tenantUsers.length === 0 ? (
-                  <p className="text-gray-500 text-sm">Ingen brukere</p>
+                  <p className="text-preik-text-muted text-sm">Ingen brukere</p>
                 ) : (
                   <ul className="space-y-2">
                     {tenantUsers.map((user) => (
-                      <li key={user.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
-                        <span className="text-gray-900">{user.email}</span>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                      <li key={user.id} className="flex items-center justify-between py-2 px-3 bg-preik-bg rounded-xl">
+                        <span className="text-preik-text">{user.email}</span>
+                        <span className="text-xs bg-preik-accent/10 text-preik-accent px-2 py-0.5 rounded-full">
                           {user.role}
                         </span>
                       </li>
@@ -321,9 +356,9 @@ export default function CustomerManagement() {
               </div>
 
               {/* Embed code */}
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-medium text-gray-900 mb-2">Embed-kode</h3>
-                <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
+              <div className="border-t border-preik-border pt-4 mt-4">
+                <h3 className="font-medium text-preik-text mb-2">Embed-kode</h3>
+                <pre className="bg-preik-bg p-3 rounded-xl text-sm overflow-x-auto text-preik-text">
 {`<script
   src="https://preik.no/widget.js"
   data-store-id="${selectedTenant.id}"
@@ -333,7 +368,7 @@ export default function CustomerManagement() {
               </div>
             </>
           ) : (
-            <p className="text-gray-500">Velg en kunde for å se detaljer</p>
+            <p className="text-preik-text-muted">Velg en kunde for å se detaljer</p>
           )}
         </div>
       </div>
@@ -341,11 +376,11 @@ export default function CustomerManagement() {
       {/* Create Tenant Modal */}
       {showCreateTenant && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Opprett ny kunde</h2>
+          <div className="bg-preik-surface rounded-2xl border border-preik-border p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-semibold text-preik-text mb-4">Opprett ny kunde</h2>
             <form onSubmit={handleCreateTenant} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-preik-text mb-1">
                   Store ID *
                 </label>
                 <input
@@ -354,12 +389,12 @@ export default function CustomerManagement() {
                   onChange={(e) => setNewTenant({ ...newTenant, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })}
                   placeholder="min-butikk"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl focus:ring-preik-accent focus:border-preik-accent text-preik-text placeholder:text-preik-text-muted"
                 />
-                <p className="text-xs text-gray-500 mt-1">Brukes i embed-koden. Kun små bokstaver og bindestrek.</p>
+                <p className="text-xs text-preik-text-muted mt-1">Brukes i embed-koden. Kun små bokstaver og bindestrek.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-preik-text mb-1">
                   Bedriftsnavn *
                 </label>
                 <input
@@ -368,11 +403,11 @@ export default function CustomerManagement() {
                   onChange={(e) => setNewTenant({ ...newTenant, name: e.target.value })}
                   placeholder="Min Butikk AS"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl focus:ring-preik-accent focus:border-preik-accent text-preik-text placeholder:text-preik-text-muted"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-preik-text mb-1">
                   Tillatte domener
                 </label>
                 <input
@@ -380,12 +415,12 @@ export default function CustomerManagement() {
                   value={newTenant.allowed_domains}
                   onChange={(e) => setNewTenant({ ...newTenant, allowed_domains: e.target.value })}
                   placeholder="example.com, www.example.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl focus:ring-preik-accent focus:border-preik-accent text-preik-text placeholder:text-preik-text-muted"
                 />
-                <p className="text-xs text-gray-500 mt-1">Kommaseparert liste over domener som kan bruke chatboten.</p>
+                <p className="text-xs text-preik-text-muted mt-1">Kommaseparert liste over domener som kan bruke chatboten.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-preik-text mb-1">
                   Beskrivelse / Persona
                 </label>
                 <textarea
@@ -393,20 +428,20 @@ export default function CustomerManagement() {
                   onChange={(e) => setNewTenant({ ...newTenant, persona: e.target.value })}
                   placeholder="Kundeservice for nettbutikk..."
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl focus:ring-preik-accent focus:border-preik-accent text-preik-text placeholder:text-preik-text-muted"
                 />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateTenant(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-preik-border text-preik-text-muted rounded-xl hover:bg-preik-bg transition-colors"
                 >
                   Avbryt
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  className="flex-1 px-4 py-2 bg-preik-accent text-white rounded-xl hover:bg-preik-accent-hover transition-colors"
                 >
                   Opprett
                 </button>
@@ -419,13 +454,13 @@ export default function CustomerManagement() {
       {/* Create User Modal */}
       {showCreateUser && selectedTenant && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-preik-surface rounded-2xl border border-preik-border p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-semibold text-preik-text mb-4">
               Inviter bruker til {selectedTenant.name}
             </h2>
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-preik-text mb-1">
                   E-post *
                 </label>
                 <input
@@ -434,18 +469,18 @@ export default function CustomerManagement() {
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   placeholder="bruker@example.com"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl focus:ring-preik-accent focus:border-preik-accent text-preik-text placeholder:text-preik-text-muted"
                 />
               </div>
-              <p className="text-sm text-gray-500">Brukeren mottar en e-post med invitasjonslenke for å sette passord.</p>
+              <p className="text-sm text-preik-text-muted">Brukeren mottar en e-post med invitasjonslenke for å sette passord.</p>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-preik-text mb-1">
                   Rolle
                 </label>
                 <select
                   value={newUser.role}
                   onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl focus:ring-preik-accent focus:border-preik-accent text-preik-text"
                 >
                   <option value="admin">Admin</option>
                   <option value="viewer">Leser</option>
@@ -455,13 +490,13 @@ export default function CustomerManagement() {
                 <button
                   type="button"
                   onClick={() => setShowCreateUser(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-preik-border text-preik-text-muted rounded-xl hover:bg-preik-bg transition-colors"
                 >
                   Avbryt
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  className="flex-1 px-4 py-2 bg-preik-accent text-white rounded-xl hover:bg-preik-accent-hover transition-colors"
                 >
                   Send invitasjon
                 </button>
@@ -521,18 +556,18 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
   }
 
   return (
-    <div className="border-t pt-4 mb-4">
-      <h3 className="font-medium text-gray-900 mb-3">Kreditter</h3>
+    <div className="border-t border-preik-border pt-4 mb-4">
+      <h3 className="font-medium text-preik-text mb-3">Kreditter</h3>
       <div className="space-y-3">
         {/* Progress bar */}
         <div>
           <div className="flex justify-between text-sm mb-1">
-            <span className="text-gray-600">{tenant.credits_used} / {tenant.credit_limit} brukt</span>
+            <span className="text-preik-text-muted">{tenant.credits_used} / {tenant.credit_limit} brukt</span>
             <span className={`font-medium ${
               percentUsed > 80 ? "text-red-600" : percentUsed > 60 ? "text-yellow-600" : "text-green-600"
             }`}>{percentUsed}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-preik-bg rounded-full h-2">
             <div
               className={`h-2 rounded-full ${
                 percentUsed > 80 ? "bg-red-500" : percentUsed > 60 ? "bg-yellow-500" : "bg-green-500"
@@ -544,18 +579,18 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
 
         {/* Edit limit */}
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600 whitespace-nowrap">Grense:</label>
+          <label className="text-sm text-preik-text-muted whitespace-nowrap">Grense:</label>
           <input
             type="number"
             min={0}
             value={editLimit}
             onChange={(e) => setEditLimit(e.target.value)}
-            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+            className="w-24 px-2 py-1 bg-preik-bg border border-preik-border rounded-xl text-sm focus:ring-preik-accent focus:border-preik-accent text-preik-text"
           />
           <button
             onClick={handleSaveLimit}
             disabled={saving || editLimit === String(tenant.credit_limit)}
-            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="px-3 py-1 bg-preik-accent text-white text-sm rounded-xl hover:bg-preik-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? "..." : "Lagre"}
           </button>
@@ -565,13 +600,13 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
         <button
           onClick={handleReset}
           disabled={resetting || tenant.credits_used === 0}
-          className="px-3 py-1.5 bg-yellow-100 text-yellow-800 text-sm font-medium rounded hover:bg-yellow-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+          className="px-3 py-1.5 bg-yellow-500/10 text-yellow-700 text-sm font-medium rounded-xl hover:bg-yellow-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {resetting ? "Nullstiller..." : "Nullstill kreditter"}
         </button>
 
         {tenant.billing_cycle_start && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-preik-text-muted">
             Syklus startet: {new Date(tenant.billing_cycle_start).toLocaleDateString("nb-NO")}
           </p>
         )}
