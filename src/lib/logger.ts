@@ -37,9 +37,9 @@ function emit(level: LogLevel, route: string | undefined, message: string, conte
 
   const line = JSON.stringify(entry);
   if (level === "error" || level === "warn") {
-    process.stderr.write(line + "\n");
+    console.error(line);
   } else {
-    process.stdout.write(line + "\n");
+    console.log(line);
   }
 }
 
