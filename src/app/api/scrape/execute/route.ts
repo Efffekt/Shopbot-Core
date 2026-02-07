@@ -6,6 +6,7 @@ import { firecrawl } from "@/lib/firecrawl";
 import { supabaseAdmin } from "@/lib/supabase";
 import { calculateChecksum } from "@/lib/checksum";
 import { splitIntoChunks } from "@/lib/chunking";
+import { verifySuperAdmin } from "@/lib/admin-auth";
 
 const executeSchema = z.object({
   urls: z.array(z.string().url()).min(1),
@@ -14,6 +15,14 @@ const executeSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const { authorized, error: authError } = await verifySuperAdmin();
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ error: authError || "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await request.json();
     const parsed = executeSchema.safeParse(body);
 

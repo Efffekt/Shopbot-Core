@@ -18,7 +18,7 @@
 - [x] Supabase integration (PostgreSQL, Auth, Row-Level Security)
 - [x] Landing page, login, docs page, legal pages
 - [x] Tenant dashboard with sidebar navigation
-- [x] Admin panel with basic auth protection
+- [x] Admin panel with Supabase Auth protection (super admin email check)
 
 ### AI & Chat
 - [x] Streaming chat API with Gemini 2.0 Flash (Vertex AI)
@@ -54,7 +54,7 @@
 
 ### Authentication & Security
 - [x] Supabase Auth for dashboard users (email/password)
-- [x] Basic Auth for admin, scrape, and ingest routes
+- [x] Supabase Auth for admin, scrape, and ingest routes (super admin only)
 - [x] Middleware-level auth checks
 - [x] Domain validation on chat API (origin/referer vs. tenant allowlist)
 - [x] Row-Level Security policies on database tables
@@ -118,6 +118,7 @@
 - [x] Move rate limiter from in-memory to persistent store (Upstash Redis) — resets on deploy, doesn't work across instances
 - [x] Create `.env.example` with all required variables (no real values)
 - [ ] Rotate all credentials (keys were visible during development)
+- [x] Replace admin Basic Auth with Supabase Auth — use the existing `/login` screen, detect super admin on login and redirect to `/admin`. Remove `ADMIN_USERNAME`/`ADMIN_PASSWORD` env vars and Basic Auth middleware for admin routes
 
 #### Documentation
 - [x] Write setup guide (how to get the project running locally)
@@ -253,7 +254,7 @@
 | Tenant configs partially hardcoded | Medium | `/src/lib/tenants.ts` | 4 tenants hardcoded with DB fallback |
 | baatpleiebutikken allowed_domains empty in DB | Low | Supabase `tenants` table | Hardcoded config covers it, but DB should match |
 | ~~No .env.example file~~ | ~~Medium~~ | ~~Project root~~ | Created `.env.example` with all required variables |
-| Admin password stored as plaintext | High | `.env.local` / Basic Auth | Consider hashing or switching to Supabase Auth for admin |
+| ~~Admin password stored as plaintext~~ | ~~High~~ | ~~`.env.local` / Basic Auth~~ | Migrated to Supabase Auth with super admin email check |
 | Widget has no versioning | Low | `/api/widget/route.ts` | Breaking changes affect all embedded widgets instantly |
 | No database backup configuration | High | Supabase | Data loss risk |
 | ~~Password reset flow likely non-functional~~ | ~~High~~ | ~~Auth pages~~ | Fixed: Supabase SMTP configured via Resend |

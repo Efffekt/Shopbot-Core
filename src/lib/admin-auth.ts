@@ -1,9 +1,5 @@
 import { createSupabaseServerClient } from "./supabase-server";
-
-// Super admin emails that can access /admin routes
-const SUPER_ADMIN_EMAILS = [
-  "daniel@efffekt.no",
-];
+import { SUPER_ADMIN_EMAILS } from "./admin-emails";
 
 export async function verifySuperAdmin(): Promise<{ authorized: boolean; error?: string }> {
   try {

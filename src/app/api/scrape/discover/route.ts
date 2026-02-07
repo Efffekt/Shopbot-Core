@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { firecrawl } from "@/lib/firecrawl";
+import { verifySuperAdmin } from "@/lib/admin-auth";
 
 const discoverSchema = z.object({
   baseUrl: z.string().url(),
@@ -61,6 +62,14 @@ function filterUrls(urls: string[], baseUrl: string): string[] {
 
 export async function POST(request: NextRequest) {
   try {
+    const { authorized, error: authError } = await verifySuperAdmin();
+    if (!authorized) {
+      return NextResponse.json(
+        { error: authError || "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const parsed = discoverSchema.safeParse(body);
 

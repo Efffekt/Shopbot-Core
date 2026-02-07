@@ -5,6 +5,7 @@ import { openai } from "@ai-sdk/openai";
 import { supabaseAdmin } from "@/lib/supabase";
 import { firecrawl } from "@/lib/firecrawl";
 import { splitIntoChunks } from "@/lib/chunking";
+import { verifySuperAdmin } from "@/lib/admin-auth";
 
 const ingestSchema = z.object({
   url: z.url(),
@@ -15,6 +16,14 @@ const EMBEDDING_BATCH_SIZE = 100;
 
 export async function POST(request: NextRequest) {
   try {
+    const { authorized, error: authError } = await verifySuperAdmin();
+    if (!authorized) {
+      return NextResponse.json(
+        { error: authError || "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const parsed = ingestSchema.safeParse(body);
 

@@ -1,26 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { createLogger } from "@/lib/logger";
 
-// Paths that require Basic Authentication (admin panel)
-// SECURITY: All admin/scrape/ingest endpoints require authentication
-const BASIC_AUTH_PATHS = [
-  "/admin",
-  "/api/scrape",
-  "/api/ingest",
-  "/api/admin",
-];
+const log = createLogger("middleware");
 
-// Paths that require Supabase Auth (tenant dashboard)
-const SUPABASE_AUTH_PATHS = ["/dashboard"];
+// Paths that require Supabase Auth (tenant dashboard + admin panel)
+const SUPABASE_AUTH_PATHS = ["/dashboard", "/admin"];
 
 // Paths that should remain public (no auth)
 // Only the chat endpoint is public - it has its own domain/rate limiting protection
 const PUBLIC_API_PATHS = ["/api/chat", "/api/user/tenants", "/api/tenant"];
-
-function requiresBasicAuth(pathname: string): boolean {
-  return BASIC_AUTH_PATHS.some((path) => pathname.startsWith(path));
-}
 
 function requiresSupabaseAuth(pathname: string): boolean {
   return SUPABASE_AUTH_PATHS.some((path) => pathname.startsWith(path));
@@ -28,38 +18,6 @@ function requiresSupabaseAuth(pathname: string): boolean {
 
 function isPublicApiPath(pathname: string): boolean {
   return PUBLIC_API_PATHS.some((path) => pathname.startsWith(path));
-}
-
-function verifyBasicAuth(request: NextRequest): boolean {
-  const authHeader = request.headers.get("authorization");
-
-  if (!authHeader || !authHeader.startsWith("Basic ")) {
-    return false;
-  }
-
-  const base64Credentials = authHeader.split(" ")[1];
-  const credentials = atob(base64Credentials);
-  const [username, password] = credentials.split(":");
-
-  const validUsername = process.env.ADMIN_USERNAME;
-  const validPassword = process.env.ADMIN_PASSWORD;
-
-  if (!validUsername || !validPassword) {
-    console.error("ADMIN_USERNAME or ADMIN_PASSWORD not set in environment");
-    return false;
-  }
-
-  return username === validUsername && password === validPassword;
-}
-
-function unauthorizedResponse(): NextResponse {
-  return new NextResponse("Unauthorized", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="ShopBot Admin"',
-      "Content-Type": "text/plain",
-    },
-  });
 }
 
 async function verifySupabaseAuth(request: NextRequest): Promise<{ authenticated: boolean; response?: NextResponse }> {
@@ -94,19 +52,11 @@ async function verifySupabaseAuth(request: NextRequest): Promise<{ authenticated
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if path requires Basic Authentication (admin panel)
-  if (requiresBasicAuth(pathname)) {
-    if (!verifyBasicAuth(request)) {
-      console.warn(`🚫 Unauthorized access attempt to: ${pathname}`);
-      return unauthorizedResponse();
-    }
-  }
-
-  // Check if path requires Supabase Auth (tenant dashboard)
+  // Check if path requires Supabase Auth (tenant dashboard + admin panel)
   if (requiresSupabaseAuth(pathname)) {
     const { authenticated, response } = await verifySupabaseAuth(request);
     if (!authenticated) {
-      console.warn(`🚫 Unauthenticated access attempt to dashboard: ${pathname}`);
+      log.warn("Unauthenticated access attempt", { pathname });
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);
@@ -114,28 +64,38 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Handle CORS preflight for API routes
+  // Handle CORS for API routes — three tiers:
+  // 1. Public-wildcard: /api/widget, /api/health → Access-Control-Allow-Origin: *
+  // 2. Widget-facing: /api/chat, /api/contact → reflect request Origin, Vary: Origin
+  // 3. Internal (everything else) → no CORS headers (same-origin only)
   if (pathname.startsWith("/api/")) {
+    const isPublicWildcard = pathname.startsWith("/api/widget") || pathname.startsWith("/api/health");
+    const isWidgetFacing = pathname.startsWith("/api/chat") || pathname.startsWith("/api/contact");
+
     if (request.method === "OPTIONS") {
-      return new NextResponse(null, {
-        status: 200, // Use 200 instead of 204 for better compatibility
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "*", // Allow all headers
-          "Access-Control-Expose-Headers": "*",
-          "Access-Control-Max-Age": "86400",
-          "Content-Length": "0",
-        },
-      });
+      const preflightHeaders: Record<string, string> = {
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+        "Content-Length": "0",
+      };
+
+      if (isPublicWildcard) {
+        preflightHeaders["Access-Control-Allow-Origin"] = "*";
+      } else if (isWidgetFacing) {
+        const origin = request.headers.get("origin");
+        if (origin) {
+          preflightHeaders["Access-Control-Allow-Origin"] = origin;
+          preflightHeaders["Vary"] = "Origin";
+        }
+      }
+      // Internal routes: no CORS headers → browser blocks cross-origin preflight
+
+      return new NextResponse(null, { status: 200, headers: preflightHeaders });
     }
 
-    const response = NextResponse.next();
-    response.headers.set("Access-Control-Allow-Origin", "*");
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "*");
-    response.headers.set("Access-Control-Expose-Headers", "*");
-    return response;
+    // Non-OPTIONS: let route handlers own their response CORS headers
+    return NextResponse.next();
   }
 
   return NextResponse.next();
