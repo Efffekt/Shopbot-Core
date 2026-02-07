@@ -1,12 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase-server";
 import Link from "next/link";
-
-// Super admin emails that can access /admin
-const SUPER_ADMIN_EMAILS = [
-  "daniel@efffekt.no",
-  // Add more admin emails here if needed
-];
+import { SUPER_ADMIN_EMAILS } from "@/lib/admin-emails";
 
 export default async function AdminLayout({
   children,
