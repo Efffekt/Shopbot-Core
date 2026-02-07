@@ -36,7 +36,7 @@
 - [x] Content ingestion pipeline (chunk, embed, store)
 - [x] Manual content ingestion endpoint
 - [x] Dashboard content page for tenants to view their documents
-- [~] Content add/edit/remove from dashboard (basic UI exists, chunking logic needs improvement for edits)
+- [x] Content add/edit/remove from dashboard (grouped source view with edit/delete-by-source)
 
 ### Widget
 - [x] Custom zero-dependency JavaScript widget (~15KB)
@@ -91,26 +91,23 @@
 #### Credit / Usage System
 - [x] Add `credit_limit` and `credits_used` columns to tenants table
 - [x] Increment credit counter on each user message in chat API
-- [ ] Reset credits monthly (cron job or Supabase scheduled function)
+- [x] Reset credits monthly (cron job or Supabase scheduled function)
 - [x] Block chat responses when credits exhausted (show friendly fallback message)
 - [x] Credit usage display in tenant dashboard
 - [x] Credit usage display in admin panel per tenant
 - [x] Trigger email notifications at 80% and 100% thresholds
 
 #### Monitoring & Error Tracking
-- [ ] Integrate Sentry for error tracking (frontend + API routes)
-- [ ] Set up Sentry alerts for critical errors (chat failures, auth failures)
 - [x] Remove excessive console.log statements from production code (especially /api/chat – currently ~75 console.logs)
 - [x] Add structured logging (log level, timestamp, tenant context)
 - [x] Add health check endpoint (`/api/health`)
-- [ ] Set up uptime monitoring (e.g., BetterUptime, UptimeRobot, or Vercel's built-in)
 
 #### Content Management Improvements
-- [ ] Improve document editing flow – handle re-chunking when content changes
-- [ ] Allow tenants to add custom text content (not just scraped pages)
-- [ ] Allow tenants to remove specific documents/URLs from their knowledge base
-- [ ] Show chunk count and content preview per document
-- [ ] Prevent duplicate content ingestion for same URL
+- [x] Improve document editing flow – handle re-chunking when content changes
+- [x] Allow tenants to add custom text content (not just scraped pages)
+- [x] Allow tenants to remove specific documents/URLs from their knowledge base
+- [x] Show chunk count and content preview per document
+- [x] Prevent duplicate content ingestion for same URL
 
 #### Security Hardening
 - [x] Restrict CORS – tiered CORS: wildcard for widget/health, reflected origin for chat/contact, no CORS for internal routes
@@ -221,6 +218,11 @@
 - [ ] Webhook notifications (new conversation, credit warning)
 - [ ] White-label option (remove Preik branding)
 - [ ] Multiple chatbot personalities per tenant
+
+#### Monitoring
+- [ ] Integrate Sentry for error tracking (frontend + API routes)
+- [ ] Set up Sentry alerts for critical errors (chat failures, auth failures)
+- [ ] Set up uptime monitoring (e.g., BetterUptime, UptimeRobot, or Vercel's built-in)
 
 #### Infrastructure
 - [ ] Redis caching layer (Upstash) for embeddings and frequent queries

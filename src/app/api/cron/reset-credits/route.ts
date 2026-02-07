@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+import { resetCredits } from "@/lib/credits";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("/api/cron/reset-credits");
+
+export async function GET(request: NextRequest) {
+  // Verify cron secret
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    log.warn("Unauthorized cron attempt");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    // Find tenants whose billing cycle started more than 1 month ago
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const { data: tenants, error } = await supabaseAdmin
+      .from("tenants")
+      .select("id, name, billing_cycle_start, credits_used")
+      .lte("billing_cycle_start", oneMonthAgo.toISOString())
+      .gt("credits_used", 0);
+
+    if (error) {
+      log.error("Failed to query tenants", { error });
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
+    }
+
+    if (!tenants || tenants.length === 0) {
+      log.info("No tenants need credit reset");
+      return NextResponse.json({ success: true, reset: 0 });
+    }
+
+    log.info("Starting credit reset", { tenantCount: tenants.length });
+
+    const results: { id: string; name: string; success: boolean }[] = [];
+
+    for (const tenant of tenants) {
+      const success = await resetCredits(tenant.id);
+      results.push({ id: tenant.id, name: tenant.name, success });
+
+      if (success) {
+        log.info("Reset credits for tenant", {
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          previousUsage: tenant.credits_used,
+        });
+      } else {
+        log.error("Failed to reset credits for tenant", {
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+        });
+      }
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.filter((r) => !r.success).length;
+
+    log.info("Credit reset complete", { successCount, failCount });
+
+    return NextResponse.json({
+      success: true,
+      reset: successCount,
+      failed: failCount,
+      details: results,
+    });
+  } catch (error) {
+    log.error("Cron job failed", { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}

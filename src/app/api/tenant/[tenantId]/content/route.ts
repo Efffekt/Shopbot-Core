@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { splitIntoChunks } from "@/lib/chunking";
 import { z } from "zod";
 import { embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -15,48 +16,17 @@ const addContentSchema = z.object({
   title: z.string().optional(),
 });
 
-function splitIntoChunks(text: string, chunkSize: number = 1000): string[] {
-  const chunks: string[] = [];
-  const paragraphs = text.split(/\n\n+/);
-  let currentChunk = "";
+const editContentSchema = z.object({
+  source: z.string().min(1, "Source is required"),
+  text: z.string().min(1, "Text is required"),
+  title: z.string().optional(),
+});
 
-  for (const paragraph of paragraphs) {
-    if (currentChunk.length + paragraph.length + 2 <= chunkSize) {
-      currentChunk += (currentChunk ? "\n\n" : "") + paragraph;
-    } else {
-      if (currentChunk) chunks.push(currentChunk.trim());
-      if (paragraph.length > chunkSize) {
-        const words = paragraph.split(/\s+/);
-        currentChunk = "";
-        for (const word of words) {
-          if (currentChunk.length + word.length + 1 <= chunkSize) {
-            currentChunk += (currentChunk ? " " : "") + word;
-          } else {
-            if (currentChunk) chunks.push(currentChunk.trim());
-            currentChunk = word;
-          }
-        }
-      } else {
-        currentChunk = paragraph;
-      }
-    }
-  }
-
-  if (currentChunk.trim()) chunks.push(currentChunk.trim());
-  return chunks.filter((c) => c.length > 0);
-}
-
-// GET - List all content for tenant
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  const { tenantId } = await params;
+async function verifyAccess(tenantId: string, requireAdmin = false) {
   const user = await getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!user) return { user: null, error: "Unauthorized", status: 401 };
 
   const supabase = await createSupabaseServerClient();
-
   const { data: access } = await supabase
     .from("tenant_user_access")
     .select("role")
@@ -64,12 +34,92 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     .eq("tenant_id", tenantId)
     .single();
 
-  if (!access) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!access) return { user: null, error: "Forbidden", status: 403 };
+  if (requireAdmin && access.role !== "admin") {
+    return { user: null, error: "Forbidden - Admin role required", status: 403 };
   }
+
+  return { user, error: null, status: 200 };
+}
+
+// GET - List content for tenant (supports grouped and source modes)
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const { tenantId } = await params;
+  const { user, error: authError, status } = await verifyAccess(tenantId);
+  if (!user) return NextResponse.json({ error: authError }, { status });
 
   try {
     const { searchParams } = new URL(request.url);
+    const grouped = searchParams.get("grouped") === "true";
+    const source = searchParams.get("source");
+
+    // Single source mode: return all chunks for a source, joined as fullText
+    if (source) {
+      const { data: docs, error } = await supabaseAdmin
+        .from("documents")
+        .select("id, content, metadata, created_at")
+        .eq("store_id", tenantId)
+        .eq("metadata->>source", source)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const fullText = (docs || []).map((d) => d.content).join("\n\n");
+      const title = docs?.[0]?.metadata?.title || "";
+
+      return NextResponse.json({
+        success: true,
+        source,
+        title,
+        fullText,
+        chunkCount: docs?.length || 0,
+      });
+    }
+
+    // Grouped mode: return documents grouped by source
+    if (grouped) {
+      const { data: docs, error } = await supabaseAdmin
+        .from("documents")
+        .select("id, content, metadata, created_at")
+        .eq("store_id", tenantId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const groups = new Map<string, {
+        source: string;
+        title: string;
+        chunkCount: number;
+        preview: string;
+        isManual: boolean;
+        createdAt: string;
+      }>();
+
+      for (const doc of docs || []) {
+        const src = doc.metadata?.source || "unknown";
+        const existing = groups.get(src);
+        if (existing) {
+          existing.chunkCount++;
+        } else {
+          groups.set(src, {
+            source: src,
+            title: doc.metadata?.title || src,
+            chunkCount: 1,
+            preview: doc.content.substring(0, 200),
+            isManual: !!doc.metadata?.manual,
+            createdAt: doc.created_at,
+          });
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        sources: Array.from(groups.values()),
+        totalSources: groups.size,
+      });
+    }
+
+    // Default: paginated chunk list (legacy)
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const search = searchParams.get("search")?.trim() || "";
@@ -80,12 +130,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .select("id, content, metadata, created_at", { count: "exact" })
       .eq("store_id", tenantId);
 
-    // Add search filter if provided
     if (search) {
       query = query.ilike("content", `%${search}%`);
     }
 
-    // Get documents with pagination
     const { data: documents, count: totalCount, error } = await query
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -112,30 +160,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// POST - Add new content
+// POST - Add new content (with duplicate check)
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { tenantId } = await params;
-  const user = await getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const supabase = await createSupabaseServerClient();
-
-  const { data: access } = await supabase
-    .from("tenant_user_access")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("tenant_id", tenantId)
-    .single();
-
-  if (!access || access.role !== "admin") {
-    return NextResponse.json(
-      { error: "Forbidden - Admin role required" },
-      { status: 403 }
-    );
-  }
+  const { user, error: authError, status } = await verifyAccess(tenantId, true);
+  if (!user) return NextResponse.json({ error: authError }, { status });
 
   try {
     const body = await request.json();
@@ -150,7 +179,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { text, url, title } = parsed.data;
 
-    // Split text into chunks
+    // Duplicate check: if URL provided, check if docs already exist for this source
+    if (url) {
+      const { data: existing } = await supabaseAdmin
+        .from("documents")
+        .select("id")
+        .eq("store_id", tenantId)
+        .eq("metadata->>source", url)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        return NextResponse.json(
+          { error: "Innhold for denne URLen finnes allerede. Bruk rediger-funksjonen for å oppdatere." },
+          { status: 409 }
+        );
+      }
+    }
+
     const chunks = splitIntoChunks(text);
 
     if (chunks.length === 0) {
@@ -160,7 +205,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Generate embeddings
     const { embeddings } = await embedMany({
       model: openai.embedding("text-embedding-3-small"),
       values: chunks,
@@ -169,7 +213,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Prepare documents for insertion
     const documents = chunks.map((chunk, idx) => ({
       content: chunk,
       embedding: embeddings[idx],
@@ -182,7 +225,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     }));
 
-    // Insert into database
     const { error: insertError } = await supabaseAdmin
       .from("documents")
       .insert(documents);
@@ -197,7 +239,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: `Lagret ${chunks.length} chunks`,
+      message: `Lagret ${chunks.length} deler`,
       chunksCount: chunks.length,
     });
   } catch (error) {
@@ -209,43 +251,152 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE - Remove content by ID
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+// PATCH - Edit content by source (delete old chunks, re-chunk, re-embed)
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { tenantId } = await params;
-  const user = await getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const supabase = await createSupabaseServerClient();
-
-  const { data: access } = await supabase
-    .from("tenant_user_access")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("tenant_id", tenantId)
-    .single();
-
-  if (!access || access.role !== "admin") {
-    return NextResponse.json(
-      { error: "Forbidden - Admin role required" },
-      { status: 403 }
-    );
-  }
+  const { user, error: authError, status } = await verifyAccess(tenantId, true);
+  if (!user) return NextResponse.json({ error: authError }, { status });
 
   try {
-    const { searchParams } = new URL(request.url);
-    const documentId = searchParams.get("id");
+    const body = await request.json();
+    const parsed = editContentSchema.safeParse(body);
 
-    if (!documentId) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Document ID required" },
+        { error: "Invalid request", details: parsed.error.flatten() },
         { status: 400 }
       );
     }
 
-    // Verify document belongs to tenant before deleting
+    const { source, text, title } = parsed.data;
+
+    // Delete old chunks for this source
+    const { error: deleteError } = await supabaseAdmin
+      .from("documents")
+      .delete()
+      .eq("store_id", tenantId)
+      .eq("metadata->>source", source);
+
+    if (deleteError) {
+      console.error("Error deleting old chunks:", deleteError);
+      return NextResponse.json(
+        { error: "Failed to delete old content" },
+        { status: 500 }
+      );
+    }
+
+    // Re-chunk and re-embed
+    const chunks = splitIntoChunks(text);
+
+    if (chunks.length === 0) {
+      return NextResponse.json(
+        { error: "No content to process" },
+        { status: 400 }
+      );
+    }
+
+    const { embeddings } = await embedMany({
+      model: openai.embedding("text-embedding-3-small"),
+      values: chunks,
+      providerOptions: {
+        openai: { dimensions: 1536 },
+      },
+    });
+
+    const isManual = source === "manual" || !source.startsWith("http");
+
+    const documents = chunks.map((chunk, idx) => ({
+      content: chunk,
+      embedding: embeddings[idx],
+      store_id: tenantId,
+      metadata: {
+        source,
+        title: title || "Manuell inntasting",
+        ...(isManual && { manual: true, added_by: user.id }),
+      },
+    }));
+
+    const { error: insertError } = await supabaseAdmin
+      .from("documents")
+      .insert(documents);
+
+    if (insertError) {
+      console.error("Error inserting updated documents:", insertError);
+      return NextResponse.json(
+        { error: "Failed to save updated content" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Oppdatert med ${chunks.length} deler`,
+      chunksCount: chunks.length,
+    });
+  } catch (error) {
+    console.error("Content edit error:", error);
+    return NextResponse.json(
+      { error: "Failed to edit content" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Remove content by ID or by source
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const { tenantId } = await params;
+  const { user, error: authError, status } = await verifyAccess(tenantId, true);
+  if (!user) return NextResponse.json({ error: authError }, { status });
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const documentId = searchParams.get("id");
+    const source = searchParams.get("source");
+
+    // Delete by source: remove all chunks matching that source
+    if (source) {
+      const { data: docs } = await supabaseAdmin
+        .from("documents")
+        .select("id")
+        .eq("store_id", tenantId)
+        .eq("metadata->>source", source);
+
+      if (!docs || docs.length === 0) {
+        return NextResponse.json(
+          { error: "No documents found for this source" },
+          { status: 404 }
+        );
+      }
+
+      const { error: deleteError } = await supabaseAdmin
+        .from("documents")
+        .delete()
+        .eq("store_id", tenantId)
+        .eq("metadata->>source", source);
+
+      if (deleteError) {
+        console.error("Error deleting documents by source:", deleteError);
+        return NextResponse.json(
+          { error: "Failed to delete documents" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Slettet ${docs.length} deler`,
+        deletedCount: docs.length,
+      });
+    }
+
+    // Delete by ID (legacy)
+    if (!documentId) {
+      return NextResponse.json(
+        { error: "Document ID or source required" },
+        { status: 400 }
+      );
+    }
+
     const { data: doc } = await supabaseAdmin
       .from("documents")
       .select("id, store_id")
