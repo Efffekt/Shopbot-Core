@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
       "unknown";
-    const rateLimit = checkRateLimit(`contact:${ip}`, RATE_LIMITS.contact);
+    const rateLimit = await checkRateLimit(`contact:${ip}`, RATE_LIMITS.contact);
 
     if (!rateLimit.allowed) {
       return NextResponse.json(

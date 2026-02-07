@@ -151,6 +151,52 @@ export async function sendCreditWarningIfNeeded(
   }
 }
 
+// --- Welcome email ---
+
+interface WelcomeEmailData {
+  tenantName: string;
+  contactEmail: string;
+  tenantId: string;
+}
+
+export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+
+  try {
+    await resend.emails.send({
+      from: `Preik <${FROM_EMAIL}>`,
+      to: data.contactEmail,
+      subject: `Velkommen til Preik, ${data.tenantName}!`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1a1a2e;">Velkommen til Preik! 🎉</h2>
+          <p style="color: #1a1a2e; line-height: 1.6;">
+            Hei! Vi er glade for å ha <strong>${escapeHtml(data.tenantName)}</strong> med oss.
+          </p>
+          <p style="color: #1a1a2e; line-height: 1.6;">
+            Din AI-chatbot er nå klar til å konfigureres. Her er de neste stegene:
+          </p>
+          <div style="margin: 24px 0; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+            <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>1.</strong> Logg inn på <a href="https://preik.ai/dashboard/${escapeHtml(data.tenantId)}" style="color: #6C63FF;">dashbordet</a></p>
+            <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>2.</strong> Legg til innhold i kunnskapsbasen (skriv tekst eller importer fra nettside)</p>
+            <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>3.</strong> Tilpass chatbotens systemprompt</p>
+            <p style="margin: 0; color: #1a1a2e;"><strong>4.</strong> Kopier embed-koden og legg den inn på nettsiden din</p>
+          </div>
+          <p style="color: #1a1a2e; line-height: 1.6;">
+            Har du spørsmål? Svar på denne e-posten eller kontakt oss på
+            <a href="mailto:hei@preik.ai" style="color: #6C63FF;">hei@preik.ai</a>.
+          </p>
+          <p style="margin-top: 24px; font-size: 12px; color: #999;">Preik – AI-chatbot for nettbutikker</p>
+        </div>
+      `,
+    });
+    log.info("Welcome email sent", { tenantId: data.tenantId, to: data.contactEmail });
+  } catch (error) {
+    log.error("Failed to send welcome email", { error: error as Error, tenantId: data.tenantId });
+  }
+}
+
 // --- HTML escaping ---
 
 function escapeHtml(str: string): string {

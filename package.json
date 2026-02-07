@@ -16,6 +16,8 @@
     "@mendable/firecrawl-js": "^4.11.4",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.91.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.2",
     "ai": "^6.0.49",
     "lucide-react": "^0.563.0",
     "next": "16.1.4",

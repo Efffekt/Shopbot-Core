@@ -82,7 +82,7 @@
 #### Email System (Resend)
 - [x] Set up Resend account and API integration
 - [x] Password reset email flow (functional via Supabase SMTP)
-- [ ] Welcome email on tenant onboarding
+- [x] Welcome email on tenant onboarding
 - [x] Credit limit warning email (at 80% usage)
 - [x] Credit limit reached email (at 100% usage)
 - [x] Contact form submission notification to admin
@@ -115,16 +115,16 @@
 - [x] Sanitize AI responses before rendering in dashboard (XSS prevention) — verified: dashboard uses React text rendering (auto-escaped), widget escapes HTML before markdown transforms
 - [x] Add rate limiting to contact form (IP-based, 5/hour per IP)
 - [x] Add email format validation to contact form (Zod schema with `.email()` + length limits)
-- [ ] Move rate limiter from in-memory to persistent store (Upstash Redis) — resets on deploy, doesn't work across instances
+- [x] Move rate limiter from in-memory to persistent store (Upstash Redis) — resets on deploy, doesn't work across instances
 - [x] Create `.env.example` with all required variables (no real values)
 - [ ] Rotate all credentials (keys were visible during development)
 
 #### Documentation
-- [ ] Write setup guide (how to get the project running locally)
-- [ ] Document all environment variables and where to get them
-- [ ] Write deployment guide for Vercel
-- [ ] Document tenant onboarding process (step-by-step for admin)
-- [ ] Document the scraping + ingestion workflow
+- [x] Write setup guide (how to get the project running locally)
+- [x] Document all environment variables and where to get them
+- [x] Write deployment guide for Vercel
+- [x] Document tenant onboarding process (step-by-step for admin)
+- [x] Document the scraping + ingestion workflow
 
 ### P1 – Important (Should have for solid launch)
 
@@ -146,7 +146,7 @@
 - [ ] Vercel production deployment on merge to main
 
 #### Rate Limiting Improvements
-- [ ] Move from in-memory to persistent rate limiting (Upstash Redis recommended for Vercel)
+- [x] Move from in-memory to persistent rate limiting (Upstash Redis recommended for Vercel)
 - [ ] Rate limit per tenant (not just per IP) to prevent abuse across sessions
 - [ ] Add rate limit headers to responses (X-RateLimit-Remaining, X-RateLimit-Reset)
 
@@ -248,7 +248,7 @@
 |-------|----------|----------|-------|
 | ~~75 console.log statements in chat route~~ | ~~Medium~~ | ~~`/src/app/api/chat/route.ts`~~ | Replaced with structured JSON logger (`src/lib/logger.ts`) |
 | ~~CORS allows all origins (`*`)~~ | ~~High~~ | ~~All API routes~~ | Tiered CORS: wildcard for widget/health, reflected origin for chat/contact, no CORS for internal |
-| Rate limiting is in-memory only | Medium | `/src/lib/ratelimit.ts` | Resets on deploy, doesn't work across instances |
+| ~~Rate limiting is in-memory only~~ | ~~Medium~~ | ~~`/src/lib/ratelimit.ts`~~ | Migrated to Upstash Redis (with in-memory fallback for dev) |
 | Documents table not in migrations | Low | Supabase | Add to version-controlled migrations |
 | Tenant configs partially hardcoded | Medium | `/src/lib/tenants.ts` | 4 tenants hardcoded with DB fallback |
 | baatpleiebutikken allowed_domains empty in DB | Low | Supabase `tenants` table | Hardcoded config covers it, but DB should match |

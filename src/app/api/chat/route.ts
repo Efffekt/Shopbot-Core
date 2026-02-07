@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
     // === SECURITY: Rate Limiting ===
     const clientId = getClientIdentifier(sessionId, request.headers);
     const rateLimitKey = `chat:${storeId}:${clientId}`;
-    const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMITS.chat);
+    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.chat);
 
     if (!rateLimit.allowed) {
       log.warn("Rate limited", { reqId, storeId, clientId });

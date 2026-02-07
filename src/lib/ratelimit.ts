@@ -1,32 +1,11 @@
 /**
- * Simple in-memory rate limiter for API protection.
- * Note: This resets on server restart and doesn't work across multiple instances.
- * For production at scale, consider using Redis or Upstash.
+ * Rate limiter backed by Upstash Redis.
+ * Persists across deploys and works across all serverless instances.
+ * Falls back to in-memory if UPSTASH env vars are not set (dev mode).
  */
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
-// In-memory store for rate limiting
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-// Cleanup old entries every 5 minutes to prevent memory leaks
-const CLEANUP_INTERVAL = 5 * 60 * 1000;
-let lastCleanup = Date.now();
-
-function cleanup() {
-  const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
-
-  lastCleanup = now;
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (entry.resetAt < now) {
-      rateLimitStore.delete(key);
-    }
-  }
-}
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 export interface RateLimitConfig {
   /** Maximum number of requests allowed in the window */
@@ -42,43 +21,61 @@ export interface RateLimitResult {
   retryAfterMs?: number;
 }
 
-/**
- * Check if a request should be rate limited.
- * @param identifier - Unique identifier (IP, sessionId, or combination)
- * @param config - Rate limit configuration
- * @returns RateLimitResult indicating if request is allowed
- */
-export function checkRateLimit(
-  identifier: string,
-  config: RateLimitConfig
-): RateLimitResult {
-  // Run cleanup periodically
-  cleanup();
+// --- Upstash-backed limiters (one per config shape) ---
 
+const limiters = new Map<string, Ratelimit>();
+
+function getUpstashLimiter(prefix: string, config: RateLimitConfig): Ratelimit | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+
+  const key = `${prefix}:${config.maxRequests}:${config.windowMs}`;
+  let limiter = limiters.get(key);
+  if (limiter) return limiter;
+
+  const redis = new Redis({ url, token });
+  const windowSec = Math.ceil(config.windowMs / 1000);
+
+  limiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(config.maxRequests, `${windowSec} s`),
+    prefix: `rl:${prefix}`,
+  });
+
+  limiters.set(key, limiter);
+  return limiter;
+}
+
+// --- In-memory fallback (dev only) ---
+
+interface MemoryEntry {
+  count: number;
+  resetAt: number;
+}
+
+const memoryStore = new Map<string, MemoryEntry>();
+
+function checkMemoryRateLimit(identifier: string, config: RateLimitConfig): RateLimitResult {
   const now = Date.now();
-  const key = identifier;
 
-  let entry = rateLimitStore.get(key);
-
-  // If no entry or window has expired, create new entry
-  if (!entry || entry.resetAt < now) {
-    entry = {
-      count: 1,
-      resetAt: now + config.windowMs,
-    };
-    rateLimitStore.set(key, entry);
-
-    return {
-      allowed: true,
-      remaining: config.maxRequests - 1,
-      resetAt: entry.resetAt,
-    };
+  // Cleanup old entries periodically
+  if (memoryStore.size > 1000) {
+    for (const [key, entry] of memoryStore.entries()) {
+      if (entry.resetAt < now) memoryStore.delete(key);
+    }
   }
 
-  // Increment count
+  let entry = memoryStore.get(identifier);
+
+  if (!entry || entry.resetAt < now) {
+    entry = { count: 1, resetAt: now + config.windowMs };
+    memoryStore.set(identifier, entry);
+    return { allowed: true, remaining: config.maxRequests - 1, resetAt: entry.resetAt };
+  }
+
   entry.count += 1;
 
-  // Check if over limit
   if (entry.count > config.maxRequests) {
     return {
       allowed: false,
@@ -92,6 +89,34 @@ export function checkRateLimit(
     allowed: true,
     remaining: config.maxRequests - entry.count,
     resetAt: entry.resetAt,
+  };
+}
+
+// --- Public API (same surface as before) ---
+
+/**
+ * Check if a request should be rate limited.
+ * Uses Upstash Redis when configured, falls back to in-memory for dev.
+ */
+export async function checkRateLimit(
+  identifier: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  const prefix = identifier.split(":")[0] || "default";
+  const upstash = getUpstashLimiter(prefix, config);
+
+  if (!upstash) {
+    // Fallback to in-memory (dev or missing env vars)
+    return checkMemoryRateLimit(identifier, config);
+  }
+
+  const result = await upstash.limit(identifier);
+
+  return {
+    allowed: result.success,
+    remaining: result.remaining,
+    resetAt: result.reset,
+    ...(!result.success && { retryAfterMs: result.reset - Date.now() }),
   };
 }
 
@@ -129,12 +154,10 @@ export function getClientIdentifier(
   sessionId: string | undefined,
   headers: Headers
 ): string {
-  // Prefer sessionId if available
   if (sessionId) {
     return `session:${sessionId}`;
   }
 
-  // Fall back to IP address
   const forwardedFor = headers.get("x-forwarded-for");
   const realIp = headers.get("x-real-ip");
   const ip = forwardedFor?.split(",")[0]?.trim() || realIp || "unknown";

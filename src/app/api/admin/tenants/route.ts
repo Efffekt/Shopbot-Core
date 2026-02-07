@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { sendWelcomeEmail } from "@/lib/email";
 
 // GET - List all tenants
 export async function GET() {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, name, allowed_domains, language, persona } = body;
+    const { id, name, allowed_domains, language, persona, contact_email } = body;
 
     if (!id || !name) {
       return NextResponse.json(
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
         allowed_domains: allowed_domains || [],
         language: language || "no",
         persona: persona || "",
+        contact_email: contact_email || null,
         features: {
           synonymMapping: false,
           codeBlockFormatting: false,
@@ -79,6 +81,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Tenant ID already exists" }, { status: 409 });
       }
       return NextResponse.json({ error: "Failed to create tenant" }, { status: 500 });
+    }
+
+    // Send welcome email if contact email provided
+    if (contact_email) {
+      sendWelcomeEmail({
+        tenantName: name,
+        contactEmail: contact_email,
+        tenantId: id,
+      }).catch(() => {}); // Fire-and-forget, don't block tenant creation
     }
 
     return NextResponse.json({ tenant }, { status: 201 });
