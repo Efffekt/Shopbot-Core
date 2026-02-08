@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import AdminPromptEditor from "@/components/AdminPromptEditor";
 
 interface Tenant {
   id: string;
@@ -12,6 +13,7 @@ interface Tenant {
   credit_limit: number;
   credits_used: number;
   billing_cycle_start: string;
+  features: Record<string, boolean>;
 }
 
 interface TenantUser {
@@ -33,6 +35,8 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
   const [showCreateTenant, setShowCreateTenant] = useState(false);
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [justCreatedTenantId, setJustCreatedTenantId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editedTenant, setEditedTenant] = useState<Partial<Tenant>>({});
 
   // Form states
   const [newTenant, setNewTenant] = useState({
@@ -289,12 +293,33 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
             <>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-preik-text">{selectedTenant.name}</h2>
-                <button
-                  onClick={() => handleDeleteTenant(selectedTenant.id)}
-                  className="px-3 py-1.5 bg-red-500/10 text-red-600 text-sm font-medium rounded-xl hover:bg-red-500/20 transition-colors"
-                >
-                  Slett
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (editMode) {
+                        setEditMode(false);
+                        setEditedTenant({});
+                      } else {
+                        setEditMode(true);
+                        setEditedTenant({
+                          name: selectedTenant.name,
+                          allowed_domains: selectedTenant.allowed_domains,
+                          language: selectedTenant.language,
+                          persona: selectedTenant.persona,
+                        });
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-preik-accent/10 text-preik-accent text-sm font-medium rounded-xl hover:bg-preik-accent/20 transition-colors"
+                  >
+                    {editMode ? "Avbryt redigering" : "Rediger"}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTenant(selectedTenant.id)}
+                    className="px-3 py-1.5 bg-red-500/10 text-red-600 text-sm font-medium rounded-xl hover:bg-red-500/20 transition-colors"
+                  >
+                    Slett
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4 mb-6">
@@ -302,14 +327,55 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
                   <p className="text-sm font-medium text-preik-text-muted">Store ID</p>
                   <p className="text-preik-text font-mono">{selectedTenant.id}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-preik-text-muted">Tillatte domener</p>
-                  <p className="text-preik-text">
-                    {selectedTenant.allowed_domains?.length > 0
-                      ? selectedTenant.allowed_domains.join(", ")
-                      : "Ingen konfigurert"}
-                  </p>
-                </div>
+
+                {editMode ? (
+                  <EditTenantForm
+                    editedTenant={editedTenant}
+                    onChange={setEditedTenant}
+                    onSave={async () => {
+                      try {
+                        const res = await fetch(`/api/admin/tenants/${selectedTenant.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            name: editedTenant.name,
+                            allowed_domains: editedTenant.allowed_domains,
+                            language: editedTenant.language,
+                            persona: editedTenant.persona,
+                          }),
+                        });
+                        if (!res.ok) throw new Error("Failed to update");
+                        setEditMode(false);
+                        setEditedTenant({});
+                        fetchTenantDetails(selectedTenant.id);
+                        fetchTenants();
+                        setStatus({ type: "success", message: "Kunde oppdatert" });
+                      } catch {
+                        setStatus({ type: "error", message: "Kunne ikke oppdatere" });
+                      }
+                    }}
+                  />
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium text-preik-text-muted">Tillatte domener</p>
+                      <p className="text-preik-text">
+                        {selectedTenant.allowed_domains?.length > 0
+                          ? selectedTenant.allowed_domains.join(", ")
+                          : "Ingen konfigurert"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-preik-text-muted">Språk</p>
+                      <p className="text-preik-text">{selectedTenant.language || "no"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-preik-text-muted">Persona</p>
+                      <p className="text-preik-text text-sm">{selectedTenant.persona || "Ikke satt"}</p>
+                    </div>
+                  </>
+                )}
+
                 <div>
                   <p className="text-sm font-medium text-preik-text-muted">Opprettet</p>
                   <p className="text-preik-text">
@@ -353,6 +419,21 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
                     ))}
                   </ul>
                 )}
+              </div>
+
+              {/* Feature Toggles */}
+              <FeatureToggles
+                tenant={selectedTenant}
+                onUpdate={() => {
+                  fetchTenantDetails(selectedTenant.id);
+                  fetchTenants();
+                }}
+              />
+
+              {/* Prompt Editor */}
+              <div className="border-t border-preik-border pt-4 mt-4">
+                <h3 className="font-medium text-preik-text mb-3">Systemprompt</h3>
+                <AdminPromptEditor tenantId={selectedTenant.id} />
               </div>
 
               {/* Embed code */}
@@ -610,6 +691,131 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
             Syklus startet: {new Date(tenant.billing_cycle_start).toLocaleDateString("nb-NO")}
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+function EditTenantForm({
+  editedTenant,
+  onChange,
+  onSave,
+}: {
+  editedTenant: Partial<Tenant>;
+  onChange: (t: Partial<Tenant>) => void;
+  onSave: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="text-sm font-medium text-preik-text-muted">Navn</label>
+        <input
+          type="text"
+          value={editedTenant.name || ""}
+          onChange={(e) => onChange({ ...editedTenant, name: e.target.value })}
+          className="w-full mt-1 px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text focus:ring-preik-accent focus:border-preik-accent"
+        />
+      </div>
+      <div>
+        <label className="text-sm font-medium text-preik-text-muted">Tillatte domener</label>
+        <input
+          type="text"
+          value={editedTenant.allowed_domains?.join(", ") || ""}
+          onChange={(e) => onChange({
+            ...editedTenant,
+            allowed_domains: e.target.value.split(",").map(d => d.trim()).filter(Boolean),
+          })}
+          placeholder="example.com, www.example.com"
+          className="w-full mt-1 px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text focus:ring-preik-accent focus:border-preik-accent"
+        />
+      </div>
+      <div>
+        <label className="text-sm font-medium text-preik-text-muted">Språk</label>
+        <select
+          value={editedTenant.language || "no"}
+          onChange={(e) => onChange({ ...editedTenant, language: e.target.value })}
+          className="w-full mt-1 px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text focus:ring-preik-accent focus:border-preik-accent"
+        >
+          <option value="no">Norsk</option>
+          <option value="en">Engelsk</option>
+          <option value="sv">Svensk</option>
+          <option value="da">Dansk</option>
+        </select>
+      </div>
+      <div>
+        <label className="text-sm font-medium text-preik-text-muted">Persona</label>
+        <textarea
+          value={editedTenant.persona || ""}
+          onChange={(e) => onChange({ ...editedTenant, persona: e.target.value })}
+          rows={3}
+          className="w-full mt-1 px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text focus:ring-preik-accent focus:border-preik-accent"
+        />
+      </div>
+      <button
+        onClick={async () => {
+          setSaving(true);
+          await onSave();
+          setSaving(false);
+        }}
+        disabled={saving}
+        className="px-4 py-2 bg-preik-accent text-white text-sm font-medium rounded-xl hover:bg-preik-accent-hover transition-colors disabled:opacity-40"
+      >
+        {saving ? "Lagrer..." : "Lagre endringer"}
+      </button>
+    </div>
+  );
+}
+
+const FEATURE_FLAGS = [
+  { key: "synonym_mapping", label: "Synonymmapping", description: "Automatisk synonym-gjenkjenning for bedre treff" },
+  { key: "code_formatting", label: "Kodeblokk-formatering", description: "Formater kodesvar med syntax highlighting" },
+  { key: "boat_expertise", label: "Båtekspertise", description: "Spesialisert kunnskap om båtprodukter" },
+] as const;
+
+function FeatureToggles({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () => void }) {
+  const features = tenant.features || {};
+
+  async function handleToggle(key: string, enabled: boolean) {
+    try {
+      const updated = { ...features, [key]: enabled };
+      const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ features: updated }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      onUpdate();
+    } catch (error) {
+      console.error("Failed to toggle feature:", error);
+    }
+  }
+
+  return (
+    <div className="border-t border-preik-border pt-4 mt-4">
+      <h3 className="font-medium text-preik-text mb-3">Funksjoner</h3>
+      <div className="space-y-3">
+        {FEATURE_FLAGS.map((flag) => (
+          <div key={flag.key} className="flex items-center justify-between py-2 px-3 bg-preik-bg rounded-xl">
+            <div>
+              <p className="text-sm font-medium text-preik-text">{flag.label}</p>
+              <p className="text-xs text-preik-text-muted">{flag.description}</p>
+            </div>
+            <button
+              onClick={() => handleToggle(flag.key, !features[flag.key])}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                features[flag.key] ? "bg-preik-accent" : "bg-preik-border"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  features[flag.key] ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

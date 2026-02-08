@@ -76,7 +76,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   try {
     const body = await request.json();
-    const { name, allowed_domains, language, persona, credit_limit } = body;
+    const { name, allowed_domains, language, persona, credit_limit, features } = body;
 
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
@@ -84,6 +84,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (language !== undefined) updates.language = language;
     if (persona !== undefined) updates.persona = persona;
     if (credit_limit !== undefined) updates.credit_limit = credit_limit;
+    if (features !== undefined) updates.features = features;
 
     const { data: tenant, error } = await supabaseAdmin
       .from("tenants")

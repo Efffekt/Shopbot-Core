@@ -362,6 +362,72 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
           </div>
         </div>
       </div>
+
+      {/* Credit Usage Log */}
+      <CreditUsageLog tenantId={selectedTenant} />
+    </div>
+  );
+}
+
+function CreditUsageLog({ tenantId }: { tenantId: string }) {
+  const [logs, setLogs] = useState<{ id: string; created_at: string; credits_consumed: number; session_id: string | null }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [tenantId]);
+
+  async function fetchLogs() {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/credit-log?tenantId=${tenantId}&days=30&limit=50`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setLogs(data.logs || []);
+    } catch (error) {
+      console.error("Failed to fetch credit log:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <div className="bg-preik-surface p-4 rounded-2xl border border-preik-border">
+      <h3 className="font-medium text-preik-text mb-4">Kredittbruk (siste 30 dager)</h3>
+      {isLoading ? (
+        <div className="flex items-center justify-center p-6">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-preik-accent"></div>
+        </div>
+      ) : logs.length === 0 ? (
+        <p className="text-preik-text-muted text-sm py-4 text-center">Ingen kredittbruk registrert</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-preik-border">
+                <th className="text-left py-2 text-preik-text-muted font-medium">Tidspunkt</th>
+                <th className="text-left py-2 text-preik-text-muted font-medium">Kreditter</th>
+                <th className="text-left py-2 text-preik-text-muted font-medium">Session</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id} className="border-b border-preik-border/50">
+                  <td className="py-2 text-preik-text">
+                    {new Date(log.created_at).toLocaleString("nb-NO", {
+                      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+                    })}
+                  </td>
+                  <td className="py-2 text-preik-text">{log.credits_consumed}</td>
+                  <td className="py-2 text-preik-text-muted text-xs font-mono truncate max-w-[200px]">
+                    {log.session_id || "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

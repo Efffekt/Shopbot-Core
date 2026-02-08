@@ -2,6 +2,60 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 
+// GET - List all users with their tenant memberships
+export async function GET(request: NextRequest) {
+  const { authorized, error: authError } = await verifySuperAdmin();
+  if (!authorized) {
+    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search")?.trim().toLowerCase();
+
+    // Get all auth users
+    const { data: authUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    if (listError) {
+      console.error("Error listing users:", listError);
+      return NextResponse.json({ error: "Failed to list users" }, { status: 500 });
+    }
+
+    // Get all tenant access records
+    const { data: allAccess } = await supabaseAdmin
+      .from("tenant_user_access")
+      .select("user_id, tenant_id, role");
+
+    // Get all tenants for name lookup
+    const { data: allTenants } = await supabaseAdmin
+      .from("tenants")
+      .select("id, name");
+
+    const tenantMap = new Map((allTenants || []).map(t => [t.id, t.name]));
+
+    let users = authUsers.users.map(u => ({
+      id: u.id,
+      email: u.email || "",
+      created_at: u.created_at,
+      memberships: (allAccess || [])
+        .filter(a => a.user_id === u.id)
+        .map(a => ({
+          tenant_id: a.tenant_id,
+          tenant_name: tenantMap.get(a.tenant_id) || a.tenant_id,
+          role: a.role,
+        })),
+    }));
+
+    if (search) {
+      users = users.filter(u => u.email.toLowerCase().includes(search));
+    }
+
+    return NextResponse.json({ users });
+  } catch (error) {
+    console.error("Error listing users:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 // POST - Invite a new user and grant tenant access
 export async function POST(request: NextRequest) {
   // Verify super admin access

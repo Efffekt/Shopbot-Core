@@ -4,11 +4,13 @@ import { useState } from "react";
 import CustomerManagement from "@/components/CustomerManagement";
 import ContentIngestion from "@/components/ContentIngestion";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import AdminOverview from "@/components/AdminOverview";
+import ConversationBrowser from "@/components/ConversationBrowser";
 
-type Section = "kunder" | "innhold" | "analyse";
+type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse";
 
 export default function AdminPage() {
-  const [activeSection, setActiveSection] = useState<Section>("kunder");
+  const [activeSection, setActiveSection] = useState<Section>("oversikt");
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [selectedTenantName, setSelectedTenantName] = useState<string | null>(null);
 
@@ -22,8 +24,10 @@ export default function AdminPage() {
   }
 
   const sections: { key: Section; label: string }[] = [
+    { key: "oversikt", label: "Oversikt" },
     { key: "kunder", label: "Kunder" },
     { key: "innhold", label: "Innhold" },
+    { key: "samtaler", label: "Samtaler" },
     { key: "analyse", label: "Analyse" },
   ];
 
@@ -33,7 +37,7 @@ export default function AdminPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-brand font-light text-preik-text">Admin</h1>
         <p className="mt-1 text-preik-text-muted">
-          Administrer kunder, innhold og analyse
+          Administrer kunder, innhold, samtaler og analyse
         </p>
       </div>
 
@@ -63,6 +67,7 @@ export default function AdminPage() {
       </div>
 
       {/* Sections */}
+      {activeSection === "oversikt" && <AdminOverview />}
       {activeSection === "kunder" && (
         <CustomerManagement
           onSelectTenant={handleSelectTenant}
@@ -71,6 +76,12 @@ export default function AdminPage() {
       )}
       {activeSection === "innhold" && (
         <ContentIngestion
+          selectedTenantId={selectedTenantId}
+          selectedTenantName={selectedTenantName}
+        />
+      )}
+      {activeSection === "samtaler" && (
+        <ConversationBrowser
           selectedTenantId={selectedTenantId}
           selectedTenantName={selectedTenantName}
         />

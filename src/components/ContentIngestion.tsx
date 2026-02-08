@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ScraperControl from "@/components/ScraperControl";
+import AdminContentBrowser from "@/components/AdminContentBrowser";
 
 interface Tenant {
   id: string;
@@ -114,6 +115,19 @@ export default function ContentIngestion({ selectedTenantId, selectedTenantName 
             </summary>
             <div className="px-6 pb-6">
               <ManualIngest storeId={currentTenantId} />
+            </div>
+          </details>
+
+          {/* Innholdsoversikt */}
+          <details className="bg-preik-surface rounded-2xl border border-preik-border">
+            <summary className="p-6 cursor-pointer select-none flex items-center justify-between">
+              <h3 className="text-lg font-medium text-preik-text">Innholdsoversikt</h3>
+              <svg className="h-5 w-5 text-preik-text-muted transition-transform details-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="px-6 pb-6">
+              <AdminContentBrowser tenantId={currentTenantId} />
             </div>
           </details>
         </>
