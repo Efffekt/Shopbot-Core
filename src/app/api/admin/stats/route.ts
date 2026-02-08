@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig, getAllTenants, DEFAULT_TENANT } from "@/lib/tenants";
-import { verifySuperAdmin } from "@/lib/admin-auth";
+import { verifyAdmin } from "@/lib/admin-auth";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/stats");
 
 export async function GET(request: NextRequest) {
-  // Verify super admin access
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, error: authError } = await verifyAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }

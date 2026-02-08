@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { verifySuperAdmin } from "@/lib/admin-auth";
+import { verifyAdmin } from "@/lib/admin-auth";
 
 // GET - Admin overview stats
 export async function GET() {
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, error: authError } = await verifyAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
