@@ -471,24 +471,40 @@ export async function POST(request: NextRequest) {
 
     const aiStart = Date.now();
     // Build context-aware system prompt with anti-hallucination guardrails
+    // Language-aware and content-generic — works for any tenant type (store, docs, support)
+    const lang = tenantConfig.language;
+    const guardrails = lang === "en"
+      ? {
+          withContext:
+            `IMPORTANT RESTRICTION: Below is ALL the information you have access to. ` +
+            `You must ONLY reference facts, names, details, and URLs that are explicitly present in the context below. ` +
+            `NEVER invent or assume information that is not in the context. ` +
+            `If the context does not contain enough information to answer fully, say so honestly.`,
+          noContext:
+            `CONTEXT FROM DATABASE:\n` +
+            `NO RELEVANT DOCUMENTS FOUND. You have NO data available for this query. ` +
+            `Do NOT make up information. Be honest that you could not find relevant information.`,
+          contextHeader: `CONTEXT FROM DATABASE:`,
+        }
+      : {
+          withContext:
+            `VIKTIG RESTRIKSJON: Nedenfor er ALL informasjon du har tilgang til. ` +
+            `Du skal KUN referere til fakta, navn, detaljer og URL-er som er eksplisitt nevnt i konteksten nedenfor. ` +
+            `ALDRI finn opp eller anta informasjon som ikke finnes i konteksten. ` +
+            `Hvis konteksten ikke inneholder nok informasjon til å svare fullstendig, si det ærlig.`,
+          noContext:
+            `KONTEKST FRA DATABASE:\n` +
+            `INGEN RELEVANTE DOKUMENTER FUNNET. Du har INGEN data tilgjengelig for dette spørsmålet. ` +
+            `IKKE finn opp informasjon. Si ærlig at du ikke fant relevant informasjon i databasen.`,
+          contextHeader: `KONTEKST FRA DATABASE:`,
+        };
+
     let fullSystemPrompt: string;
     if (context) {
-      // Context found — enforce strict adherence to provided data only
-      fullSystemPrompt = `${systemPrompt}\n\n` +
-        `VIKTIG RESTRIKSJON: Nedenfor er ALT du vet om denne butikkens produkter og tjenester. ` +
-        `Du skal KUN nevne produkter, merker, modeller og priser som er eksplisitt nevnt i konteksten nedenfor. ` +
-        `ALDRI finn opp eller anta produktnavn, merkenavn, modellnummer, priser eller URL-er som ikke finnes i konteksten. ` +
-        `Hvis konteksten ikke inneholder nok informasjon til å svare fullstendig, si ærlig at du ikke fant det i databasen og henvis kunden til å kontakte butikken.\n\n` +
-        `KONTEKST FRA DATABASE:\n${context}`;
+      fullSystemPrompt = `${systemPrompt}\n\n${guardrails.withContext}\n\n${guardrails.contextHeader}\n${context}`;
     } else if (!isSimpleMessage) {
-      // Non-simple query but no matching documents — explicit guardrail
-      fullSystemPrompt = `${systemPrompt}\n\n` +
-        `KONTEKST FRA DATABASE:\n` +
-        `INGEN RELEVANTE DOKUMENTER FUNNET. Du har INGEN produktdata tilgjengelig for dette spørsmålet. ` +
-        `IKKE finn opp produktnavn, merker, priser eller lenker. ` +
-        `Si ærlig at du ikke fant relevant informasjon i databasen, og henvis kunden til å kontakte butikken direkte.`;
+      fullSystemPrompt = `${systemPrompt}\n\n${guardrails.noContext}`;
     } else {
-      // Simple greeting/message — just use system prompt
       fullSystemPrompt = systemPrompt;
     }
 
