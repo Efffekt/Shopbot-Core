@@ -7,9 +7,17 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { calculateChecksum } from "@/lib/checksum";
 import { splitIntoChunks } from "@/lib/chunking";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { isSafeUrl } from "@/lib/url-safety";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/scrape/execute");
+
+const safeUrl = z.string().url().refine(isSafeUrl, {
+  message: "Only HTTPS URLs to public hosts are allowed",
+});
 
 const executeSchema = z.object({
-  urls: z.array(z.string().url()).min(1),
+  urls: z.array(safeUrl).min(1),
   storeId: z.string().min(1),
 });
 
@@ -128,7 +136,7 @@ export async function POST(request: NextRequest) {
                   chunks: chunks.length,
                 };
               } catch (err) {
-                console.error(`Error scraping ${url}:`, err);
+                log.error(`Error scraping ${url}:`, err);
                 return { url, status: "error" as const, error: String(err) };
               }
             })
@@ -194,7 +202,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Execute error:", error);
+    log.error("Execute error:", error);
     return new Response(
       JSON.stringify({ error: "Failed to start scraping" }),
       { status: 500, headers: { "Content-Type": "application/json" } }

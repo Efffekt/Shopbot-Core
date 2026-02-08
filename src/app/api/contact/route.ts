@@ -16,7 +16,7 @@ const contactSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit by IP
+    // Rate limit by IP (5 per hour)
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
@@ -35,6 +35,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Reject oversized payloads
+    const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+    if (contentLength > 16_000) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
+
     const body = await request.json();
     const parsed = contactSchema.safeParse(body);
 
@@ -47,12 +53,14 @@ export async function POST(request: NextRequest) {
 
     const { name, email, company, message } = parsed.data;
 
-    // CORS — reflect origin for cross-origin contact form submissions
+    // CORS — whitelist known domains for contact form submissions
     const origin = request.headers.get("origin");
-    const corsHeaders: Record<string, string> = {};
-    if (origin) {
+    const ALLOWED_ORIGINS = process.env.CONTACT_ALLOWED_ORIGINS
+      ? process.env.CONTACT_ALLOWED_ORIGINS.split(",").map((s) => s.trim())
+      : ["https://preik.no", "https://www.preik.no", "https://baatpleiebutikken.no", "https://www.baatpleiebutikken.no"];
+    const corsHeaders: Record<string, string> = { "Vary": "Origin" };
+    if (origin && (ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV === "development")) {
       corsHeaders["Access-Control-Allow-Origin"] = origin;
-      corsHeaders["Vary"] = "Origin";
     }
 
     // Store in Supabase

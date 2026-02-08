@@ -313,6 +313,13 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
                   >
                     {editMode ? "Avbryt redigering" : "Rediger"}
                   </button>
+                  <a
+                    href={`/api/admin/export/${selectedTenant.id}`}
+                    download
+                    className="px-3 py-1.5 bg-preik-surface border border-preik-border text-preik-text-muted text-sm font-medium rounded-xl hover:text-preik-text transition-colors"
+                  >
+                    Eksporter data
+                  </a>
                   <button
                     onClick={() => handleDeleteTenant(selectedTenant.id)}
                     className="px-3 py-1.5 bg-red-500/10 text-red-600 text-sm font-medium rounded-xl hover:bg-red-500/20 transition-colors"

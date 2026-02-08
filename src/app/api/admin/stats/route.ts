@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig, getAllTenants, DEFAULT_TENANT } from "@/lib/tenants";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { verifyAdminTenantAccess } from "@/lib/admin-auth";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/stats");
 
 export async function GET(request: NextRequest) {
-  const { authorized, error: authError } = await verifyAdmin();
-  if (!authorized) {
-    return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get("storeId") || DEFAULT_TENANT;
+
+    const { authorized, error: authError } = await verifyAdminTenantAccess(storeId);
+    if (!authorized) {
+      return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+    }
     const days = parseInt(searchParams.get("days") || "30", 10);
 
     // Get tenant config for display name
     const tenantConfig = getTenantConfig(storeId);
+
+    if (!tenantConfig) {
+      return NextResponse.json({ error: "Unknown tenant" }, { status: 400 });
+    }
 
     log.debug("Analytics request", { storeId, tenant: tenantConfig.name, days });
 
@@ -195,14 +199,15 @@ export async function GET(request: NextRequest) {
       dailyVolume,
       documentCount: documentCount || 0,
       availableTenants: getAllTenants().map((t) => ({ id: t.id, name: t.name })),
+    }, {
+      headers: {
+        "Cache-Control": "private, max-age=300, stale-while-revalidate=60",
+      },
     });
   } catch (error) {
     log.error("Analytics API error", { error: error as Error });
     return NextResponse.json(
-      {
-        error: "Failed to fetch analytics",
-        details: error instanceof Error ? error.message : "Unknown error"
-      },
+      { error: "Failed to fetch analytics" },
       { status: 500 }
     );
   }

@@ -5,6 +5,9 @@ import { splitIntoChunks } from "@/lib/chunking";
 import { z } from "zod";
 import { embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/tenant/content");
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -73,6 +76,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         title,
         fullText,
         chunkCount: docs?.length || 0,
+      }, {
+        headers: { "Cache-Control": "private, max-age=120, stale-while-revalidate=60" },
       });
     }
 
@@ -116,13 +121,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         success: true,
         sources: Array.from(groups.values()),
         totalSources: groups.size,
+      }, {
+        headers: { "Cache-Control": "private, max-age=120, stale-while-revalidate=60" },
       });
     }
 
     // Default: paginated chunk list (legacy)
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
-    const search = searchParams.get("search")?.trim() || "";
+    const search = (searchParams.get("search")?.trim() || "").slice(0, 200);
     const offset = (page - 1) * limit;
 
     let query = supabaseAdmin
@@ -150,9 +157,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         totalPages: Math.ceil((totalCount || 0) / limit),
       },
       search,
+    }, {
+      headers: { "Cache-Control": "private, max-age=120, stale-while-revalidate=60" },
     });
   } catch (error) {
-    console.error("Content list error:", error);
+    log.error("Content list error:", error);
     return NextResponse.json(
       { error: "Failed to fetch content" },
       { status: 500 }
@@ -230,7 +239,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .insert(documents);
 
     if (insertError) {
-      console.error("Error inserting documents:", insertError);
+      log.error("Error inserting documents:", insertError);
       return NextResponse.json(
         { error: "Failed to save documents" },
         { status: 500 }
@@ -243,7 +252,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       chunksCount: chunks.length,
     });
   } catch (error) {
-    console.error("Content add error:", error);
+    log.error("Content add error:", error);
     return NextResponse.json(
       { error: "Failed to add content" },
       { status: 500 }
@@ -270,22 +279,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const { source, text, title } = parsed.data;
 
-    // Delete old chunks for this source
-    const { error: deleteError } = await supabaseAdmin
-      .from("documents")
-      .delete()
-      .eq("store_id", tenantId)
-      .eq("metadata->>source", source);
-
-    if (deleteError) {
-      console.error("Error deleting old chunks:", deleteError);
-      return NextResponse.json(
-        { error: "Failed to delete old content" },
-        { status: 500 }
-      );
-    }
-
-    // Re-chunk and re-embed
+    // Re-chunk and re-embed BEFORE deleting old data to minimize gap
     const chunks = splitIntoChunks(text);
 
     if (chunks.length === 0) {
@@ -316,12 +310,27 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     }));
 
+    // Delete old then insert new in quick succession (embedding was the slow part)
+    const { error: deleteError } = await supabaseAdmin
+      .from("documents")
+      .delete()
+      .eq("store_id", tenantId)
+      .eq("metadata->>source", source);
+
+    if (deleteError) {
+      log.error("Error deleting old chunks:", deleteError);
+      return NextResponse.json(
+        { error: "Failed to delete old content" },
+        { status: 500 }
+      );
+    }
+
     const { error: insertError } = await supabaseAdmin
       .from("documents")
       .insert(documents);
 
     if (insertError) {
-      console.error("Error inserting updated documents:", insertError);
+      log.error("Error inserting updated documents:", insertError);
       return NextResponse.json(
         { error: "Failed to save updated content" },
         { status: 500 }
@@ -334,7 +343,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       chunksCount: chunks.length,
     });
   } catch (error) {
-    console.error("Content edit error:", error);
+    log.error("Content edit error:", error);
     return NextResponse.json(
       { error: "Failed to edit content" },
       { status: 500 }
@@ -375,7 +384,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         .eq("metadata->>source", source);
 
       if (deleteError) {
-        console.error("Error deleting documents by source:", deleteError);
+        log.error("Error deleting documents by source:", deleteError);
         return NextResponse.json(
           { error: "Failed to delete documents" },
           { status: 500 }
@@ -416,7 +425,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq("id", documentId);
 
     if (deleteError) {
-      console.error("Error deleting document:", deleteError);
+      log.error("Error deleting document:", deleteError);
       return NextResponse.json(
         { error: "Failed to delete document" },
         { status: 500 }
@@ -428,7 +437,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       message: "Document deleted",
     });
   } catch (error) {
-    console.error("Content delete error:", error);
+    log.error("Content delete error:", error);
     return NextResponse.json(
       { error: "Failed to delete content" },
       { status: 500 }

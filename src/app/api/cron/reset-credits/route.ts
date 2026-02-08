@@ -61,11 +61,27 @@ export async function GET(request: NextRequest) {
 
     log.info("Credit reset complete", { successCount, failCount });
 
+    // Cleanup old conversations (>90 days)
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const { count: deletedConversations, error: cleanupError } = await supabaseAdmin
+      .from("conversations")
+      .delete({ count: "exact" })
+      .lt("created_at", ninetyDaysAgo.toISOString());
+
+    if (cleanupError) {
+      log.error("Conversation cleanup failed", { error: cleanupError });
+    } else if (deletedConversations && deletedConversations > 0) {
+      log.info("Cleaned up old conversations", { deleted: deletedConversations });
+    }
+
     return NextResponse.json({
       success: true,
       reset: successCount,
       failed: failCount,
       details: results,
+      conversationsDeleted: deletedConversations || 0,
     });
   } catch (error) {
     log.error("Cron job failed", { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });

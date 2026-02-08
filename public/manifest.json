@@ -1,0 +1,12 @@
+{
+  "name": "Preik",
+  "short_name": "Preik",
+  "description": "AI-chatbot for norske bedrifter",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

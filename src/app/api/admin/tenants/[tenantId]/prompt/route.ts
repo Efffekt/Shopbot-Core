@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/tenants/prompt");
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -23,13 +26,13 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (error && error.code !== "PGRST116") {
-      console.error("Error fetching prompt:", error);
+      log.error("Error fetching prompt:", error);
       return NextResponse.json({ error: "Failed to fetch prompt" }, { status: 500 });
     }
 
     return NextResponse.json({ prompt: prompt || null });
   } catch (error) {
-    console.error("Error fetching prompt:", error);
+    log.error("Error fetching prompt:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -72,7 +75,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         .single();
 
       if (error) {
-        console.error("Error updating prompt:", error);
+        log.error("Error updating prompt:", error);
         return NextResponse.json({ error: "Failed to update prompt" }, { status: 500 });
       }
 
@@ -90,14 +93,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         .single();
 
       if (error) {
-        console.error("Error creating prompt:", error);
+        log.error("Error creating prompt:", error);
         return NextResponse.json({ error: "Failed to create prompt" }, { status: 500 });
       }
 
       return NextResponse.json({ prompt }, { status: 201 });
     }
   } catch (error) {
-    console.error("Error upserting prompt:", error);
+    log.error("Error upserting prompt:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

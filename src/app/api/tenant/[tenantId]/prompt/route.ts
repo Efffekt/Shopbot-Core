@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/tenant/prompt");
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -41,6 +44,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     version: promptData?.version || 0,
     updatedAt: promptData?.updated_at || null,
     isCustom: !!promptData,
+  }, {
+    headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" },
   });
 }
 
@@ -96,7 +101,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .eq("id", existing.id);
 
     if (error) {
-      console.error("Error updating prompt:", error);
+      log.error("Error updating prompt:", error);
       return NextResponse.json(
         { error: "Failed to update prompt" },
         { status: 500 }
@@ -116,7 +121,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     });
 
     if (error) {
-      console.error("Error creating prompt:", error);
+      log.error("Error creating prompt:", error);
       return NextResponse.json(
         { error: "Failed to create prompt" },
         { status: 500 }

@@ -1,5 +1,3 @@
-"use client";
-
 export function PreikWave({ className = "" }: { className?: string }) {
   return (
     <svg

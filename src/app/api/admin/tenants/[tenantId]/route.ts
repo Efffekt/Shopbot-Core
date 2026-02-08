@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { resetCredits } from "@/lib/credits";
+import { logAudit } from "@/lib/audit";
+import { createLogger } from "@/lib/logger";
+
+const patchTenantSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  allowed_domains: z.array(z.string().max(253)).optional(),
+  language: z.string().max(10).optional(),
+  persona: z.string().max(500).optional(),
+  credit_limit: z.number().int().min(0).optional(),
+  features: z.record(z.string(), z.boolean()).optional(),
+});
+
+const log = createLogger("api/admin/tenants/[tenantId]");
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -36,7 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .eq("tenant_id", tenantId);
 
     if (accessError) {
-      console.error("Failed to fetch tenant access:", accessError);
+      log.error("Failed to fetch tenant access:", accessError);
     }
 
     // Get user emails for each user_id
@@ -57,9 +71,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    return NextResponse.json({ tenant, users });
+    return NextResponse.json({ tenant, users }, {
+      headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" },
+    });
   } catch (error) {
-    console.error("Error fetching tenant:", error);
+    log.error("Error fetching tenant:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -76,7 +92,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   try {
     const body = await request.json();
-    const { name, allowed_domains, language, persona, credit_limit, features } = body;
+    const parsed = patchTenantSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    const { name, allowed_domains, language, persona, credit_limit, features } = parsed.data;
 
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
@@ -94,20 +115,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (error) {
-      console.error("Failed to update tenant:", error);
+      log.error("Failed to update tenant:", error);
       return NextResponse.json({ error: "Failed to update tenant" }, { status: 500 });
     }
 
     return NextResponse.json({ tenant });
   } catch (error) {
-    console.error("Error updating tenant:", error);
+    log.error("Error updating tenant:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
 // POST - Actions (reset credits)
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, email: actorEmail, error: authError } = await verifySuperAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -123,12 +144,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       if (!success) {
         return NextResponse.json({ error: "Failed to reset credits" }, { status: 500 });
       }
+      logAudit({ actorEmail: actorEmail!, action: "reset_credits", entityType: "tenant", entityId: tenantId });
       return NextResponse.json({ success: true, message: "Credits reset successfully" });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
-    console.error("Error performing tenant action:", error);
+    log.error("Error performing tenant action:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -136,7 +158,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 // DELETE - Delete tenant
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   // Verify super admin access
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, email: actorEmail, error: authError } = await verifySuperAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -144,15 +166,29 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { tenantId } = await params;
 
   try {
-    // Delete tenant access first
+    // Delete all related data before deleting tenant
     await supabaseAdmin
       .from("tenant_user_access")
       .delete()
       .eq("tenant_id", tenantId);
 
-    // Delete tenant prompts
     await supabaseAdmin
       .from("tenant_prompts")
+      .delete()
+      .eq("tenant_id", tenantId);
+
+    await supabaseAdmin
+      .from("documents")
+      .delete()
+      .eq("store_id", tenantId);
+
+    await supabaseAdmin
+      .from("conversations")
+      .delete()
+      .eq("store_id", tenantId);
+
+    await supabaseAdmin
+      .from("credit_usage_log")
       .delete()
       .eq("tenant_id", tenantId);
 
@@ -163,13 +199,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq("id", tenantId);
 
     if (error) {
-      console.error("Failed to delete tenant:", error);
+      log.error("Failed to delete tenant:", error);
       return NextResponse.json({ error: "Failed to delete tenant" }, { status: 500 });
     }
 
+    logAudit({ actorEmail: actorEmail!, action: "delete", entityType: "tenant", entityId: tenantId });
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting tenant:", error);
+    log.error("Error deleting tenant:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

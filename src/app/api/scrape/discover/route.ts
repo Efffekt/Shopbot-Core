@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { firecrawl } from "@/lib/firecrawl";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { isSafeUrl } from "@/lib/url-safety";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/scrape/discover");
 
 const discoverSchema = z.object({
-  baseUrl: z.string().url(),
+  baseUrl: z.string().url().refine(isSafeUrl, {
+    message: "Only HTTPS URLs to public hosts are allowed",
+  }),
 });
 
 // Filter out non-relevant URLs
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const { baseUrl } = parsed.data;
 
-    console.log(`🔍 Starting discovery for: ${baseUrl}`);
+    log.info("Starting discovery", { baseUrl });
 
     // Use Firecrawl's map function for fast URL discovery
     // Note: map() uses sitemap/links discovery, may not work well for SPAs
@@ -102,7 +108,7 @@ export async function POST(request: NextRequest) {
     const urls = mapResult.links.map((link) => link.url);
     const filteredUrls = filterUrls(urls, baseUrl);
 
-    console.log(`✅ Discovered ${filteredUrls.length} pages (filtered from ${mapResult.links.length})`);
+    log.info("Discovery complete", { found: filteredUrls.length, raw: mapResult.links.length });
 
     return NextResponse.json({
       success: true,
@@ -110,7 +116,7 @@ export async function POST(request: NextRequest) {
       urls: filteredUrls,
     });
   } catch (error) {
-    console.error("Discovery error:", error);
+    log.error("Discovery error", { error: error as Error });
     return NextResponse.json(
       { error: "Failed to discover pages" },
       { status: 500 }

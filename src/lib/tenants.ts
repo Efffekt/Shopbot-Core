@@ -306,9 +306,9 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
 
 export const DEFAULT_TENANT = "baatpleiebutikken";
 
-export function getTenantConfig(storeId: string | undefined | null): TenantConfig {
+export function getTenantConfig(storeId: string | undefined | null): TenantConfig | null {
   if (!storeId || !TENANT_CONFIGS[storeId]) {
-    return TENANT_CONFIGS[DEFAULT_TENANT];
+    return null;
   }
   return TENANT_CONFIGS[storeId];
 }
@@ -317,7 +317,7 @@ export function getTenantConfig(storeId: string | undefined | null): TenantConfi
  * Fetches tenant config from database, falls back to hardcoded config.
  * Use this for runtime config that may be stored in DB.
  */
-export async function getTenantConfigFromDB(storeId: string): Promise<TenantConfig> {
+export async function getTenantConfigFromDB(storeId: string): Promise<TenantConfig | null> {
   // First check hardcoded configs
   if (TENANT_CONFIGS[storeId]) {
     return TENANT_CONFIGS[storeId];
@@ -332,8 +332,8 @@ export async function getTenantConfigFromDB(storeId: string): Promise<TenantConf
       .single();
 
     if (error || !data) {
-      log.debug("Tenant not found in DB, using default", { storeId });
-      return TENANT_CONFIGS[DEFAULT_TENANT];
+      log.debug("Tenant not found in DB or hardcoded config", { storeId });
+      return null;
     }
 
     // Convert DB format to TenantConfig
@@ -352,7 +352,7 @@ export async function getTenantConfigFromDB(storeId: string): Promise<TenantConf
     };
   } catch (err) {
     log.error("Error fetching tenant from DB", { storeId, error: err as Error });
-    return TENANT_CONFIGS[DEFAULT_TENANT];
+    return null;
   }
 }
 
@@ -369,6 +369,9 @@ export async function validateOriginFromDB(
   }
 
   const config = await getTenantConfigFromDB(storeId);
+  if (!config) {
+    return { allowed: false, reason: `Unknown tenant '${storeId}'` };
+  }
   return validateOrigin(config, origin, referer);
 }
 
@@ -423,6 +426,7 @@ function extractDomain(url: string | null): string | null {
  */
 export async function getTenantSystemPrompt(storeId: string): Promise<string> {
   const config = getTenantConfig(storeId);
+  const fallbackPrompt = config?.systemPrompt || "";
 
   try {
     const { data, error } = await supabaseAdmin
@@ -437,7 +441,7 @@ export async function getTenantSystemPrompt(storeId: string): Promise<string> {
       } else {
         log.debug("No custom prompt in DB, using default", { storeId });
       }
-      return config.systemPrompt;
+      return fallbackPrompt;
     }
 
     if (data?.system_prompt) {
@@ -446,9 +450,9 @@ export async function getTenantSystemPrompt(storeId: string): Promise<string> {
     }
 
     log.debug("DB row exists but empty, using default", { storeId });
-    return config.systemPrompt;
+    return fallbackPrompt;
   } catch (err) {
     log.error("Error fetching tenant prompt", { storeId, error: err as Error });
-    return config.systemPrompt;
+    return fallbackPrompt;
   }
 }

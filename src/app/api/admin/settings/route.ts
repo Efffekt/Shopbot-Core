@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/settings");
 
 // GET - Return all site settings as { settings: { key: value, ... } }
 export async function GET() {
@@ -15,7 +18,7 @@ export async function GET() {
       .select("key, value");
 
     if (error) {
-      console.error("Failed to fetch site settings:", error);
+      log.error("Failed to fetch site settings:", error);
       return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 });
     }
 
@@ -24,9 +27,11 @@ export async function GET() {
       settings[row.key] = row.value ?? "";
     }
 
-    return NextResponse.json({ settings });
+    return NextResponse.json({ settings }, {
+      headers: { "Cache-Control": "private, max-age=600, stale-while-revalidate=300" },
+    });
   } catch (error) {
-    console.error("Error fetching site settings:", error);
+    log.error("Error fetching site settings:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -60,13 +65,13 @@ export async function PUT(request: NextRequest) {
       .upsert(rows, { onConflict: "key" });
 
     if (error) {
-      console.error("Failed to upsert site settings:", error);
+      log.error("Failed to upsert site settings:", error);
       return NextResponse.json({ error: "Failed to save settings" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error saving site settings:", error);
+    log.error("Error saving site settings:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

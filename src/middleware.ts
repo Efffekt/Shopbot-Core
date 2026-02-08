@@ -20,6 +20,27 @@ function isPublicApiPath(pathname: string): boolean {
   return PUBLIC_API_PATHS.some((path) => pathname.startsWith(path));
 }
 
+/** Add security headers (CSP, X-Frame-Options, etc.) to a page response */
+function addSecurityHeaders(response: NextResponse): void {
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+  const cspDirectives = [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.supabase.co",
+    "font-src 'self'",
+    "connect-src 'self' https://*.supabase.co",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ];
+  response.headers.set("Content-Security-Policy", cspDirectives.join("; "));
+}
+
 async function verifySupabaseAuth(request: NextRequest): Promise<{ authenticated: boolean; response?: NextResponse }> {
   let response = NextResponse.next({ request });
 
@@ -58,9 +79,13 @@ export async function middleware(request: NextRequest) {
     if (!authenticated) {
       log.warn("Unauthenticated access attempt", { pathname });
       const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("redirect", pathname);
+      // Only pass internal paths as redirect to prevent open redirect
+      if (pathname.startsWith("/") && !pathname.startsWith("//")) {
+        loginUrl.searchParams.set("redirect", pathname);
+      }
       return NextResponse.redirect(loginUrl);
     }
+    addSecurityHeaders(response!);
     return response;
   }
 
@@ -98,9 +123,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // Public page routes — add security headers
+  const response = NextResponse.next({ request });
+  addSecurityHeaders(response);
+  return response;
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/:path*", "/dashboard/:path*"],
+  matcher: [
+    // Match all routes except static files and images
+    "/((?!_next/static|_next/image|favicon\\.png|manifest\\.json).*)",
+  ],
 };

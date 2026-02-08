@@ -17,17 +17,60 @@ export function AnimatedChat() {
   const [userTypingText, setUserTypingText] = useState("");
   const [isButtonPressed, setIsButtonPressed] = useState(false);
   const messageIndexRef = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isVisibleRef = useRef(true);
+
+  // Pause animation when off-screen
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const intervals: ReturnType<typeof setInterval>[] = [];
+    let cancelled = false;
+
+    const safeTimeout = (fn: () => void, ms: number) => {
+      const id = setTimeout(fn, ms);
+      timers.push(id);
+      return id;
+    };
+
+    const safeInterval = (fn: () => void, ms: number) => {
+      const id = setInterval(fn, ms);
+      intervals.push(id);
+      return id;
+    };
+
+    const waitForVisible = (fn: () => void) => {
+      if (isVisibleRef.current) { fn(); return; }
+      // Poll every 500ms until visible again
+      const check = safeInterval(() => {
+        if (cancelled) { clearInterval(check); return; }
+        if (isVisibleRef.current) { clearInterval(check); fn(); }
+      }, 500);
+    };
+
     const runConversation = () => {
+      if (cancelled) return;
+
       if (messageIndexRef.current >= conversation.length) {
         // Reset after a pause
-        setTimeout(() => {
+        safeTimeout(() => {
+          if (cancelled) return;
           setDisplayedMessages([]);
           setStreamedText("");
           setUserTypingText("");
           messageIndexRef.current = 0;
-          runConversation();
+          waitForVisible(runConversation);
         }, 5000);
         return;
       }
@@ -36,13 +79,15 @@ export function AnimatedChat() {
 
       if (currentMessage.role === "assistant") {
         setIsTyping(true);
-        setTimeout(() => {
+        safeTimeout(() => {
+          if (cancelled) return;
           setIsTyping(false);
           setIsStreaming(true);
           setStreamedText("");
 
           let charIndex = 0;
-          const streamInterval = setInterval(() => {
+          const streamInterval = safeInterval(() => {
+            if (cancelled) { clearInterval(streamInterval); return; }
             if (charIndex < currentMessage.content.length) {
               setStreamedText(currentMessage.content.slice(0, charIndex + 1));
               charIndex++;
@@ -52,41 +97,50 @@ export function AnimatedChat() {
               setIsStreaming(false);
               setStreamedText("");
               messageIndexRef.current++;
-              setTimeout(runConversation, 1500);
+              safeTimeout(runConversation, 1500);
             }
-          }, 25);
+          }, 30);
         }, 800);
       } else {
         // User message - animate typing in input
         setUserTypingText("");
         let charIndex = 0;
-        const typeInterval = setInterval(() => {
+        const typeInterval = safeInterval(() => {
+          if (cancelled) { clearInterval(typeInterval); return; }
           if (charIndex < currentMessage.content.length) {
             setUserTypingText(currentMessage.content.slice(0, charIndex + 1));
             charIndex++;
           } else {
             clearInterval(typeInterval);
             // Animate button press
-            setTimeout(() => {
+            safeTimeout(() => {
+              if (cancelled) return;
               setIsButtonPressed(true);
-              setTimeout(() => {
+              safeTimeout(() => {
+                if (cancelled) return;
                 setIsButtonPressed(false);
                 setUserTypingText("");
                 setDisplayedMessages((prev) => [...prev, currentMessage]);
                 messageIndexRef.current++;
-                setTimeout(runConversation, 800);
+                safeTimeout(runConversation, 800);
               }, 150);
             }, 300);
           }
-        }, 50);
+        }, 60);
       }
     };
 
     runConversation();
+
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+      intervals.forEach(clearInterval);
+    };
   }, []);
 
   return (
-    <div className="w-full max-w-[400px] bg-preik-bg rounded-2xl shadow-2xl overflow-hidden transition-colors duration-200">
+    <div ref={containerRef} className="w-full max-w-[400px] bg-preik-bg rounded-2xl shadow-2xl overflow-hidden transition-colors duration-200">
       {/* Header - matches widget exactly */}
       <div className="px-5 py-4 bg-preik-surface border-b border-preik-border flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3">

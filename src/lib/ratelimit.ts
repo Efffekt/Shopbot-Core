@@ -110,14 +110,24 @@ export async function checkRateLimit(
     return checkMemoryRateLimit(identifier, config);
   }
 
-  const result = await upstash.limit(identifier);
+  try {
+    const result = await upstash.limit(identifier);
 
-  return {
-    allowed: result.success,
-    remaining: result.remaining,
-    resetAt: result.reset,
-    ...(!result.success && { retryAfterMs: result.reset - Date.now() }),
-  };
+    return {
+      allowed: result.success,
+      remaining: result.remaining,
+      resetAt: result.reset,
+      ...(!result.success && { retryAfterMs: result.reset - Date.now() }),
+    };
+  } catch {
+    // Fail closed: if Redis is unreachable, deny the request
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt: Date.now() + config.windowMs,
+      retryAfterMs: 60_000,
+    };
+  }
 }
 
 /**
@@ -143,6 +153,16 @@ export const RATE_LIMITS = {
   contact: {
     maxRequests: 5,
     windowMs: 60 * 60 * 1000, // 1 hour
+  },
+  // Admin panel: 60 requests per minute per user
+  admin: {
+    maxRequests: 60,
+    windowMs: 60 * 1000, // 1 minute
+  },
+  // Widget config: 60 requests per minute per IP
+  widgetConfig: {
+    maxRequests: 60,
+    windowMs: 60 * 1000, // 1 minute
   },
 } as const;
 

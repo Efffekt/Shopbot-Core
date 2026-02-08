@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { getCreditStatus } from "@/lib/credits";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/tenant/credits");
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -34,9 +37,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Could not fetch credit status" }, { status: 500 });
     }
 
-    return NextResponse.json(credits);
+    return NextResponse.json(credits, {
+      headers: { "Cache-Control": "private, max-age=30" },
+    });
   } catch (error) {
-    console.error("Credits API error:", error);
+    log.error("Credits API error:", error);
     return NextResponse.json({ error: "Failed to fetch credits" }, { status: 500 });
   }
 }

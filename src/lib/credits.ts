@@ -1,4 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("credits");
 
 export interface CreditCheckResult {
   allowed: boolean;
@@ -16,16 +19,40 @@ export interface CreditStatus {
   billingCycleEnd: string;
 }
 
+// Circuit breaker: fail closed after consecutive DB failures
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+const CIRCUIT_BREAKER_WINDOW_MS = 60_000;
+let consecutiveFailures = 0;
+let firstFailureAt = 0;
+
 export async function checkAndIncrementCredits(tenantId: string): Promise<CreditCheckResult> {
+  // Circuit breaker: if too many recent failures, fail closed
+  if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
+    const elapsed = Date.now() - firstFailureAt;
+    if (elapsed < CIRCUIT_BREAKER_WINDOW_MS) {
+      log.error("Credit circuit breaker open — rejecting request");
+      return { allowed: false, creditsUsed: 0, creditLimit: 0, percentUsed: 0 };
+    }
+    // Window expired, reset and try again
+    consecutiveFailures = 0;
+    firstFailureAt = 0;
+  }
+
   const { data, error } = await supabaseAdmin.rpc("increment_credits", {
     p_tenant_id: tenantId,
   });
 
   if (error) {
-    console.error("Credit check error:", error);
-    // Fail open - allow the request if the credit system is down
-    return { allowed: true, creditsUsed: 0, creditLimit: 0, percentUsed: 0 };
+    log.error("Credit check error:", error);
+    if (consecutiveFailures === 0) firstFailureAt = Date.now();
+    consecutiveFailures++;
+    // Fail closed — reject request when credit system is down
+    return { allowed: false, creditsUsed: 0, creditLimit: 0, percentUsed: 0 };
   }
+
+  // Success — reset circuit breaker
+  consecutiveFailures = 0;
+  firstFailureAt = 0;
 
   const result = data as { allowed: boolean; credits_used: number; credit_limit: number };
   const percentUsed = result.credit_limit > 0
@@ -46,7 +73,7 @@ export async function getCreditStatus(tenantId: string): Promise<CreditStatus | 
   });
 
   if (error || !data || data.error) {
-    console.error("Get credit status error:", error || data?.error);
+    log.error("Get credit status error:", error || data?.error);
     return null;
   }
 
@@ -79,7 +106,7 @@ export async function resetCredits(tenantId: string): Promise<boolean> {
   });
 
   if (error || !data || data.error) {
-    console.error("Reset credits error:", error || data?.error);
+    log.error("Reset credits error:", error || data?.error);
     return false;
   }
 

@@ -1,4 +1,5 @@
-// Chat API - Gemini 2.0 Flash via Vertex AI (global endpoint) with OpenAI fallback
+// Chat API - Gemini 2.5 Flash Lite via Vertex AI (global endpoint) with OpenAI fallback
+// IMPORTANT: The primary model MUST remain "gemini-2.5-flash-lite". Do not change it.
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
@@ -277,8 +278,24 @@ export async function POST(request: NextRequest) {
 
     const { messages, sessionId, noStream } = parsed.data;
 
-    // Extract storeId with fallback to default tenant
-    const storeId = parsed.data.storeId || DEFAULT_TENANT;
+    const storeId = parsed.data.storeId;
+
+    if (!storeId) {
+      return new Response(
+        JSON.stringify({ error: "Missing storeId" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get tenant-specific configuration — reject unknown tenants
+    const tenantConfig = getTenantConfig(storeId);
+
+    if (!tenantConfig) {
+      return new Response(
+        JSON.stringify({ error: "Unknown store" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     // Capture request origin for CORS — used only after origin validation passes
     const corsOrigin = request.headers.get("origin") || "*";
@@ -286,9 +303,6 @@ export async function POST(request: NextRequest) {
     // Use non-streaming for mobile/WebViews, streaming for desktop
     const userAgent = request.headers.get("user-agent");
     const useNonStreaming = noStream === true || isWebView(userAgent);
-
-    // Get tenant-specific configuration
-    const tenantConfig = getTenantConfig(storeId);
 
     // === SECURITY: Domain Validation ===
     const origin = request.headers.get("origin");
@@ -423,7 +437,7 @@ export async function POST(request: NextRequest) {
         "match_site_content",
         {
           query_embedding: embedding,
-          match_threshold: 0.4,
+          match_threshold: 0.6,
           match_count: 8,
           filter_store_id: storeId,
         }
@@ -432,11 +446,8 @@ export async function POST(request: NextRequest) {
       docsFound = relevantDocs?.length || 0;
 
       if (searchError) {
-        log.error("Vector search failed", { reqId, storeId, error: searchError });
-        return new Response(
-          JSON.stringify({ error: "Search failed" }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
-        );
+        log.warn("Vector search failed, continuing without context", { reqId, storeId, error: searchError });
+        // Continue with system prompt only — don't crash the chat
       }
 
       if (relevantDocs && relevantDocs.length > 0) {
@@ -458,15 +469,15 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-2.5-flash";
+      let modelUsed = "gemini-2.5-flash-lite";
       let result: { text: string } | undefined;
 
       const vertex = getVertex();
-      const geminiModel = vertex("gemini-2.5-flash");
+      const geminiModel = vertex("gemini-2.5-flash-lite");
       const openaiModel = openai("gpt-4o-mini");
 
       const models = [
-        { provider: geminiModel, name: "gemini-2.5-flash" },
+        { provider: geminiModel, name: "gemini-2.5-flash-lite" },
         { provider: openaiModel, name: "gpt-4o-mini" },
       ];
 
@@ -479,6 +490,7 @@ export async function POST(request: NextRequest) {
             model: provider,
             system: fullSystemPrompt,
             messages: normalizedMessages,
+            abortSignal: AbortSignal.timeout(15_000),
           });
           if (result.text.length === 0) {
             log.error("Empty AI response", { reqId, storeId, model: name, mode: "non-streaming" });
@@ -542,7 +554,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - Gemini primary, OpenAI fallback
-    let modelUsed = "gemini-2.5-flash";
+    let modelUsed = "gemini-2.5-flash-lite";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders: Record<string, string> = {
@@ -560,11 +572,11 @@ export async function POST(request: NextRequest) {
     }
 
     const vertex = getVertex();
-    const geminiModel = vertex("gemini-2.5-flash");
+    const geminiModel = vertex("gemini-2.5-flash-lite");
     const openaiModel = openai("gpt-4o-mini");
 
     const models = [
-      { provider: geminiModel, name: "gemini-2.5-flash" },
+      { provider: geminiModel, name: "gemini-2.5-flash-lite" },
       { provider: openaiModel, name: "gpt-4o-mini" },
     ];
 
@@ -577,6 +589,7 @@ export async function POST(request: NextRequest) {
           model: provider,
           system: fullSystemPrompt,
           messages: normalizedMessages,
+          abortSignal: AbortSignal.timeout(15_000),
           onFinish: async ({ text, finishReason, usage }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
@@ -628,11 +641,13 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     log.error("Chat API error", { reqId, error: error as Error });
 
+    // Log full error server-side but never expose details to client
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    log.error("Chat API unhandled error detail", { reqId, errorMessage });
 
     // Use wildcard for catch-all errors since corsOrigin may not be in scope
     return new Response(
-      JSON.stringify({ error: "Internal server error", details: errorMessage }),
+      JSON.stringify({ error: "Internal server error" }),
       {
         status: 500,
         headers: {

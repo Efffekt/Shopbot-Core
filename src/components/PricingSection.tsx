@@ -1,5 +1,3 @@
-"use client";
-
 const features = [
   "Ubegrenset antall samtaler",
   "Opplæring på ditt innhold",

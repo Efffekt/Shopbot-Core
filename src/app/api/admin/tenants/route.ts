@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { sendWelcomeEmail } from "@/lib/email";
+import { logAudit } from "@/lib/audit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/tenants");
 
 // GET - List all tenants
 export async function GET() {
@@ -18,13 +22,15 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Failed to fetch tenants:", error);
+      log.error("Failed to fetch tenants:", error);
       return NextResponse.json({ error: "Failed to fetch tenants" }, { status: 500 });
     }
 
-    return NextResponse.json({ tenants });
+    return NextResponse.json({ tenants }, {
+      headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" },
+    });
   } catch (error) {
-    console.error("Error fetching tenants:", error);
+    log.error("Error fetching tenants:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -32,7 +38,7 @@ export async function GET() {
 // POST - Create a new tenant
 export async function POST(request: NextRequest) {
   // Verify super admin access
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, email: actorEmail, error: authError } = await verifySuperAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -76,7 +82,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (tenantError) {
-      console.error("Failed to create tenant:", tenantError);
+      log.error("Failed to create tenant:", tenantError);
       if (tenantError.code === "23505") {
         return NextResponse.json({ error: "Tenant ID already exists" }, { status: 409 });
       }
@@ -92,9 +98,11 @@ export async function POST(request: NextRequest) {
       }).catch(() => {}); // Fire-and-forget, don't block tenant creation
     }
 
+    logAudit({ actorEmail: actorEmail!, action: "create", entityType: "tenant", entityId: id, details: { name } });
+
     return NextResponse.json({ tenant }, { status: 201 });
   } catch (error) {
-    console.error("Error creating tenant:", error);
+    log.error("Error creating tenant:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

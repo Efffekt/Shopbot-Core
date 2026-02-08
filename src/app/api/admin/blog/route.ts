@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/blog");
 
 // GET - List all posts (published + drafts) for admin panel
 export async function GET() {
@@ -16,13 +19,15 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Failed to fetch blog posts:", error);
+      log.error("Failed to fetch blog posts:", error);
       return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 });
     }
 
-    return NextResponse.json({ posts });
+    return NextResponse.json({ posts }, {
+      headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" },
+    });
   } catch (error) {
-    console.error("Error fetching blog posts:", error);
+    log.error("Error fetching blog posts:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -69,7 +74,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Failed to create blog post:", error);
+      log.error("Failed to create blog post:", error);
       if (error.code === "23505") {
         return NextResponse.json({ error: "Slug already exists" }, { status: 409 });
       }
@@ -78,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ post }, { status: 201 });
   } catch (error) {
-    console.error("Error creating blog post:", error);
+    log.error("Error creating blog post:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

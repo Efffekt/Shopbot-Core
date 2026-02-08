@@ -47,7 +47,7 @@ export interface Logger {
   debug: (message: string, context?: Record<string, unknown>) => void;
   info: (message: string, context?: Record<string, unknown>) => void;
   warn: (message: string, context?: Record<string, unknown>) => void;
-  error: (message: string, context?: Record<string, unknown>) => void;
+  error: (message: string, context?: unknown) => void;
 }
 
 export function createLogger(route: string): Logger {
@@ -56,15 +56,21 @@ export function createLogger(route: string): Logger {
     info: (msg, ctx) => emit("info", route, msg, ctx),
     warn: (msg, ctx) => emit("warn", route, msg, ctx),
     error: (msg, ctx) => {
-      // Extract useful fields from Error objects in context
-      if (ctx) {
-        for (const [k, v] of Object.entries(ctx)) {
+      // Normalize context: accept Error, Record, or unknown
+      let normalized: Record<string, unknown> | undefined;
+      if (ctx instanceof Error) {
+        normalized = { error: ctx.message, stack: ctx.stack };
+      } else if (ctx && typeof ctx === "object" && !Array.isArray(ctx)) {
+        normalized = ctx as Record<string, unknown>;
+        for (const [k, v] of Object.entries(normalized)) {
           if (v instanceof Error) {
-            ctx[k] = { message: v.message, stack: v.stack };
+            normalized[k] = { message: v.message, stack: v.stack };
           }
         }
+      } else if (ctx !== undefined) {
+        normalized = { error: String(ctx) };
       }
-      emit("error", route, msg, ctx);
+      emit("error", route, msg, normalized);
     },
   };
 }

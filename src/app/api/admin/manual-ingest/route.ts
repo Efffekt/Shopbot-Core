@@ -5,6 +5,9 @@ import { openai } from "@ai-sdk/openai";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { splitIntoChunks } from "@/lib/chunking";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/manual-ingest");
 
 const manualIngestSchema = z.object({
   text: z.string().min(1, "Text is required"),
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     const { text, storeId, url, title } = parsed.data;
 
-    console.log(`📝 Manual ingest for store: ${storeId}`);
+    log.info("Manual ingest started", { storeId });
 
     // Split text into chunks
     const chunks = splitIntoChunks(text);
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📦 Processing ${chunks.length} chunks...`);
+    log.info("Processing chunks", { count: chunks.length });
 
     // Generate embeddings
     const { embeddings } = await embedMany({
@@ -74,14 +77,14 @@ export async function POST(request: NextRequest) {
       .insert(documents);
 
     if (insertError) {
-      console.error("Error inserting documents:", insertError);
+      log.error("Error inserting documents:", insertError);
       return NextResponse.json(
         { error: "Failed to save documents" },
         { status: 500 }
       );
     }
 
-    console.log(`✅ Successfully ingested ${chunks.length} chunks`);
+    log.info("Manual ingest complete", { chunks: chunks.length });
 
     return NextResponse.json({
       success: true,
@@ -89,7 +92,7 @@ export async function POST(request: NextRequest) {
       chunksCount: chunks.length,
     });
   } catch (error) {
-    console.error("Manual ingest error:", error);
+    log.error("Manual ingest error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/conversations");
 
 // GET - List conversations with filters
 export async function GET(request: NextRequest) {
@@ -12,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get("storeId");
-    const search = searchParams.get("search")?.trim();
+    const search = searchParams.get("search")?.trim().slice(0, 200);
     const intent = searchParams.get("intent");
     const wasHandled = searchParams.get("wasHandled");
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error("Error fetching conversations:", error);
+      log.error("Error fetching conversations:", error);
       return NextResponse.json({ error: "Failed to fetch conversations" }, { status: 500 });
     }
 
@@ -58,9 +61,11 @@ export async function GET(request: NextRequest) {
         total: count || 0,
         totalPages: Math.ceil((count || 0) / limit),
       },
+    }, {
+      headers: { "Cache-Control": "private, max-age=60" },
     });
   } catch (error) {
-    console.error("Error in conversations API:", error);
+    log.error("Error in conversations API:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

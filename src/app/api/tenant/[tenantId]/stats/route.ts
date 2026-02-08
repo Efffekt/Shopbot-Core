@@ -3,6 +3,9 @@ import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig } from "@/lib/tenants";
 import { getCreditStatus } from "@/lib/credits";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/tenant/stats");
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -34,6 +37,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const days = parseInt(searchParams.get("days") || "30", 10);
 
     const tenantConfig = getTenantConfig(tenantId);
+
+    if (!tenantConfig) {
+      return NextResponse.json({ error: "Unknown tenant" }, { status: 400 });
+    }
 
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - days);
@@ -160,9 +167,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       dailyVolume,
       documentCount: documentCount || 0,
       credits: creditStatus,
+    }, {
+      headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=30" },
     });
   } catch (error) {
-    console.error("Analytics API error:", error);
+    log.error("Analytics API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch analytics" },
       { status: 500 }

@@ -5,7 +5,7 @@ import "./globals.css";
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
-  axes: ["SOFT", "WONK", "opsz"],
+  axes: ["SOFT", "opsz"],
   style: ["normal", "italic"],
 });
 
@@ -50,7 +50,15 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.png",
+    apple: "/favicon.png",
   },
+  manifest: "/manifest.json",
+  alternates: {
+    types: {
+      "application/rss+xml": "/blogg/feed.xml",
+    },
+  },
+  other: { "theme-color": "#ffffff" },
 };
 
 export default function RootLayout({

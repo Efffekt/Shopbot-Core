@@ -29,6 +29,7 @@ export default async function TenantPage({ params }: PageProps) {
     notFound();
   }
 
+  const isAdmin = access.role === "admin";
   const credits = await getCreditStatus(tenantId);
   const percentUsed = credits?.percentUsed ?? 0;
 
@@ -55,7 +56,7 @@ export default async function TenantPage({ params }: PageProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-5" : "lg:grid-cols-3"} gap-4 mb-8`}>
         <Link
           href={`/dashboard/${tenantId}/integrasjon`}
           className="flex flex-col items-center p-6 bg-preik-surface rounded-2xl border border-preik-border hover:border-preik-accent transition-colors"
@@ -82,31 +83,35 @@ export default async function TenantPage({ params }: PageProps) {
           <span className="text-sm text-preik-text-muted">Se chat-statistikk</span>
         </Link>
 
-        <Link
-          href={`/dashboard/${tenantId}/prompt`}
-          className="flex flex-col items-center p-6 bg-preik-surface rounded-2xl border border-preik-border hover:border-preik-accent transition-colors"
-        >
-          <div className="w-12 h-12 rounded-xl bg-preik-accent/10 flex items-center justify-center mb-3">
-            <svg className="w-6 h-6 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </div>
-          <span className="font-medium text-preik-text">Systemprompt</span>
-          <span className="text-sm text-preik-text-muted">Rediger AI-oppførsel</span>
-        </Link>
+        {isAdmin && (
+          <Link
+            href={`/dashboard/${tenantId}/prompt`}
+            className="flex flex-col items-center p-6 bg-preik-surface rounded-2xl border border-preik-border hover:border-preik-accent transition-colors"
+          >
+            <div className="w-12 h-12 rounded-xl bg-preik-accent/10 flex items-center justify-center mb-3">
+              <svg className="w-6 h-6 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <span className="font-medium text-preik-text">Systemprompt</span>
+            <span className="text-sm text-preik-text-muted">Rediger AI-oppførsel</span>
+          </Link>
+        )}
 
-        <Link
-          href={`/dashboard/${tenantId}/content`}
-          className="flex flex-col items-center p-6 bg-preik-surface rounded-2xl border border-preik-border hover:border-preik-accent transition-colors"
-        >
-          <div className="w-12 h-12 rounded-xl bg-preik-accent/10 flex items-center justify-center mb-3">
-            <svg className="w-6 h-6 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-          </div>
-          <span className="font-medium text-preik-text">Innhold</span>
-          <span className="text-sm text-preik-text-muted">Administrer kunnskapsbase</span>
-        </Link>
+        {isAdmin && (
+          <Link
+            href={`/dashboard/${tenantId}/content`}
+            className="flex flex-col items-center p-6 bg-preik-surface rounded-2xl border border-preik-border hover:border-preik-accent transition-colors"
+          >
+            <div className="w-12 h-12 rounded-xl bg-preik-accent/10 flex items-center justify-center mb-3">
+              <svg className="w-6 h-6 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <span className="font-medium text-preik-text">Innhold</span>
+            <span className="text-sm text-preik-text-muted">Administrer kunnskapsbase</span>
+          </Link>
+        )}
 
         <Link
           href={`/dashboard/${tenantId}/innstillinger`}

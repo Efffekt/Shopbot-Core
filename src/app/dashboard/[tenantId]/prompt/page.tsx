@@ -24,6 +24,11 @@ export default async function PromptEditorPage({ params }: PageProps) {
     redirect("/dashboard");
   }
 
+  // Viewers cannot access prompt editor
+  if (access.role !== "admin") {
+    redirect(`/dashboard/${tenantId}`);
+  }
+
   const config = TENANT_CONFIGS[tenantId];
   if (!config) {
     notFound();

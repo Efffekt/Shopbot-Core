@@ -1,8 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Vilkår for bruk – Preik",
   description: "Les vilkårene for bruk av Preik sine tjenester.",
+  openGraph: {
+    title: "Vilkår for bruk – Preik",
+    description: "Les vilkårene for bruk av Preik sine tjenester.",
+    url: "https://preik.no/vilkar",
+  },
+  alternates: { canonical: "https://preik.no/vilkar" },
 };
 
 export default function TermsPage() {
@@ -23,7 +30,7 @@ export default function TermsPage() {
 
         <div className="prose prose-preik text-preik-text-muted space-y-6">
           <p className="text-lg">
-            Sist oppdatert: {new Date().toLocaleDateString("no-NO", { year: "numeric", month: "long", day: "numeric" })}
+            Sist oppdatert: 8. februar 2026
           </p>
 
           <section className="space-y-4">

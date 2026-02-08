@@ -1,16 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import CustomerManagement from "@/components/CustomerManagement";
 import ContentIngestion from "@/components/ContentIngestion";
-import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import AdminOverview from "@/components/AdminOverview";
 import ConversationBrowser from "@/components/ConversationBrowser";
 import GlobalUserManagement from "@/components/GlobalUserManagement";
 import BlogManager from "@/components/BlogManager";
 import AccountSettings from "@/components/AccountSettings";
+import ContactSubmissions from "@/components/ContactSubmissions";
+import AuditLogBrowser from "@/components/AuditLogBrowser";
 
-type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse" | "brukere" | "blogg" | "innstillinger";
+const AnalyticsDashboard = dynamic(
+  () => import("@/components/AnalyticsDashboard"),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-preik-accent" />
+      </div>
+    ),
+  }
+);
+
+type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse" | "brukere" | "blogg" | "henvendelser" | "logg" | "innstillinger";
 
 interface AdminPanelProps {
   isSuperAdmin: boolean;
@@ -39,6 +52,8 @@ export default function AdminPanel({ isSuperAdmin, userEmail }: AdminPanelProps)
     { key: "analyse", label: "Analyse" },
     { key: "blogg", label: "Blogg" },
     { key: "brukere", label: "Brukere", superAdminOnly: true },
+    { key: "henvendelser", label: "Henvendelser" },
+    { key: "logg", label: "Logg", superAdminOnly: true },
     { key: "innstillinger", label: "Innstillinger" },
   ];
 
@@ -109,6 +124,8 @@ export default function AdminPanel({ isSuperAdmin, userEmail }: AdminPanelProps)
       )}
       {activeSection === "blogg" && <BlogManager />}
       {activeSection === "brukere" && isSuperAdmin && <GlobalUserManagement />}
+      {activeSection === "henvendelser" && <ContactSubmissions />}
+      {activeSection === "logg" && isSuperAdmin && <AuditLogBrowser />}
       {activeSection === "innstillinger" && (
         <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
           <h2 className="text-xl font-semibold text-preik-text mb-6">Kontoinnstillinger</h2>

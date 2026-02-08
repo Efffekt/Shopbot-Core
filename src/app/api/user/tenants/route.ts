@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/user/tenants");
 
 export async function GET() {
   const user = await getUser();
@@ -17,7 +20,7 @@ export async function GET() {
     .eq("user_id", user.id);
 
   if (error) {
-    console.error("Error fetching tenant access:", error);
+    log.error("Error fetching tenant access:", error);
     return NextResponse.json(
       { error: "Failed to fetch tenants" },
       { status: 500 }
@@ -34,5 +37,7 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ tenants });
+  return NextResponse.json({ tenants }, {
+    headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=30" },
+  });
 }

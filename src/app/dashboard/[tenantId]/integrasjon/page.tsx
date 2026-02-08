@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
@@ -55,6 +55,46 @@ export default function IntegrationPage() {
   const [copied, setCopied] = useState(false);
   const [config, setConfig] = useState<WidgetConfig>(defaultConfig);
   const [showPreview, setShowPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load saved config on mount
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const res = await fetch(`/api/tenant/${tenantId}/widget-config`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.config) {
+            setConfig({ ...defaultConfig, ...data.config });
+          }
+        }
+      } catch {
+        // Use defaults on error
+      }
+      setLoaded(true);
+    }
+    loadConfig();
+  }, [tenantId]);
+
+  // Save config
+  const saveConfig = useCallback(async () => {
+    setSaving(true);
+    setSaveStatus(null);
+    try {
+      const res = await fetch(`/api/tenant/${tenantId}/widget-config`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config }),
+      });
+      setSaveStatus(res.ok ? "Lagret!" : "Feil ved lagring");
+    } catch {
+      setSaveStatus("Feil ved lagring");
+    }
+    setSaving(false);
+    setTimeout(() => setSaveStatus(null), 3000);
+  }, [tenantId, config]);
 
   // Get widget URL - use current origin for the embed code
   const getWidgetUrl = () => {
@@ -278,10 +318,28 @@ export default function IntegrationPage() {
           </svg>
           Tilbake
         </Link>
-        <h1 className="text-3xl font-brand font-light text-preik-text">Integrasjon</h1>
-        <p className="mt-2 text-preik-text-muted">
-          Tilpass og legg til Preik-chatboten på nettsiden din.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-brand font-light text-preik-text">Integrasjon</h1>
+            <p className="mt-2 text-preik-text-muted">
+              Tilpass og legg til Preik-chatboten på nettsiden din.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {saveStatus && (
+              <span className={`text-sm ${saveStatus === "Lagret!" ? "text-green-600" : "text-red-500"}`}>
+                {saveStatus}
+              </span>
+            )}
+            <button
+              onClick={saveConfig}
+              disabled={saving || !loaded}
+              className="px-5 py-2.5 bg-preik-accent text-white text-sm font-semibold rounded-xl hover:bg-preik-accent-hover disabled:opacity-50 transition-all"
+            >
+              {saving ? "Lagrer..." : "Lagre endringer"}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">

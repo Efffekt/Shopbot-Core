@@ -55,8 +55,8 @@ function isWebView(): boolean {
   );
 }
 
-// Get API URL from script src
-function getApiUrl(): string {
+// Get base URL from script src
+function getBaseUrl(): string {
   const script =
     (document.currentScript as HTMLScriptElement) ||
     document.querySelector("script[data-store-id]");
@@ -64,44 +64,76 @@ function getApiUrl(): string {
   if (script?.src) {
     try {
       const url = new URL(script.src);
-      return `${url.origin}/api/chat`;
+      return url.origin;
     } catch {
       // Invalid URL, fall back
     }
   }
-  return `${window.location.origin}/api/chat`;
+  return window.location.origin;
 }
 
-// Parse config from script data attributes
-function parseConfig(): WidgetConfig {
+// Parse ONLY explicitly set data-* attributes (returns partial config)
+function parseScriptOverrides(): Partial<WidgetConfig> & { storeId: string; startOpen: boolean; contained: boolean } {
   const script =
     (document.currentScript as HTMLScriptElement) ||
     document.querySelector("script[data-store-id]");
 
   if (!script) {
     console.warn("[Preik] No script element found with data-store-id");
-    return DEFAULT_CONFIG;
+    return { storeId: "", startOpen: false, contained: false };
   }
 
+  const overrides: Partial<WidgetConfig> = {};
+  const d = script.dataset;
+
+  // Always read these
+  const storeId = d.storeId || "";
+  const startOpen = d.startOpen === "true";
+  const contained = d.contained === "true";
+
+  // Only include if explicitly set on script tag
+  if (d.accentColor !== undefined) overrides.accentColor = d.accentColor;
+  if (d.textColor !== undefined) overrides.textColor = d.textColor;
+  if (d.bgColor !== undefined) overrides.bgColor = d.bgColor;
+  if (d.surfaceColor !== undefined) overrides.surfaceColor = d.surfaceColor;
+  if (d.fontBody !== undefined) overrides.fontBody = d.fontBody;
+  if (d.fontBrand !== undefined) overrides.fontBrand = d.fontBrand;
+  if (d.brandStyle !== undefined) overrides.brandStyle = d.brandStyle as "normal" | "italic";
+  if (d.position !== undefined) overrides.position = d.position as "bottom-right" | "bottom-left";
+  if (d.greeting !== undefined) overrides.greeting = d.greeting;
+  if (d.placeholder !== undefined) overrides.placeholder = d.placeholder;
+  if (d.brandName !== undefined) overrides.brandName = d.brandName;
+  if (d.theme !== undefined) overrides.theme = d.theme as "auto" | "light" | "dark";
+  if (d.onboarding !== undefined) overrides.onboarding = d.onboarding.replace(/\\n/g, "\n");
+  if (d.onboardingCta !== undefined) overrides.onboardingCta = d.onboardingCta;
+
+  return { storeId, startOpen, contained, ...overrides };
+}
+
+// Build full config: DEFAULT < serverConfig < scriptOverrides
+function buildConfig(
+  serverConfig: Partial<WidgetConfig> | null,
+  overrides: Partial<WidgetConfig> & { storeId: string; startOpen: boolean; contained: boolean }
+): WidgetConfig {
   return {
-    storeId: script.dataset.storeId || DEFAULT_CONFIG.storeId,
-    accentColor: script.dataset.accentColor || DEFAULT_CONFIG.accentColor,
-    textColor: script.dataset.textColor || DEFAULT_CONFIG.textColor,
-    bgColor: script.dataset.bgColor || DEFAULT_CONFIG.bgColor,
-    surfaceColor: script.dataset.surfaceColor || DEFAULT_CONFIG.surfaceColor,
-    fontBody: script.dataset.fontBody || DEFAULT_CONFIG.fontBody,
-    fontBrand: script.dataset.fontBrand || DEFAULT_CONFIG.fontBrand,
-    brandStyle: (script.dataset.brandStyle as "normal" | "italic") || DEFAULT_CONFIG.brandStyle,
-    position: (script.dataset.position as "bottom-right" | "bottom-left") || DEFAULT_CONFIG.position,
-    greeting: script.dataset.greeting || DEFAULT_CONFIG.greeting,
-    placeholder: script.dataset.placeholder || DEFAULT_CONFIG.placeholder,
-    brandName: script.dataset.brandName || DEFAULT_CONFIG.brandName,
-    theme: (script.dataset.theme as "auto" | "light" | "dark") || DEFAULT_CONFIG.theme,
-    startOpen: script.dataset.startOpen === "true",
-    contained: script.dataset.contained === "true",
-    onboarding: (script.dataset.onboarding || "").replace(/\\n/g, "\n"),
-    onboardingCta: script.dataset.onboardingCta || DEFAULT_CONFIG.onboardingCta,
+    ...DEFAULT_CONFIG,
+    ...(serverConfig || {}),
+    ...overrides,
   };
+}
+
+// Fetch config from server (fire-and-forget, non-blocking)
+async function fetchServerConfig(storeId: string, baseUrl: string): Promise<Partial<WidgetConfig> | null> {
+  try {
+    const res = await fetch(`${baseUrl}/api/widget-config/${encodeURIComponent(storeId)}`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.config || null;
+  } catch {
+    return null;
+  }
 }
 
 // Parse hex color to RGB
@@ -166,12 +198,19 @@ function getThemeColors(config: WidgetConfig): ThemeColors {
   return base;
 }
 
+// Escape HTML special characters including quotes (for attribute safety)
+function escapeHtmlAttr(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 // Simple markdown-ish parser
 function parseMarkdown(text: string): string {
   return (
     text
-      // Escape HTML
+      // Escape HTML (including quotes for attribute injection prevention)
       .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       // Bold
@@ -180,8 +219,14 @@ function parseMarkdown(text: string): string {
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
       // Inline code
       .replace(/`(.+?)`/g, "<code>$1</code>")
-      // Links
-      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      // Links (sanitize href to prevent javascript: XSS and attribute breakout)
+      .replace(/\[(.+?)\]\((.+?)\)/g, (_match: string, label: string, url: string) => {
+        // Decode entities back for URL validation, then re-escape for attribute
+        const rawUrl = url.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+        if (!/^(https?:|mailto:|tel:|\/|\.\/|#)/i.test(rawUrl)) return label;
+        const safeUrl = escapeHtmlAttr(rawUrl);
+        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+      })
       // Line breaks to paragraphs
       .split("\n\n")
       .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
@@ -193,10 +238,12 @@ function parseMarkdown(text: string): string {
 class PreikChatWidget extends HTMLElement {
   private shadow: ShadowRoot;
   private config: WidgetConfig;
+  private scriptOverrides: Partial<WidgetConfig> & { storeId: string; startOpen: boolean; contained: boolean };
   private state: ChatState;
+  private baseUrl: string;
   private apiUrl: string;
   private abortController: AbortController | null = null;
-
+  private boundEscapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
   // DOM references
   private trigger: HTMLButtonElement | null = null;
@@ -208,8 +255,10 @@ class PreikChatWidget extends HTMLElement {
   constructor() {
     super();
     this.shadow = this.attachShadow({ mode: "closed" });
-    this.config = parseConfig();
-    this.apiUrl = getApiUrl();
+    this.scriptOverrides = parseScriptOverrides();
+    this.config = buildConfig(null, this.scriptOverrides);
+    this.baseUrl = getBaseUrl();
+    this.apiUrl = `${this.baseUrl}/api/chat`;
     this.state = {
       isOpen: false,
       messages: [],
@@ -262,10 +311,28 @@ class PreikChatWidget extends HTMLElement {
       // Small delay to ensure rendering is complete
       setTimeout(() => this.openChat(), 100);
     }
+
+    // Fetch server config in background and re-render if different
+    if (this.config.storeId) {
+      fetchServerConfig(this.config.storeId, this.baseUrl).then((serverConfig) => {
+        if (!serverConfig) return;
+        const updated = buildConfig(serverConfig, this.scriptOverrides);
+        // Only re-render if something actually changed
+        if (JSON.stringify(updated) !== JSON.stringify(this.config)) {
+          this.config = updated;
+          this.render();
+          this.setupEventListeners();
+        }
+      });
+    }
   }
 
   disconnectedCallback() {
     this.abortController?.abort();
+    if (this.boundEscapeHandler) {
+      document.removeEventListener("keydown", this.boundEscapeHandler);
+      this.boundEscapeHandler = null;
+    }
   }
 
   private render() {
@@ -482,12 +549,13 @@ class PreikChatWidget extends HTMLElement {
     //   }
     // });
 
-    // Escape key to close
-    document.addEventListener("keydown", (e) => {
+    // Escape key to close (store reference for cleanup in disconnectedCallback)
+    this.boundEscapeHandler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && this.state.isOpen) {
         this.closeChat();
       }
-    });
+    };
+    document.addEventListener("keydown", this.boundEscapeHandler);
   }
 
   private toggleChat() {

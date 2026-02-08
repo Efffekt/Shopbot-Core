@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const deleteAccessSchema = z.object({
+  tenantId: z.string().min(1),
+});
+
+const log = createLogger("api/admin/users/access");
 
 interface RouteParams {
   params: Promise<{ userId: string }>;
@@ -17,11 +25,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   try {
     const body = await request.json();
-    const { tenantId } = body;
-
-    if (!tenantId) {
-      return NextResponse.json({ error: "tenantId is required" }, { status: 400 });
+    const parsed = deleteAccessSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
+    const { tenantId } = parsed.data;
 
     const { error } = await supabaseAdmin
       .from("tenant_user_access")
@@ -30,13 +38,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq("tenant_id", tenantId);
 
     if (error) {
-      console.error("Error removing user access:", error);
+      log.error("Error removing user access:", error);
       return NextResponse.json({ error: "Failed to remove access" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, message: "Tilgang fjernet" });
   } catch (error) {
-    console.error("Error in user access removal:", error);
+    log.error("Error in user access removal:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -174,7 +174,9 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
         right: 0;
         bottom: 0;
         width: 100%;
+        height: 100dvh;
         height: 100%;
+        max-height: 100dvh;
         max-height: 100%;
         border-radius: 0;
       }

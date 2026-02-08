@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/blog/[postId]");
 
 // GET - Single post by ID
 export async function GET(
@@ -25,9 +28,11 @@ export async function GET(
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ post });
+    return NextResponse.json({ post }, {
+      headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" },
+    });
   } catch (error) {
-    console.error("Error fetching blog post:", error);
+    log.error("Error fetching blog post:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -74,7 +79,7 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error("Failed to update blog post:", error);
+      log.error("Failed to update blog post:", error);
       if (error.code === "23505") {
         return NextResponse.json({ error: "Slug already exists" }, { status: 409 });
       }
@@ -83,7 +88,7 @@ export async function PATCH(
 
     return NextResponse.json({ post });
   } catch (error) {
-    console.error("Error updating blog post:", error);
+    log.error("Error updating blog post:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -107,13 +112,13 @@ export async function DELETE(
       .eq("id", postId);
 
     if (error) {
-      console.error("Failed to delete blog post:", error);
+      log.error("Failed to delete blog post:", error);
       return NextResponse.json({ error: "Failed to delete post" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting blog post:", error);
+    log.error("Error deleting blog post:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

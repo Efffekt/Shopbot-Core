@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Metadata } from "next";
 
@@ -69,11 +70,15 @@ export default async function BloggPage() {
                 className="block bg-preik-surface rounded-2xl border border-preik-border overflow-hidden hover:border-preik-accent/30 transition-colors group"
               >
                 {post.cover_image_url && (
-                  <img
-                    src={post.cover_image_url}
-                    alt={post.title}
-                    className="w-full h-48 object-cover"
-                  />
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={post.cover_image_url}
+                      alt={post.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 896px"
+                      className="object-cover"
+                    />
+                  </div>
                 )}
                 <article className="p-8">
                   <time className="text-sm text-preik-text-muted">

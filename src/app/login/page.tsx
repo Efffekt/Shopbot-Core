@@ -32,7 +32,7 @@ function LoginForm() {
     }
 
     const redirect = searchParams.get("redirect");
-    if (redirect) {
+    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
       router.push(redirect);
     } else if (data.user?.email && (SUPER_ADMIN_EMAILS.includes(data.user.email.toLowerCase()) || ADMIN_EMAILS.includes(data.user.email.toLowerCase()))) {
       router.push("/admin");

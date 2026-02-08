@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Metadata } from "next";
@@ -189,11 +190,16 @@ export default async function BlogPostPage({
               <p className="text-sm text-preik-text-muted mt-1">{authorBio}</p>
             )}
             {post.cover_image_url && (
-              <img
-                src={post.cover_image_url}
-                alt={post.title}
-                className="w-full rounded-2xl mt-6"
-              />
+              <div className="relative w-full aspect-[2/1] mt-6">
+                <Image
+                  src={post.cover_image_url}
+                  alt={post.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  priority
+                  className="object-cover rounded-2xl"
+                />
+              </div>
             )}
           </header>
 

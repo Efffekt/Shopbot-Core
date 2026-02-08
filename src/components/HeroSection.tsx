@@ -1,5 +1,3 @@
-"use client";
-
 import { PreikWave } from "./PreikWave";
 import { AnimatedChat } from "./AnimatedChat";
 

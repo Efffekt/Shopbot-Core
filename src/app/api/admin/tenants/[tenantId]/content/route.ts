@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/tenants/content");
 
 interface RouteParams {
   params: Promise<{ tenantId: string }>;
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ error: "Use ?grouped=true or ?source=X" }, { status: 400 });
   } catch (error) {
-    console.error("Admin content list error:", error);
+    log.error("Admin content list error:", error);
     return NextResponse.json({ error: "Failed to fetch content" }, { status: 500 });
   }
 }
@@ -125,7 +128,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq("metadata->>source", source);
 
     if (deleteError) {
-      console.error("Error deleting documents:", deleteError);
+      log.error("Error deleting documents:", deleteError);
       return NextResponse.json({ error: "Failed to delete documents" }, { status: 500 });
     }
 
@@ -134,7 +137,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       deletedCount: docs.length,
     });
   } catch (error) {
-    console.error("Admin content delete error:", error);
+    log.error("Admin content delete error:", error);
     return NextResponse.json({ error: "Failed to delete content" }, { status: 500 });
   }
 }

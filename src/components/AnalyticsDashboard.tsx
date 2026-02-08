@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -143,18 +143,19 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
 
   const { stats, topSearchTerms, unansweredQueries, dailyVolume, documentCount, tenantName } = data;
 
-  const chartData = dailyVolume.map((d) => ({
+  const chartData = useMemo(() => dailyVolume.map((d) => ({
     date: new Date(d.date).toLocaleDateString("nb-NO", {
       day: "numeric",
       month: "short",
     }),
     chats: d.count,
-  }));
+  })), [dailyVolume]);
 
-  const gapPercentage =
+  const gapPercentage = useMemo(() =>
     stats.total_conversations > 0
       ? ((stats.unhandled_count / stats.total_conversations) * 100).toFixed(1)
-      : "0";
+      : "0",
+  [stats.total_conversations, stats.unhandled_count]);
 
   return (
     <div className="space-y-6">

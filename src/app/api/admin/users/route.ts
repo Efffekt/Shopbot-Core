@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { logAudit } from "@/lib/audit";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/admin/users");
 
 // GET - List all users with their tenant memberships
 export async function GET(request: NextRequest) {
@@ -11,12 +15,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search")?.trim().toLowerCase();
+    const search = searchParams.get("search")?.trim().toLowerCase().slice(0, 200);
 
     // Get all auth users
     const { data: authUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     if (listError) {
-      console.error("Error listing users:", listError);
+      log.error("Error listing users:", listError);
       return NextResponse.json({ error: "Failed to list users" }, { status: 500 });
     }
 
@@ -49,9 +53,11 @@ export async function GET(request: NextRequest) {
       users = users.filter(u => u.email.toLowerCase().includes(search));
     }
 
-    return NextResponse.json({ users });
+    return NextResponse.json({ users }, {
+      headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" },
+    });
   } catch (error) {
-    console.error("Error listing users:", error);
+    log.error("Error listing users:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -59,7 +65,7 @@ export async function GET(request: NextRequest) {
 // POST - Invite a new user and grant tenant access
 export async function POST(request: NextRequest) {
   // Verify super admin access
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, email: actorEmail, error: authError } = await verifySuperAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -85,11 +91,11 @@ export async function POST(request: NextRequest) {
     );
 
     if (inviteError) {
-      console.error("Failed to invite user:", inviteError);
+      log.error("Failed to invite user:", inviteError);
       if (inviteError.message.includes("already been registered")) {
         return NextResponse.json({ error: "User already exists" }, { status: 409 });
       }
-      return NextResponse.json({ error: inviteError.message }, { status: 500 });
+      return NextResponse.json({ error: "Failed to invite user" }, { status: 500 });
     }
 
     const userId = authData.user.id;
@@ -104,9 +110,11 @@ export async function POST(request: NextRequest) {
       });
 
     if (accessError) {
-      console.error("Failed to grant tenant access:", accessError);
+      log.error("Failed to grant tenant access:", accessError);
       // Don't fail - user is invited, just access grant failed
     }
+
+    logAudit({ actorEmail: actorEmail!, action: "invite_user", entityType: "user", entityId: userId, details: { email, tenantId, role: role || "admin" } });
 
     return NextResponse.json({
       user: {
@@ -116,7 +124,7 @@ export async function POST(request: NextRequest) {
       message: "Invitation sent",
     }, { status: 201 });
   } catch (error) {
-    console.error("Error inviting user:", error);
+    log.error("Error inviting user:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

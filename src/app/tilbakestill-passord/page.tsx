@@ -38,6 +38,11 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      setError("Passordet må inneholde store bokstaver, små bokstaver og tall");
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.auth.updateUser({
@@ -165,7 +170,7 @@ export default function ResetPasswordPage() {
                     placeholder="••••••••"
                     minLength={8}
                   />
-                  <p className="text-xs text-preik-text-muted mt-1">Minst 8 tegn</p>
+                  <p className="text-xs text-preik-text-muted mt-1">Minst 8 tegn, med store og små bokstaver og tall</p>
                 </div>
 
                 <div>

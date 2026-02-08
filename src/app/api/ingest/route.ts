@@ -6,6 +6,9 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { firecrawl } from "@/lib/firecrawl";
 import { splitIntoChunks } from "@/lib/chunking";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api/ingest");
 
 const ingestSchema = z.object({
   url: z.url(),
@@ -42,14 +45,14 @@ export async function POST(request: NextRequest) {
       .eq("store_id", storeId);
 
     if (deleteError) {
-      console.error("Error deleting existing documents:", deleteError);
+      log.error("Error deleting existing documents:", deleteError);
       return NextResponse.json(
         { error: "Failed to clear existing documents" },
         { status: 500 }
       );
     }
 
-    console.log(`Starting crawl of ${url}...`);
+    log.info("Starting crawl", { url });
 
     const crawlResult = await firecrawl.crawl(url, {
       scrapeOptions: {
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Crawled ${crawlResult.data.length} pages`);
+    log.info("Crawl complete", { pages: crawlResult.data.length });
 
     const allChunks: { content: string; source: string }[] = [];
 
@@ -98,7 +101,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Processing ${allChunks.length} chunks...`);
+    log.info("Processing chunks", { total: allChunks.length });
 
     const allEmbeddings: number[][] = [];
 
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest) {
         },
       });
       allEmbeddings.push(...embeddings);
-      console.log(`Embedded ${Math.min(i + EMBEDDING_BATCH_SIZE, allChunks.length)}/${allChunks.length} chunks`);
+      log.info("Embedding progress", { done: Math.min(i + EMBEDDING_BATCH_SIZE, allChunks.length), total: allChunks.length });
     }
 
     const documents = allChunks.map((chunk, index) => ({
@@ -130,7 +133,7 @@ export async function POST(request: NextRequest) {
         .insert(batch);
 
       if (insertError) {
-        console.error("Error inserting documents:", insertError);
+        log.error("Error inserting documents:", insertError);
         return NextResponse.json(
           { error: "Failed to save documents" },
           { status: 500 }
@@ -145,7 +148,7 @@ export async function POST(request: NextRequest) {
       chunksCount: allChunks.length,
     });
   } catch (error) {
-    console.error("Ingest error:", error);
+    log.error("Ingest error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
