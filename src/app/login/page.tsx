@@ -4,7 +4,7 @@ import { Suspense, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { SUPER_ADMIN_EMAILS } from "@/lib/admin-emails";
+import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } from "@/lib/admin-emails";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -34,7 +34,7 @@ function LoginForm() {
     const redirect = searchParams.get("redirect");
     if (redirect) {
       router.push(redirect);
-    } else if (data.user?.email && SUPER_ADMIN_EMAILS.includes(data.user.email.toLowerCase())) {
+    } else if (data.user?.email && (SUPER_ADMIN_EMAILS.includes(data.user.email.toLowerCase()) || ADMIN_EMAILS.includes(data.user.email.toLowerCase()))) {
       router.push("/admin");
     } else {
       router.push("/dashboard");

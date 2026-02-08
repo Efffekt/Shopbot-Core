@@ -8,14 +8,16 @@ import AdminOverview from "@/components/AdminOverview";
 import ConversationBrowser from "@/components/ConversationBrowser";
 import GlobalUserManagement from "@/components/GlobalUserManagement";
 import BlogManager from "@/components/BlogManager";
+import AccountSettings from "@/components/AccountSettings";
 
-type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse" | "brukere" | "blogg";
+type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse" | "brukere" | "blogg" | "innstillinger";
 
 interface AdminPanelProps {
   isSuperAdmin: boolean;
+  userEmail: string;
 }
 
-export default function AdminPanel({ isSuperAdmin }: AdminPanelProps) {
+export default function AdminPanel({ isSuperAdmin, userEmail }: AdminPanelProps) {
   const [activeSection, setActiveSection] = useState<Section>("oversikt");
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [selectedTenantName, setSelectedTenantName] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export default function AdminPanel({ isSuperAdmin }: AdminPanelProps) {
     { key: "analyse", label: "Analyse" },
     { key: "blogg", label: "Blogg" },
     { key: "brukere", label: "Brukere", superAdminOnly: true },
+    { key: "innstillinger", label: "Innstillinger" },
   ];
 
   const visibleSections = sections.filter(
@@ -106,6 +109,12 @@ export default function AdminPanel({ isSuperAdmin }: AdminPanelProps) {
       )}
       {activeSection === "blogg" && <BlogManager />}
       {activeSection === "brukere" && isSuperAdmin && <GlobalUserManagement />}
+      {activeSection === "innstillinger" && (
+        <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
+          <h2 className="text-xl font-semibold text-preik-text mb-6">Kontoinnstillinger</h2>
+          <AccountSettings userEmail={userEmail} />
+        </div>
+      )}
     </div>
   );
 }

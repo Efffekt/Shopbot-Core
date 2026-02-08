@@ -6,5 +6,5 @@ export default async function AdminPage() {
   const user = await getUser();
   const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(user?.email?.toLowerCase() ?? "");
 
-  return <AdminPanel isSuperAdmin={isSuperAdmin} />;
+  return <AdminPanel isSuperAdmin={isSuperAdmin} userEmail={user?.email || ""} />;
 }
