@@ -16,8 +16,41 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Preik – AI som snakker ditt språk",
+  title: {
+    default: "Preik – AI som snakker ditt språk",
+    template: "%s | Preik",
+  },
   description: "Skreddersydde AI-assistenter for norske bedrifter. Ikke mer leting. Bare gode svar.",
+  metadataBase: new URL("https://preik.no"),
+  openGraph: {
+    type: "website",
+    locale: "nb_NO",
+    url: "https://preik.no",
+    siteName: "Preik",
+    title: "Preik – AI som snakker ditt språk",
+    description: "Skreddersydde AI-assistenter for norske bedrifter. Ikke mer leting. Bare gode svar.",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Preik – AI-chatbot for norske bedrifter",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Preik – AI som snakker ditt språk",
+    description: "Skreddersydde AI-assistenter for norske bedrifter. Ikke mer leting. Bare gode svar.",
+    images: ["/og.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

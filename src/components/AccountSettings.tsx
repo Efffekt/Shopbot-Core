@@ -68,7 +68,7 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-md">
       {/* Email Display */}
       <div>
         <label className="block text-sm font-medium text-preik-text-muted mb-2">
@@ -83,7 +83,7 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
       </div>
 
       {/* Password Change Form */}
-      <form onSubmit={handlePasswordChange} className="space-y-4">
+      <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
         <h3 className="text-base font-medium text-preik-text">Endre passord</h3>
 
         {error && (
