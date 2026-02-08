@@ -20,6 +20,8 @@ const DEFAULT_CONFIG: WidgetConfig = {
   theme: "auto",
   startOpen: false,
   contained: false,
+  onboarding: "",
+  onboardingCta: "Start chat",
 };
 
 // Generate unique ID
@@ -97,6 +99,8 @@ function parseConfig(): WidgetConfig {
     theme: (script.dataset.theme as "auto" | "light" | "dark") || DEFAULT_CONFIG.theme,
     startOpen: script.dataset.startOpen === "true",
     contained: script.dataset.contained === "true",
+    onboarding: (script.dataset.onboarding || "").replace(/\\n/g, "\n"),
+    onboardingCta: script.dataset.onboardingCta || DEFAULT_CONFIG.onboardingCta,
   };
 }
 
@@ -212,6 +216,7 @@ class PreikChatWidget extends HTMLElement {
       isLoading: false,
       error: null,
       sessionId: "",
+      showOnboarding: false,
     };
   }
 
@@ -225,6 +230,19 @@ class PreikChatWidget extends HTMLElement {
 
     // Load persisted messages
     this.loadMessages();
+
+    // Check if onboarding should be shown
+    if (this.config.onboarding) {
+      try {
+        const onboardingKey = `preik_onboarding_${this.config.storeId}`;
+        const seen = localStorage.getItem(onboardingKey);
+        if (!seen && this.state.messages.length === 0) {
+          this.state.showOnboarding = true;
+        }
+      } catch {
+        // localStorage might be unavailable
+      }
+    }
 
     // Render the widget
     this.render();
@@ -262,7 +280,7 @@ class PreikChatWidget extends HTMLElement {
         <span class="trigger-text">Chat</span>
       </button>
 
-      <div class="chat-window ${positionClass}" role="dialog" aria-label="Chat window">
+      <div class="chat-window ${positionClass} ${this.state.isOpen ? 'open' : ''}" role="dialog" aria-label="Chat window">
         <div class="header">
           <div class="header-left">
             <div class="avatar">
@@ -286,6 +304,7 @@ class PreikChatWidget extends HTMLElement {
           </div>
         </div>
 
+        ${this.state.showOnboarding ? this.renderOnboarding() : `
         <div class="messages">
           ${this.renderMessages()}
         </div>
@@ -306,6 +325,7 @@ class PreikChatWidget extends HTMLElement {
             Levert av <span class="watermark-brand">preik</span>
           </a>
         </div>
+        `}
       </div>
     `;
 
@@ -315,6 +335,33 @@ class PreikChatWidget extends HTMLElement {
     this.messagesContainer = this.shadow.querySelector(".messages");
     this.inputField = this.shadow.querySelector(".input-field");
     this.sendButton = this.shadow.querySelector(".send-btn");
+  }
+
+  private renderOnboarding(): string {
+    return `
+      <div class="onboarding">
+        <div class="onboarding-content">
+          ${parseMarkdown(this.config.onboarding)}
+        </div>
+        <button class="onboarding-cta">${this.escapeHtml(this.config.onboardingCta)}</button>
+      </div>
+    `;
+  }
+
+  private dismissOnboarding() {
+    this.state.showOnboarding = false;
+    try {
+      const onboardingKey = `preik_onboarding_${this.config.storeId}`;
+      localStorage.setItem(onboardingKey, "1");
+    } catch {
+      // localStorage might be unavailable
+    }
+    this.render();
+    this.setupEventListeners();
+    // Focus input after re-render
+    setTimeout(() => {
+      this.inputField?.focus();
+    }, 100);
   }
 
   private renderMessages(): string {
@@ -424,6 +471,9 @@ class PreikChatWidget extends HTMLElement {
 
     // Send button
     this.sendButton?.addEventListener("click", () => this.sendMessage());
+
+    // Onboarding CTA button
+    this.shadow.querySelector(".onboarding-cta")?.addEventListener("click", () => this.dismissOnboarding());
 
     // Click outside to close (optional - commenting out for now as it can be annoying)
     // document.addEventListener("click", (e) => {
@@ -709,6 +759,14 @@ class PreikChatWidget extends HTMLElement {
     try {
       const key = `preik_messages_${this.config.storeId}`;
       localStorage.removeItem(key);
+      // Reset onboarding so it shows again after clearing
+      if (this.config.onboarding) {
+        const onboardingKey = `preik_onboarding_${this.config.storeId}`;
+        localStorage.removeItem(onboardingKey);
+        this.state.showOnboarding = true;
+        this.render();
+        this.setupEventListeners();
+      }
     } catch {
       // localStorage might be unavailable
     }

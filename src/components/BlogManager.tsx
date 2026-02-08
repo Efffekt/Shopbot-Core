@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface BlogPost {
   id: string;
@@ -14,6 +14,7 @@ interface BlogPost {
   updated_at: string;
   meta_title: string | null;
   meta_description: string | null;
+  cover_image_url: string | null;
 }
 
 interface PostForm {
@@ -25,6 +26,7 @@ interface PostForm {
   meta_title: string;
   meta_description: string;
   published: boolean;
+  cover_image_url: string;
 }
 
 const emptyForm: PostForm = {
@@ -36,6 +38,7 @@ const emptyForm: PostForm = {
   meta_title: "",
   meta_description: "",
   published: false,
+  cover_image_url: "",
 };
 
 function slugify(text: string): string {
@@ -57,9 +60,45 @@ export default function BlogManager() {
   const [showEditor, setShowEditor] = useState(false);
   const [form, setForm] = useState<PostForm>(emptyForm);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const [defaultAuthorName, setDefaultAuthorName] = useState("");
+
+  async function uploadImage(file: File): Promise<string | null> {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/admin/blog/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      return data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke laste opp bilde");
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  }
 
   useEffect(() => {
     fetchPosts();
+    async function fetchSettings() {
+      try {
+        const res = await fetch("/api/admin/settings");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.settings?.blog_default_author_name) {
+          setDefaultAuthorName(data.settings.blog_default_author_name);
+        }
+      } catch {
+        // Silently fail — author name is optional
+      }
+    }
+    fetchSettings();
   }, []);
 
   async function fetchPosts() {
@@ -77,7 +116,7 @@ export default function BlogManager() {
 
   function openNewPost() {
     setEditingPost(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, author_name: defaultAuthorName });
     setShowEditor(true);
     setError(null);
   }
@@ -93,6 +132,7 @@ export default function BlogManager() {
       meta_title: post.meta_title || "",
       meta_description: post.meta_description || "",
       published: !!post.published_at,
+      cover_image_url: post.cover_image_url || "",
     });
     setShowEditor(true);
     setError(null);
@@ -132,6 +172,7 @@ export default function BlogManager() {
         published_at: form.published ? new Date().toISOString() : null,
         meta_title: form.meta_title || null,
         meta_description: form.meta_description || null,
+        cover_image_url: form.cover_image_url || null,
       };
 
       let res: Response;
@@ -257,9 +298,82 @@ export default function BlogManager() {
             />
           </div>
 
+          {/* Cover image */}
           <div>
-            <label className="block text-sm font-medium text-preik-text mb-1">Innhold (Markdown) *</label>
+            <label className="block text-sm font-medium text-preik-text mb-1">Coverbilde</label>
+            {form.cover_image_url && (
+              <div className="mb-2 relative inline-block">
+                <img
+                  src={form.cover_image_url}
+                  alt="Cover"
+                  className="max-h-40 rounded-xl border border-preik-border"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, cover_image_url: "" }))}
+                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                >
+                  &times;
+                </button>
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const url = await uploadImage(file);
+                if (url) setForm((prev) => ({ ...prev, cover_image_url: url }));
+                e.target.value = "";
+              }}
+              disabled={uploading}
+              className="text-sm text-preik-text-muted file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border file:border-preik-border file:bg-preik-surface file:text-preik-text file:text-sm file:cursor-pointer hover:file:bg-preik-bg"
+            />
+            {uploading && <p className="mt-1 text-xs text-preik-text-muted">Laster opp...</p>}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-preik-text">Innhold (Markdown) *</label>
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = "image/jpeg,image/png,image/gif,image/webp,image/avif";
+                  input.onchange = async () => {
+                    const file = input.files?.[0];
+                    if (!file) return;
+                    const url = await uploadImage(file);
+                    if (!url) return;
+                    const textarea = contentRef.current;
+                    const markdown = `![${file.name}](${url})`;
+                    if (textarea) {
+                      const start = textarea.selectionStart;
+                      const end = textarea.selectionEnd;
+                      const text = form.content;
+                      const newContent = text.substring(0, start) + markdown + text.substring(end);
+                      setForm((prev) => ({ ...prev, content: newContent }));
+                      requestAnimationFrame(() => {
+                        textarea.focus();
+                        const pos = start + markdown.length;
+                        textarea.setSelectionRange(pos, pos);
+                      });
+                    } else {
+                      setForm((prev) => ({ ...prev, content: prev.content + "\n" + markdown }));
+                    }
+                  };
+                  input.click();
+                }}
+                className="text-xs px-3 py-1.5 bg-preik-surface border border-preik-border text-preik-text rounded-lg hover:bg-preik-bg transition-colors disabled:opacity-50"
+              >
+                {uploading ? "Laster opp..." : "Sett inn bilde"}
+              </button>
+            </div>
             <textarea
+              ref={contentRef}
               value={form.content}
               onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
               rows={16}

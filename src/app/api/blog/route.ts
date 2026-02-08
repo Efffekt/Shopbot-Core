@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const { data: posts, error } = await supabaseAdmin
       .from("blog_posts")
-      .select("id, slug, title, excerpt, author_name, published_at")
+      .select("id, slug, title, excerpt, author_name, published_at, cover_image_url")
       .not("published_at", "is", null)
       .lte("published_at", new Date().toISOString())
       .order("published_at", { ascending: false });

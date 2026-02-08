@@ -17,6 +17,8 @@ interface WidgetConfig {
   placeholder: string;
   position: "bottom-right" | "bottom-left";
   theme: "auto" | "light" | "dark";
+  onboarding: string;
+  onboardingCta: string;
 }
 
 const defaultConfig: WidgetConfig = {
@@ -32,6 +34,8 @@ const defaultConfig: WidgetConfig = {
   placeholder: "",
   position: "bottom-right",
   theme: "auto",
+  onboarding: "",
+  onboardingCta: "",
 };
 
 const presetColors = [
@@ -102,6 +106,12 @@ export default function IntegrationPage() {
     }
     if (config.theme !== "auto") {
       attrs.push(`data-theme="${config.theme}"`);
+    }
+    if (config.onboarding) {
+      attrs.push(`data-onboarding="${config.onboarding.replace(/\n/g, "\\n")}"`);
+    }
+    if (config.onboardingCta) {
+      attrs.push(`data-onboarding-cta="${config.onboardingCta}"`);
     }
 
     attrs.push("async");
@@ -190,36 +200,67 @@ export default function IntegrationPage() {
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 flex items-center justify-center p-4 text-center" style={{ fontFamily: config.fontBody || "inherit" }}>
-          <p className="text-[13px] max-w-[240px] leading-relaxed" style={{ color: mutedColor }}>
-            {greeting}
-          </p>
-        </div>
-
-        {/* Input */}
-        <div className="px-4 py-3 border-t" style={{ backgroundColor: surfaceColor, borderColor }}>
-          <div
-            className="flex items-center gap-2 rounded-full pl-3 pr-1 py-1 border"
-            style={{ backgroundColor: bgColor, borderColor }}
-          >
-            <span className="flex-1 text-[13px]" style={{ color: mutedColor, fontFamily: config.fontBody || "inherit" }}>
-              {placeholder}
-            </span>
-            <button
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: config.accentColor }}
-            >
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </button>
+        {/* Messages or Onboarding */}
+        {config.onboarding ? (
+          <div className="flex-1 flex flex-col overflow-hidden" style={{ fontFamily: config.fontBody || "inherit" }}>
+            <div
+              className="flex-1 overflow-y-auto px-5 py-4 text-[13px] leading-relaxed"
+              style={{ color: textColor }}
+              dangerouslySetInnerHTML={{
+                __html: config.onboarding
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")
+                  .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                  .replace(/\*(.+?)\*/g, "<em>$1</em>")
+                  .replace(/\[(.+?)\]\((.+?)\)/g, `<a href="$2" style="color:${config.accentColor};text-decoration:underline">$1</a>`)
+                  .split("\n\n")
+                  .map((p: string) => `<p style="margin:0 0 0.75em">${p.replace(/\n/g, "<br>")}</p>`)
+                  .join(""),
+              }}
+            />
+            <div className="px-5 pb-4 flex-shrink-0">
+              <div
+                className="w-full py-3 rounded-full text-center text-[13px] font-semibold"
+                style={{ backgroundColor: config.accentColor, color: "#fff" }}
+              >
+                {config.onboardingCta || "Start chat"}
+              </div>
+            </div>
           </div>
-          <p className="text-center mt-2 text-[10px] opacity-60" style={{ color: mutedColor }}>
-            Levert av <span className="font-semibold italic">preik</span>
-          </p>
-        </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-4 text-center" style={{ fontFamily: config.fontBody || "inherit" }}>
+            <p className="text-[13px] max-w-[240px] leading-relaxed" style={{ color: mutedColor }}>
+              {greeting}
+            </p>
+          </div>
+        )}
+
+        {/* Input - hidden when onboarding is shown */}
+        {!config.onboarding && (
+          <div className="px-4 py-3 border-t" style={{ backgroundColor: surfaceColor, borderColor }}>
+            <div
+              className="flex items-center gap-2 rounded-full pl-3 pr-1 py-1 border"
+              style={{ backgroundColor: bgColor, borderColor }}
+            >
+              <span className="flex-1 text-[13px]" style={{ color: mutedColor, fontFamily: config.fontBody || "inherit" }}>
+                {placeholder}
+              </span>
+              <button
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: config.accentColor }}
+              >
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+            <p className="text-center mt-2 text-[10px] opacity-60" style={{ color: mutedColor }}>
+              Levert av <span className="font-semibold italic">preik</span>
+            </p>
+          </div>
+        )}
       </div>
     );
   };
@@ -473,6 +514,73 @@ export default function IntegrationPage() {
                 placeholder="Skriv en melding..."
               />
             </div>
+          </div>
+
+          {/* Onboarding */}
+          <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
+            <h2 className="text-lg font-semibold text-preik-text mb-6">Onboarding</h2>
+
+            {/* Enable toggle */}
+            <div className="mb-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!!config.onboarding}
+                  onClick={() => updateConfig("onboarding", config.onboarding ? "" : "Hei! \n\nJeg kan hjelpe deg med:\n\n**Produkter** - finn det du leter etter\n**Bestilling** - spørsmål om ordre og levering\n**Kontakt** - koble deg med teamet vårt")}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    config.onboarding ? "bg-preik-accent" : "bg-preik-border"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      config.onboarding ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm font-medium text-preik-text">
+                  Vis introduksjonsskjerm
+                </span>
+              </label>
+              <p className="text-xs text-preik-text-muted mt-1 ml-14">
+                Vises kun ved første besøk, før chatten åpnes.
+              </p>
+            </div>
+
+            {config.onboarding && (
+              <>
+                {/* Onboarding text */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-preik-text mb-2">
+                    Introduksjonstekst
+                  </label>
+                  <textarea
+                    value={config.onboarding}
+                    onChange={(e) => updateConfig("onboarding", e.target.value)}
+                    className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-lg text-sm text-preik-text resize-none"
+                    rows={7}
+                    placeholder="Beskriv hva chatboten kan hjelpe med..."
+                  />
+                  <p className="text-xs text-preik-text-muted mt-1">
+                    Støtter enkel formatering: **fet tekst**, [lenke](url)
+                  </p>
+                </div>
+
+                {/* CTA button text */}
+                <div>
+                  <label className="block text-sm font-medium text-preik-text mb-2">
+                    Knappetekst
+                  </label>
+                  <input
+                    type="text"
+                    value={config.onboardingCta}
+                    onChange={(e) => updateConfig("onboardingCta", e.target.value)}
+                    className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-lg text-sm text-preik-text"
+                    placeholder="Start chat"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Typography (Advanced) */}

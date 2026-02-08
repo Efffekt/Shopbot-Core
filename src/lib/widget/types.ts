@@ -16,6 +16,8 @@ export interface WidgetConfig {
   theme: "auto" | "light" | "dark";
   startOpen: boolean;
   contained: boolean; // Render inside container instead of fixed to viewport
+  onboarding: string; // Markdown text for onboarding screen (empty = disabled)
+  onboardingCta: string; // CTA button text (default: "Start chat")
 }
 
 export interface Message {
@@ -31,6 +33,7 @@ export interface ChatState {
   isLoading: boolean;
   error: string | null;
   sessionId: string;
+  showOnboarding: boolean;
 }
 
 export interface ThemeColors {

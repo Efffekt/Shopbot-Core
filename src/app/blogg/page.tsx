@@ -5,6 +5,15 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Blogg | Preik",
   description: "Les artikler om AI, chatbots og norsk teknologi fra Preik.",
+  openGraph: {
+    title: "Blogg | Preik",
+    description: "Les artikler om AI, chatbots og norsk teknologi fra Preik.",
+    url: "https://preik.no/blogg",
+    type: "website",
+  },
+  alternates: {
+    canonical: "https://preik.no/blogg",
+  },
 };
 
 interface BlogPost {
@@ -14,12 +23,13 @@ interface BlogPost {
   excerpt: string | null;
   author_name: string;
   published_at: string;
+  cover_image_url: string | null;
 }
 
 export default async function BloggPage() {
   const { data: posts } = await supabaseAdmin
     .from("blog_posts")
-    .select("id, slug, title, excerpt, author_name, published_at")
+    .select("id, slug, title, excerpt, author_name, published_at, cover_image_url")
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
@@ -56,9 +66,16 @@ export default async function BloggPage() {
               <Link
                 key={post.id}
                 href={`/blogg/${post.slug}`}
-                className="block bg-preik-surface rounded-2xl border border-preik-border p-8 hover:border-preik-accent/30 transition-colors group"
+                className="block bg-preik-surface rounded-2xl border border-preik-border overflow-hidden hover:border-preik-accent/30 transition-colors group"
               >
-                <article>
+                {post.cover_image_url && (
+                  <img
+                    src={post.cover_image_url}
+                    alt={post.title}
+                    className="w-full h-48 object-cover"
+                  />
+                )}
+                <article className="p-8">
                   <time className="text-sm text-preik-text-muted">
                     {new Date(post.published_at).toLocaleDateString("nb-NO", {
                       year: "numeric",

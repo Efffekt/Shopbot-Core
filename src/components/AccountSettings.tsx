@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface AccountSettingsProps {
@@ -14,6 +14,60 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Blog settings state
+  const [blogAuthorName, setBlogAuthorName] = useState("");
+  const [blogAuthorBio, setBlogAuthorBio] = useState("");
+  const [blogSettingsLoading, setBlogSettingsLoading] = useState(false);
+  const [blogSettingsError, setBlogSettingsError] = useState<string | null>(null);
+  const [blogSettingsSuccess, setBlogSettingsSuccess] = useState(false);
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await fetch("/api/admin/settings");
+        if (!res.ok) return;
+        const data = await res.json();
+        setBlogAuthorName(data.settings?.blog_default_author_name || "");
+        setBlogAuthorBio(data.settings?.blog_author_bio || "");
+      } catch {
+        // Silently fail on load
+      }
+    }
+    loadSettings();
+  }, []);
+
+  async function handleBlogSettingsSave(e: React.FormEvent) {
+    e.preventDefault();
+    setBlogSettingsError(null);
+    setBlogSettingsSuccess(false);
+    setBlogSettingsLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            blog_default_author_name: blogAuthorName,
+            blog_author_bio: blogAuthorBio,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Kunne ikke lagre innstillinger");
+      }
+
+      setBlogSettingsSuccess(true);
+      setTimeout(() => setBlogSettingsSuccess(false), 3000);
+    } catch (err) {
+      setBlogSettingsError(err instanceof Error ? err.message : "Noe gikk galt");
+    } finally {
+      setBlogSettingsLoading(false);
+    }
+  }
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
@@ -157,6 +211,69 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
             </>
           ) : (
             "Oppdater passord"
+          )}
+        </button>
+      </form>
+
+      {/* Blog Settings */}
+      <form onSubmit={handleBlogSettingsSave} className="space-y-4 max-w-md pt-6 border-t border-preik-border">
+        <h3 className="text-base font-medium text-preik-text">Blogg-innstillinger</h3>
+
+        {blogSettingsError && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded-xl text-sm">
+            {blogSettingsError}
+          </div>
+        )}
+
+        {blogSettingsSuccess && (
+          <div className="bg-green-500/10 border border-green-500/20 text-green-600 px-4 py-3 rounded-xl text-sm">
+            Blogg-innstillingene er lagret!
+          </div>
+        )}
+
+        <div>
+          <label htmlFor="blogAuthorName" className="block text-sm font-medium text-preik-text-muted mb-2">
+            Standard forfatternavn
+          </label>
+          <input
+            type="text"
+            id="blogAuthorName"
+            value={blogAuthorName}
+            onChange={(e) => setBlogAuthorName(e.target.value)}
+            className="w-full bg-preik-bg border border-preik-border rounded-xl px-4 py-3 text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all"
+            placeholder="Forhåndsutfylt navn ved nye innlegg"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="blogAuthorBio" className="block text-sm font-medium text-preik-text-muted mb-2">
+            Forfatter-bio
+          </label>
+          <textarea
+            id="blogAuthorBio"
+            value={blogAuthorBio}
+            onChange={(e) => setBlogAuthorBio(e.target.value)}
+            rows={3}
+            className="w-full bg-preik-bg border border-preik-border rounded-xl px-4 py-3 text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all resize-none"
+            placeholder="Kort biografi som vises på blogginnlegg"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={blogSettingsLoading}
+          className="inline-flex items-center px-5 py-2.5 text-sm font-medium rounded-xl text-white bg-preik-accent hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-preik-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          {blogSettingsLoading ? (
+            <>
+              <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Lagrer...
+            </>
+          ) : (
+            "Lagre blogg-innstillinger"
           )}
         </button>
       </form>

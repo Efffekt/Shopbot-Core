@@ -602,5 +602,80 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     .message.user .bubble code {
       background: rgba(255, 255, 255, 0.2);
     }
+
+    /* Onboarding Screen */
+    .onboarding {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .onboarding-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--widget-text);
+    }
+
+    .onboarding-content p {
+      margin: 0 0 0.75em 0;
+    }
+
+    .onboarding-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .onboarding-content strong {
+      font-weight: 600;
+    }
+
+    .onboarding-content em {
+      font-style: italic;
+    }
+
+    .onboarding-content a {
+      color: var(--widget-accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .onboarding-content a:hover {
+      opacity: 0.8;
+    }
+
+    .onboarding-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .onboarding-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .onboarding-content::-webkit-scrollbar-thumb {
+      background: var(--widget-border);
+      border-radius: 3px;
+    }
+
+    .onboarding-cta {
+      margin: 0 20px 20px;
+      padding: 14px 24px;
+      background: var(--widget-accent);
+      color: var(--widget-accent-text);
+      border: none;
+      border-radius: 9999px;
+      font-family: var(--widget-font-body);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .onboarding-cta:hover {
+      background: var(--widget-accent-hover);
+    }
   `;
 }

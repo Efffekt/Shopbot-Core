@@ -46,7 +46,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { slug, title, excerpt, content, author_name, published_at, meta_title, meta_description } = body;
+    const { slug, title, excerpt, content, author_name, published_at, meta_title, meta_description, cover_image_url } = body;
 
     if (slug && !/^[a-z0-9-]+$/.test(slug)) {
       return NextResponse.json(
@@ -64,6 +64,7 @@ export async function PATCH(
     if (published_at !== undefined) updates.published_at = published_at || null;
     if (meta_title !== undefined) updates.meta_title = meta_title || null;
     if (meta_description !== undefined) updates.meta_description = meta_description || null;
+    if (cover_image_url !== undefined) updates.cover_image_url = cover_image_url || null;
 
     const { data: post, error } = await supabaseAdmin
       .from("blog_posts")
