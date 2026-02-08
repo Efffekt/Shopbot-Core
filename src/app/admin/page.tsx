@@ -6,8 +6,9 @@ import ContentIngestion from "@/components/ContentIngestion";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import AdminOverview from "@/components/AdminOverview";
 import ConversationBrowser from "@/components/ConversationBrowser";
+import GlobalUserManagement from "@/components/GlobalUserManagement";
 
-type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse";
+type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse" | "brukere";
 
 export default function AdminPage() {
   const [activeSection, setActiveSection] = useState<Section>("oversikt");
@@ -29,6 +30,7 @@ export default function AdminPage() {
     { key: "innhold", label: "Innhold" },
     { key: "samtaler", label: "Samtaler" },
     { key: "analyse", label: "Analyse" },
+    { key: "brukere", label: "Brukere" },
   ];
 
   return (
@@ -92,6 +94,7 @@ export default function AdminPage() {
           selectedTenantName={selectedTenantName}
         />
       )}
+      {activeSection === "brukere" && <GlobalUserManagement />}
     </div>
   );
 }
