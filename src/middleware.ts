@@ -79,8 +79,9 @@ export async function middleware(request: NextRequest) {
     if (!authenticated) {
       log.warn("Unauthenticated access attempt", { pathname });
       const loginUrl = new URL("/login", request.url);
-      // Only pass internal paths as redirect to prevent open redirect
-      if (pathname.startsWith("/") && !pathname.startsWith("//")) {
+      // Only pass known safe paths as redirect to prevent open redirect
+      const safeRedirectPrefixes = ["/dashboard", "/admin"];
+      if (safeRedirectPrefixes.some((p) => pathname.startsWith(p))) {
         loginUrl.searchParams.set("redirect", pathname);
       }
       return NextResponse.redirect(loginUrl);

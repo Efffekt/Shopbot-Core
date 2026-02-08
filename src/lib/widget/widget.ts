@@ -347,7 +347,7 @@ class PreikChatWidget extends HTMLElement {
         <span class="trigger-text">Chat</span>
       </button>
 
-      <div class="chat-window ${positionClass} ${this.state.isOpen ? 'open' : ''}" role="dialog" aria-label="Chat window">
+      <div class="chat-window ${positionClass} ${this.state.isOpen ? 'open' : ''}" role="dialog" aria-modal="true" aria-label="Chat window">
         <div class="header">
           <div class="header-left">
             <div class="avatar">

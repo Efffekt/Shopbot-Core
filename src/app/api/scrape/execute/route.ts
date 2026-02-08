@@ -8,6 +8,7 @@ import { calculateChecksum } from "@/lib/checksum";
 import { splitIntoChunks } from "@/lib/chunking";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { isSafeUrl } from "@/lib/url-safety";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/scrape/execute");
@@ -23,11 +24,19 @@ const executeSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { authorized, error: authError } = await verifySuperAdmin();
+    const { authorized, email, error: authError } = await verifySuperAdmin();
     if (!authorized) {
       return new Response(
         JSON.stringify({ error: authError || "Unauthorized" }),
         { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const rl = await checkRateLimit(`scrape:${email}`, RATE_LIMITS.scrape);
+    if (!rl.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
       );
     }
 

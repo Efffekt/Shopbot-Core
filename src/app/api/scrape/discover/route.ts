@@ -3,6 +3,7 @@ import { z } from "zod";
 import { firecrawl } from "@/lib/firecrawl";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { isSafeUrl } from "@/lib/url-safety";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/scrape/discover");
@@ -68,12 +69,17 @@ function filterUrls(urls: string[], baseUrl: string): string[] {
 
 export async function POST(request: NextRequest) {
   try {
-    const { authorized, error: authError } = await verifySuperAdmin();
+    const { authorized, email, error: authError } = await verifySuperAdmin();
     if (!authorized) {
       return NextResponse.json(
         { error: authError || "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    const rl = await checkRateLimit(`scrape:${email}`, RATE_LIMITS.scrape);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
 
     const body = await request.json();

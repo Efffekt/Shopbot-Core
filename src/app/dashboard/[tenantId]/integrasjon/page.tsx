@@ -253,7 +253,14 @@ export default function IntegrationPage() {
                   .replace(/>/g, "&gt;")
                   .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
                   .replace(/\*(.+?)\*/g, "<em>$1</em>")
-                  .replace(/\[(.+?)\]\((.+?)\)/g, `<a href="$2" style="color:${config.accentColor};text-decoration:underline">$1</a>`)
+                  .replace(/\[(.+?)\]\((.+?)\)/g, (_m: string, label: string, url: string) => {
+                    // Only allow safe URL protocols
+                    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !/^\/[^/]/i.test(url)) {
+                      return label;
+                    }
+                    const safeUrl = url.replace(/"/g, "&quot;");
+                    return `<a href="${safeUrl}" style="color:${config.accentColor};text-decoration:underline">${label}</a>`;
+                  })
                   .split("\n\n")
                   .map((p: string) => `<p style="margin:0 0 0.75em">${p.replace(/\n/g, "<br>")}</p>`)
                   .join(""),

@@ -6,12 +6,16 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { firecrawl } from "@/lib/firecrawl";
 import { splitIntoChunks } from "@/lib/chunking";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { isSafeUrl } from "@/lib/url-safety";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/ingest");
 
 const ingestSchema = z.object({
-  url: z.url(),
+  url: z.string().url().refine(isSafeUrl, {
+    message: "Only HTTPS URLs to public hosts are allowed",
+  }),
   storeId: z.string().min(1),
 });
 
@@ -19,12 +23,18 @@ const EMBEDDING_BATCH_SIZE = 100;
 
 export async function POST(request: NextRequest) {
   try {
-    const { authorized, error: authError } = await verifySuperAdmin();
+    const { authorized, email, error: authError } = await verifySuperAdmin();
     if (!authorized) {
       return NextResponse.json(
         { error: authError || "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    // Tight rate limit for expensive crawl operations
+    const rl = await checkRateLimit(`ingest:${email}`, RATE_LIMITS.ingest);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
 
     const body = await request.json();

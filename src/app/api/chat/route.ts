@@ -255,6 +255,8 @@ function requestId() {
 
 export async function POST(request: NextRequest) {
   const reqId = requestId();
+  // Declare outside try so catch block can use the validated origin
+  let corsOrigin = "";
 
   try {
     // === SECURITY: Request size limit ===
@@ -297,8 +299,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Capture request origin for CORS — used only after origin validation passes
-    const corsOrigin = request.headers.get("origin") || "*";
+    // Capture request origin for CORS — set after origin validation below
+    const requestOrigin = request.headers.get("origin");
 
     // Use non-streaming for mobile/WebViews, streaming for desktop
     const userAgent = request.headers.get("user-agent");
@@ -317,6 +319,9 @@ export async function POST(request: NextRequest) {
         { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    // Origin validated — safe to reflect in CORS headers
+    corsOrigin = requestOrigin || "*";
 
     // === SECURITY: Rate Limiting ===
     const clientId = getClientIdentifier(sessionId, request.headers);
@@ -368,7 +373,9 @@ export async function POST(request: NextRequest) {
     // Fire-and-forget credit warning email if threshold crossed
     const warningLevel = shouldSendWarningEmail(creditCheck.creditsUsed, creditCheck.creditLimit);
     if (warningLevel) {
-      sendCreditWarningIfNeeded(storeId, warningLevel).catch(() => {});
+      sendCreditWarningIfNeeded(storeId, warningLevel).catch((err) => {
+        log.warn("Failed to send credit warning email", { storeId, error: err as Error });
+      });
     }
 
     const lastUserMessage = messages.filter((m) => m.role === "user").pop();
@@ -645,17 +652,16 @@ export async function POST(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     log.error("Chat API unhandled error detail", { reqId, errorMessage });
 
-    // Use wildcard for catch-all errors since corsOrigin may not be in scope
+    // Only include CORS header if origin was validated earlier
+    const errorHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    if (corsOrigin) {
+      errorHeaders["Access-Control-Allow-Origin"] = corsOrigin;
+      if (corsOrigin !== "*") errorHeaders["Vary"] = "Origin";
+    }
+
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": request.headers.get("origin") || "*",
-          "Vary": "Origin",
-        }
-      }
+      { status: 500, headers: errorHeaders }
     );
   }
 }

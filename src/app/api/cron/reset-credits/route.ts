@@ -14,6 +14,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Idempotency: skip if already ran within the last hour
+    const { data: recentRun } = await supabaseAdmin
+      .from("audit_log")
+      .select("id")
+      .eq("action", "cron_reset_credits")
+      .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString())
+      .limit(1);
+
+    if (recentRun && recentRun.length > 0) {
+      log.info("Cron already ran recently, skipping");
+      return NextResponse.json({ success: true, skipped: true });
+    }
+
+    // Record this run
+    await supabaseAdmin.from("audit_log").insert({
+      actor_email: "system",
+      action: "cron_reset_credits",
+      entity_type: "system",
+      entity_id: "cron",
+    });
+
     // Find tenants whose billing cycle started more than 1 month ago
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
