@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { safeParseInt } from "@/lib/params";
 
 export async function GET(request: NextRequest) {
   const auth = await verifySuperAdmin();
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get("page") || "1", 10);
+  const page = safeParseInt(searchParams.get("page"), 1, 1000);
   const entityType = searchParams.get("entityType");
   const limit = 30;
   const offset = (page - 1) * limit;

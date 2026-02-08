@@ -58,7 +58,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  const filename = `preik-export-${tenantId}-${new Date().toISOString().slice(0, 10)}.json`;
+  const safeTenantId = tenantId.replace(/[^a-z0-9-]/gi, "_");
+  const filename = `preik-export-${safeTenantId}-${new Date().toISOString().slice(0, 10)}.json`;
 
   return new NextResponse(JSON.stringify(exportData, null, 2), {
     headers: {

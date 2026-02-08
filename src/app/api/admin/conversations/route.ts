@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/conversations");
@@ -18,8 +19,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search")?.trim().slice(0, 200);
     const intent = searchParams.get("intent");
     const wasHandled = searchParams.get("wasHandled");
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10), 100);
+    const page = safeParseInt(searchParams.get("page"), 1, 1000);
+    const limit = safeParseInt(searchParams.get("limit"), 20, 100);
     const offset = (page - 1) * limit;
 
     let query = supabaseAdmin
@@ -31,7 +32,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.ilike("user_query", `%${search}%`);
+      const escaped = search.replace(/[%_\\]/g, "\\$&");
+      query = query.ilike("user_query", `%${escaped}%`);
     }
 
     if (intent && intent !== "all") {

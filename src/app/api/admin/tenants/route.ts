@@ -95,7 +95,9 @@ export async function POST(request: NextRequest) {
         tenantName: name,
         contactEmail: contact_email,
         tenantId: id,
-      }).catch(() => {}); // Fire-and-forget, don't block tenant creation
+      }).catch((err) => {
+        log.warn("Failed to send welcome email", { error: err as Error });
+      });
     }
 
     logAudit({ actorEmail: actorEmail!, action: "create", entityType: "tenant", entityId: id, details: { name } });

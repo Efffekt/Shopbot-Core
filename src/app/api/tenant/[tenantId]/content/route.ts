@@ -5,6 +5,7 @@ import { splitIntoChunks } from "@/lib/chunking";
 import { z } from "zod";
 import { embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/tenant/content");
@@ -127,8 +128,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Default: paginated chunk list (legacy)
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const page = safeParseInt(searchParams.get("page"), 1, 1000);
+    const limit = safeParseInt(searchParams.get("limit"), 50, 200);
     const search = (searchParams.get("search")?.trim() || "").slice(0, 200);
     const offset = (page - 1) * limit;
 
@@ -138,7 +139,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .eq("store_id", tenantId);
 
     if (search) {
-      query = query.ilike("content", `%${search}%`);
+      const escaped = search.replace(/[%_\\]/g, "\\$&");
+      query = query.ilike("content", `%${escaped}%`);
     }
 
     const { data: documents, count: totalCount, error } = await query

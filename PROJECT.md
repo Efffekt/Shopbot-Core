@@ -21,7 +21,7 @@ Each **user message** sent to a chatbot costs **1 credit**. This is the simplest
 | Business     | 15,000        | Established, multi-page sites| TBD   |
 | Custom       | Negotiated    | High-volume / enterprise     | TBD   |
 
-> **Cost basis:** Gemini 2.0 Flash is very cheap per token. At ~1,500 tokens per conversation turn (input + output), 1,000 credits costs roughly $0.01–0.05 in API fees. The main costs are embedding generation (OpenAI), Supabase hosting, and Vercel compute. Pricing should account for infrastructure overhead + margin.
+> **Cost basis:** Gemini 2.5 Flash-lite is very cheap per token. At ~1,500 tokens per conversation turn (input + output), 1,000 credits costs roughly $0.01–0.05 in API fees. The main costs are embedding generation (OpenAI), Supabase hosting, and Vercel compute. Pricing should account for infrastructure overhead + margin.
 
 When a customer approaches their credit limit (80% usage), they receive an automatic email notification. At 100%, the chatbot shows a friendly fallback message directing visitors to contact the business directly.
 
@@ -42,7 +42,7 @@ When a customer approaches their credit limit (80% usage), they receive an autom
 | Styling       | Tailwind CSS 4                                  |
 | Backend       | Next.js API Routes (serverless on Vercel)       |
 | Database      | Supabase (PostgreSQL + Auth + RLS)              |
-| Primary LLM   | Google Vertex AI – Gemini 2.0 Flash            |
+| Primary LLM   | Google Vertex AI – Gemini 2.5 Flash-lite          |
 | Fallback LLM  | OpenAI (via Vercel AI SDK)                     |
 | Embeddings    | OpenAI text-embedding                           |
 | Scraping      | Firecrawl                                       |

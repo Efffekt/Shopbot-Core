@@ -444,8 +444,8 @@ export async function POST(request: NextRequest) {
         "match_site_content",
         {
           query_embedding: embedding,
-          match_threshold: 0.6,
-          match_count: 8,
+          match_threshold: 0.5,
+          match_count: 12,
           filter_store_id: storeId,
         }
       );
@@ -470,9 +470,27 @@ export async function POST(request: NextRequest) {
     timings.preAI = Date.now() - start;
 
     const aiStart = Date.now();
-    const fullSystemPrompt = context
-      ? `${systemPrompt}\n\nCONTEXT FROM DATABASE:\n${context}`
-      : systemPrompt;
+    // Build context-aware system prompt with anti-hallucination guardrails
+    let fullSystemPrompt: string;
+    if (context) {
+      // Context found — enforce strict adherence to provided data only
+      fullSystemPrompt = `${systemPrompt}\n\n` +
+        `VIKTIG RESTRIKSJON: Nedenfor er ALT du vet om denne butikkens produkter og tjenester. ` +
+        `Du skal KUN nevne produkter, merker, modeller og priser som er eksplisitt nevnt i konteksten nedenfor. ` +
+        `ALDRI finn opp eller anta produktnavn, merkenavn, modellnummer, priser eller URL-er som ikke finnes i konteksten. ` +
+        `Hvis konteksten ikke inneholder nok informasjon til å svare fullstendig, si ærlig at du ikke fant det i databasen og henvis kunden til å kontakte butikken.\n\n` +
+        `KONTEKST FRA DATABASE:\n${context}`;
+    } else if (!isSimpleMessage) {
+      // Non-simple query but no matching documents — explicit guardrail
+      fullSystemPrompt = `${systemPrompt}\n\n` +
+        `KONTEKST FRA DATABASE:\n` +
+        `INGEN RELEVANTE DOKUMENTER FUNNET. Du har INGEN produktdata tilgjengelig for dette spørsmålet. ` +
+        `IKKE finn opp produktnavn, merker, priser eller lenker. ` +
+        `Si ærlig at du ikke fant relevant informasjon i databasen, og henvis kunden til å kontakte butikken direkte.`;
+    } else {
+      // Simple greeting/message — just use system prompt
+      fullSystemPrompt = systemPrompt;
+    }
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {

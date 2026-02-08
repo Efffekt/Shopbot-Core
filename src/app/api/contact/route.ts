@@ -79,7 +79,9 @@ export async function POST(request: NextRequest) {
     log.info("Contact submission received", { name, email, company: company || null });
 
     // Fire-and-forget email notification
-    sendContactNotification({ name, email, company: company || undefined, message }).catch(() => {});
+    sendContactNotification({ name, email, company: company || undefined, message }).catch((err) => {
+      log.warn("Failed to send contact notification email", { error: err as Error });
+    });
 
     return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (error) {

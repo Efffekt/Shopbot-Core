@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig, getAllTenants, DEFAULT_TENANT } from "@/lib/tenants";
 import { verifyAdminTenantAccess } from "@/lib/admin-auth";
+import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/stats");
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     if (!authorized) {
       return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
     }
-    const days = parseInt(searchParams.get("days") || "30", 10);
+    const days = safeParseInt(searchParams.get("days"), 30, 365);
 
     // Get tenant config for display name
     const tenantConfig = getTenantConfig(storeId);
@@ -195,7 +196,11 @@ export async function GET(request: NextRequest) {
       period: `${days} days`,
       stats,
       topSearchTerms,
-      unansweredQueries: unansweredData || [],
+      unansweredQueries: (unansweredData || []).map((q) => ({
+        ...q,
+        user_query: q.user_query?.slice(0, 200),
+        ai_response: q.ai_response?.slice(0, 200),
+      })),
       dailyVolume,
       documentCount: documentCount || 0,
       availableTenants: getAllTenants().map((t) => ({ id: t.id, name: t.name })),

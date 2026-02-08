@@ -5,6 +5,19 @@ import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/settings");
 
+// Only these keys can be set via the API
+const ALLOWED_SETTING_KEYS = new Set([
+  "hero_title",
+  "hero_subtitle",
+  "hero_cta",
+  "pricing_starter",
+  "pricing_pro",
+  "pricing_enterprise",
+  "contact_email",
+  "contact_phone",
+  "footer_text",
+]);
+
 // GET - Return all site settings as { settings: { key: value, ... } }
 export async function GET() {
   const { authorized, error: authError } = await verifyAdmin();
@@ -54,7 +67,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const rows = Object.entries(settings).map(([key, value]) => ({
+    // Filter to allowed keys only
+    const validEntries = Object.entries(settings).filter(([key]) => ALLOWED_SETTING_KEYS.has(key));
+    if (validEntries.length === 0) {
+      return NextResponse.json({ error: "No valid setting keys provided" }, { status: 400 });
+    }
+
+    const rows = validEntries.map(([key, value]) => ({
       key,
       value: value ?? "",
       updated_at: new Date().toISOString(),

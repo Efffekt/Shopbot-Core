@@ -81,8 +81,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build redirect URL from request origin
-    const origin = request.headers.get("origin") || "https://preik.ai";
+    // Build redirect URL — validate origin against allowlist
+    const ALLOWED_INVITE_ORIGINS = ["https://preik.no", "https://www.preik.no"];
+    const rawOrigin = request.headers.get("origin");
+    const origin = rawOrigin && ALLOWED_INVITE_ORIGINS.includes(rawOrigin) ? rawOrigin : "https://preik.no";
 
     // Invite user via Supabase Auth — sends magic link email through configured SMTP
     const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(

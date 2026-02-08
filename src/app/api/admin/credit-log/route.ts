@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdminTenantAccess } from "@/lib/admin-auth";
+import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/credit-log");
@@ -10,9 +11,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get("tenantId");
-    const days = parseInt(searchParams.get("days") || "30", 10);
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50", 10), 200);
+    const days = safeParseInt(searchParams.get("days"), 30, 365);
+    const page = safeParseInt(searchParams.get("page"), 1, 1000);
+    const limit = safeParseInt(searchParams.get("limit"), 50, 200);
     const offset = (page - 1) * limit;
 
     if (!tenantId) {

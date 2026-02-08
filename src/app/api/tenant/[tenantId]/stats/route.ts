@@ -3,6 +3,7 @@ import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig } from "@/lib/tenants";
 import { getCreditStatus } from "@/lib/credits";
+import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/tenant/stats");
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get("days") || "30", 10);
+    const days = safeParseInt(searchParams.get("days"), 30, 365);
 
     const tenantConfig = getTenantConfig(tenantId);
 
@@ -163,7 +164,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       period: `${days} days`,
       stats,
       topSearchTerms,
-      unansweredQueries: unansweredData || [],
+      unansweredQueries: (unansweredData || []).map((q) => ({
+        ...q,
+        user_query: q.user_query?.slice(0, 200),
+        ai_response: q.ai_response?.slice(0, 200),
+      })),
       dailyVolume,
       documentCount: documentCount || 0,
       credits: creditStatus,

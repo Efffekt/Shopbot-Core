@@ -101,7 +101,6 @@ export async function GET(request: NextRequest) {
       success: true,
       reset: successCount,
       failed: failCount,
-      details: results,
       conversationsDeleted: deletedConversations || 0,
     });
   } catch (error) {
