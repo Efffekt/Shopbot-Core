@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase-server";
 import Link from "next/link";
-import { SUPER_ADMIN_EMAILS } from "@/lib/admin-emails";
+import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } from "@/lib/admin-emails";
 
 export default async function AdminLayout({
   children,
@@ -15,10 +15,14 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  // Must be a super admin
-  if (!user.email || !SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+  const email = user.email?.toLowerCase();
+
+  // Must be an admin or super admin
+  if (!email || (!SUPER_ADMIN_EMAILS.includes(email) && !ADMIN_EMAILS.includes(email))) {
     redirect("/dashboard");
   }
+
+  const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(email);
 
   return (
     <div className="min-h-screen bg-preik-bg">
@@ -30,8 +34,12 @@ export default async function AdminLayout({
               <Link href="/admin" className="preik-wordmark text-2xl">
                 preik
               </Link>
-              <span className="text-xs text-red-500 uppercase tracking-wide font-medium bg-red-500/10 px-2 py-1 rounded">
-                Super Admin
+              <span className={`text-xs uppercase tracking-wide font-medium px-2 py-1 rounded ${
+                isSuperAdmin
+                  ? "text-red-500 bg-red-500/10"
+                  : "text-blue-500 bg-blue-500/10"
+              }`}>
+                {isSuperAdmin ? "Super Admin" : "Admin"}
               </span>
             </div>
             <div className="flex items-center gap-6">

@@ -55,6 +55,7 @@ export function Footer() {
             <div className="md:col-span-2">
               <p className="text-sm font-medium text-preik-text uppercase tracking-wide mb-5">Ressurser</p>
               <ul className="space-y-3 text-preik-text-muted">
+                <li><a href="/blogg" className="hover:text-preik-text transition-colors">Blogg</a></li>
                 <li><a href="/docs" className="hover:text-preik-text transition-colors">Dokumentasjon</a></li>
                 <li><a href="/personvern" className="hover:text-preik-text transition-colors">Personvern</a></li>
                 <li><a href="/vilkar" className="hover:text-preik-text transition-colors">Vilkår</a></li>
