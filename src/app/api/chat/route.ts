@@ -85,7 +85,7 @@ function isRateLimitError(error: unknown): boolean {
   return false;
 }
 import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/ratelimit";
+import { checkRateLimit, getClientIdentifier, getClientIp, RATE_LIMITS } from "@/lib/ratelimit";
 import { checkAndIncrementCredits, shouldSendWarningEmail } from "@/lib/credits";
 import { sendCreditWarningIfNeeded } from "@/lib/email";
 
@@ -324,12 +324,16 @@ export async function POST(request: NextRequest) {
     corsOrigin = requestOrigin || "*";
 
     // === SECURITY: Rate Limiting ===
+    // Two layers: per-session + per-IP (prevents sessionId spoofing bypass)
     const clientId = getClientIdentifier(sessionId, request.headers);
-    const rateLimitKey = `chat:${storeId}:${clientId}`;
-    const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMITS.chat);
+    const clientIp = getClientIp(request.headers);
+    const [rateLimit, ipRateLimit] = await Promise.all([
+      checkRateLimit(`chat:${storeId}:${clientId}`, RATE_LIMITS.chat),
+      checkRateLimit(`chatIp:${storeId}:ip:${clientIp}`, RATE_LIMITS.chatIp),
+    ]);
 
-    if (!rateLimit.allowed) {
-      log.warn("Rate limited", { reqId, storeId, clientId });
+    if (!rateLimit.allowed || !ipRateLimit.allowed) {
+      log.warn("Rate limited", { reqId, storeId, clientId, ipBlocked: !ipRateLimit.allowed });
       return new Response(
         JSON.stringify({
           error: "Too Many Requests",

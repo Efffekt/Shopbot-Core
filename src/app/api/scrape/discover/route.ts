@@ -77,6 +77,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!firecrawl) {
+      return NextResponse.json({ error: "Scraping service not configured" }, { status: 503 });
+    }
+
     const rl = await checkRateLimit(`scrape:${email}`, RATE_LIMITS.scrape);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
@@ -98,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     // Use Firecrawl's map function for fast URL discovery
     // Note: map() uses sitemap/links discovery, may not work well for SPAs
-    const mapResult = await firecrawl.map(baseUrl, {
+    const mapResult = await firecrawl!.map(baseUrl, {
       limit: 500,
       search: "", // Empty search to get all pages
     });

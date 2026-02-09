@@ -38,6 +38,7 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
 
   // Delete state
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const fetchSources = useCallback(async () => {
     setLoading(true);
@@ -68,8 +69,7 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
   }, [success]);
 
   async function handleDelete(source: string) {
-    if (!confirm("Er du sikker på at du vil slette alt innhold fra denne kilden?")) return;
-
+    setConfirmDelete(null);
     setDeleting(source);
     setError(null);
 
@@ -330,13 +330,31 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
                   >
                     Rediger
                   </button>
-                  <button
-                    onClick={() => handleDelete(src.source)}
-                    disabled={deleting === src.source}
-                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg disabled:opacity-50 transition-colors"
-                  >
-                    {deleting === src.source ? "Sletter..." : "Slett"}
-                  </button>
+                  {confirmDelete === src.source ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-red-600">Slett?</span>
+                      <button
+                        onClick={() => handleDelete(src.source)}
+                        className="px-2 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                      >
+                        Ja
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        className="px-2 py-1 text-xs text-preik-text-muted hover:text-preik-text hover:bg-preik-bg rounded-lg transition-colors"
+                      >
+                        Nei
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(src.source)}
+                      disabled={deleting === src.source}
+                      className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg disabled:opacity-50 transition-colors"
+                    >
+                      {deleting === src.source ? "Sletter..." : "Slett"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

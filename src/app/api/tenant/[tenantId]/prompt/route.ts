@@ -83,6 +83,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     );
   }
 
+  if (systemPrompt.length > 50_000) {
+    return NextResponse.json(
+      { error: "System prompt too long (max 50,000 characters)" },
+      { status: 400 }
+    );
+  }
+
   const { data: existing } = await supabase
     .from("tenant_prompts")
     .select("id, version")

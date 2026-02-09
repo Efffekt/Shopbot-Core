@@ -1,29 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/blog");
 
 // GET - List all posts (published + drafts) for admin panel
-export async function GET() {
+export async function GET(request: NextRequest) {
   const { authorized, error: authError } = await verifyAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const { data: posts, error } = await supabaseAdmin
+    const { searchParams } = new URL(request.url);
+    const page = safeParseInt(searchParams.get("page"), 1, 1000);
+    const limit = safeParseInt(searchParams.get("limit"), 50, 100);
+    const offset = (page - 1) * limit;
+
+    const { data: posts, error, count } = await supabaseAdmin
       .from("blog_posts")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       log.error("Failed to fetch blog posts:", error);
       return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 });
     }
 
-    return NextResponse.json({ posts }, {
+    return NextResponse.json({ posts, total: count || 0, page, limit }, {
       headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" },
     });
   } catch (error) {

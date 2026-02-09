@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!firecrawl) {
+      return NextResponse.json({ error: "Scraping service not configured" }, { status: 503 });
+    }
+
     // Tight rate limit for expensive crawl operations
     const rl = await checkRateLimit(`ingest:${email}`, RATE_LIMITS.ingest);
     if (!rl.allowed) {
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     log.info("Starting crawl", { url });
 
-    const crawlResult = await firecrawl.crawl(url, {
+    const crawlResult = await firecrawl!.crawl(url, {
       scrapeOptions: {
         formats: ["markdown"],
         waitFor: 5000, // Wait 5s for React/Vite to hydrate

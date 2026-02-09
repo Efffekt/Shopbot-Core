@@ -84,6 +84,11 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
       return;
     }
 
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      setError("Passordet må inneholde store bokstaver, små bokstaver og tall");
+      return;
+    }
+
     setLoading(true);
 
     try {

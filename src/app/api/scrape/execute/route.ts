@@ -32,6 +32,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!firecrawl) {
+      return new Response(
+        JSON.stringify({ error: "Scraping service not configured" }),
+        { status: 503, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const rl = await checkRateLimit(`scrape:${email}`, RATE_LIMITS.scrape);
     if (!rl.allowed) {
       return new Response(
@@ -78,7 +85,7 @@ export async function POST(request: NextRequest) {
             batch.map(async (url) => {
               try {
                 // Scrape the page with SPA/React support
-                const scrapeResult = await firecrawl.scrape(url, {
+                const scrapeResult = await firecrawl!.scrape(url, {
                   formats: ["markdown"],
                   waitFor: 5000, // Wait 5s for React/Vite to hydrate
                   timeout: 60000, // 60s max timeout for slow SPAs

@@ -139,6 +139,11 @@ export const RATE_LIMITS = {
     maxRequests: 30,
     windowMs: 60 * 1000, // 1 minute
   },
+  // Chat IP-level: 60 requests per minute per IP (catches sessionId spoofing)
+  chatIp: {
+    maxRequests: 60,
+    windowMs: 60 * 1000, // 1 minute
+  },
   // Ingest API: 5 requests per hour (admin only, but extra protection)
   ingest: {
     maxRequests: 5,
@@ -167,6 +172,15 @@ export const RATE_LIMITS = {
 } as const;
 
 /**
+ * Extract client IP from request headers.
+ */
+export function getClientIp(headers: Headers): string {
+  const forwardedFor = headers.get("x-forwarded-for");
+  const realIp = headers.get("x-real-ip");
+  return forwardedFor?.split(",")[0]?.trim() || realIp || "unknown";
+}
+
+/**
  * Extract client identifier from request headers.
  * Prefers sessionId, falls back to IP address.
  */
@@ -178,9 +192,5 @@ export function getClientIdentifier(
     return `session:${sessionId}`;
   }
 
-  const forwardedFor = headers.get("x-forwarded-for");
-  const realIp = headers.get("x-real-ip");
-  const ip = forwardedFor?.split(",")[0]?.trim() || realIp || "unknown";
-
-  return `ip:${ip}`;
+  return `ip:${getClientIp(headers)}`;
 }

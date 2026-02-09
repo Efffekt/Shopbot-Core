@@ -222,6 +222,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       providerOptions: {
         openai: { dimensions: 1536 },
       },
+      abortSignal: AbortSignal.timeout(30_000),
     });
 
     const documents = chunks.map((chunk, idx) => ({
@@ -297,6 +298,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       providerOptions: {
         openai: { dimensions: 1536 },
       },
+      abortSignal: AbortSignal.timeout(30_000),
     });
 
     const isManual = source === "manual" || !source.startsWith("http");

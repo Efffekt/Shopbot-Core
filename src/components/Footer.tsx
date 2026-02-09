@@ -28,11 +28,11 @@ export function Footer() {
             <div className="md:col-span-3 md:col-start-8">
               <p className="text-sm font-medium text-preik-text uppercase tracking-wide mb-5">Navigasjon</p>
               <ul className="space-y-3 text-preik-text-muted">
-                <li><a href="#losninger" className="hover:text-preik-text transition-colors">Slik fungerer det</a></li>
-                <li><a href="#hvordan" className="hover:text-preik-text transition-colors">Demo</a></li>
-                <li><a href="#priser" className="hover:text-preik-text transition-colors">Priser</a></li>
-                <li><a href="#faq" className="hover:text-preik-text transition-colors">FAQ</a></li>
-                <li><a href="#kontakt" className="hover:text-preik-text transition-colors">Kontakt</a></li>
+                <li><a href="/#losninger" className="hover:text-preik-text transition-colors">Slik fungerer det</a></li>
+                <li><a href="/#hvordan" className="hover:text-preik-text transition-colors">Demo</a></li>
+                <li><a href="/#priser" className="hover:text-preik-text transition-colors">Priser</a></li>
+                <li><a href="/#faq" className="hover:text-preik-text transition-colors">FAQ</a></li>
+                <li><a href="/#kontakt" className="hover:text-preik-text transition-colors">Kontakt</a></li>
               </ul>
             </div>
 
