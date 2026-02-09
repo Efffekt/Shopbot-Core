@@ -32,8 +32,9 @@ vi.mock("@/lib/admin-emails", () => ({
   ADMIN_EMAILS: ["admin@test.com"],
 }));
 
-import { verifySuperAdmin, verifyAdmin } from "@/lib/admin-auth";
+import { verifySuperAdmin, verifyAdmin, verifyAdminTenantAccess } from "@/lib/admin-auth";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { supabaseAdmin } from "@/lib/supabase";
 
 describe("verifySuperAdmin", () => {
   beforeEach(() => {
@@ -150,5 +151,63 @@ describe("verifyAdmin", () => {
 
     const result = await verifyAdmin();
     expect(result.userId).toBe("user-id-123");
+  });
+});
+
+describe("verifyAdminTenantAccess", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("allows super-admin access to any tenant without DB check", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "1", email: "super@test.com", email_confirmed_at: "2024-01-01" } },
+      error: null,
+    });
+
+    const result = await verifyAdminTenantAccess("any-tenant");
+    expect(result.authorized).toBe(true);
+    expect(result.isSuperAdmin).toBe(true);
+  });
+
+  it("allows regular admin with tenant_user_access record", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-2", email: "admin@test.com", email_confirmed_at: "2024-01-01" } },
+      error: null,
+    });
+
+    const result = await verifyAdminTenantAccess("tenant-1");
+    expect(result.authorized).toBe(true);
+    expect(result.isSuperAdmin).toBe(false);
+  });
+
+  it("denies regular admin without tenant_user_access record", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-2", email: "admin@test.com", email_confirmed_at: "2024-01-01" } },
+      error: null,
+    });
+    // Override the mock to return null (no access)
+    const mockFrom = supabaseAdmin.from as ReturnType<typeof vi.fn>;
+    mockFrom.mockReturnValueOnce({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({ data: null, error: { code: "PGRST116" } }),
+          })),
+        })),
+      })),
+    });
+
+    const result = await verifyAdminTenantAccess("other-tenant");
+    expect(result.authorized).toBe(false);
+    expect(result.error).toBe("No access to this tenant");
+  });
+
+  it("denies unauthenticated users", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: "No session" } });
+
+    const result = await verifyAdminTenantAccess("tenant-1");
+    expect(result.authorized).toBe(false);
+    expect(result.error).toBe("Not authenticated");
   });
 });

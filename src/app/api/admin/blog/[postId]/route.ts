@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+
+const MAX_CONTENT_LENGTH = 500_000; // 500KB max blog content
 
 const log = createLogger("api/admin/blog/[postId]");
 
@@ -42,7 +45,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ postId: string }> }
 ) {
-  const { authorized, error: authError } = await verifyAdmin();
+  const { authorized, error: authError, email } = await verifyAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -56,6 +59,13 @@ export async function PATCH(
     if (slug && !/^[a-z0-9-]+$/.test(slug)) {
       return NextResponse.json(
         { error: "Slug must be lowercase alphanumeric with hyphens only" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof content === "string" && content.length > MAX_CONTENT_LENGTH) {
+      return NextResponse.json(
+        { error: `Content too long (max ${MAX_CONTENT_LENGTH} characters)` },
         { status: 400 }
       );
     }
@@ -86,6 +96,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Failed to update post" }, { status: 500 });
     }
 
+    await logAudit({
+      actorEmail: email || "unknown",
+      action: "update",
+      entityType: "blog_post",
+      entityId: postId,
+      details: { updatedFields: Object.keys(body) },
+    });
+
     return NextResponse.json({ post });
   } catch (error) {
     log.error("Error updating blog post:", error);
@@ -98,7 +116,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ postId: string }> }
 ) {
-  const { authorized, error: authError } = await verifyAdmin();
+  const { authorized, error: authError, email } = await verifyAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -115,6 +133,13 @@ export async function DELETE(
       log.error("Failed to delete blog post:", error);
       return NextResponse.json({ error: "Failed to delete post" }, { status: 500 });
     }
+
+    await logAudit({
+      actorEmail: email || "unknown",
+      action: "delete",
+      entityType: "blog_post",
+      entityId: postId,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

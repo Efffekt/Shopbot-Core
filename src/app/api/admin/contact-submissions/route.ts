@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { logAudit } from "@/lib/audit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { safeParseInt } from "@/lib/params";
 
@@ -60,6 +61,13 @@ export async function DELETE(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
+
+  await logAudit({
+    actorEmail: auth.email || "unknown",
+    action: "delete",
+    entityType: "contact_submission",
+    entityId: id,
+  });
 
   return NextResponse.json({ success: true });
 }

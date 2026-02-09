@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/settings");
@@ -51,7 +52,7 @@ export async function GET() {
 
 // PUT - Upsert settings from { settings: { key: value, ... } }
 export async function PUT(request: NextRequest) {
-  const { authorized, error: authError } = await verifyAdmin();
+  const { authorized, error: authError, email } = await verifyAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -87,6 +88,13 @@ export async function PUT(request: NextRequest) {
       log.error("Failed to upsert site settings:", error);
       return NextResponse.json({ error: "Failed to save settings" }, { status: 500 });
     }
+
+    await logAudit({
+      actorEmail: email || "unknown",
+      action: "update",
+      entityType: "site_settings",
+      details: { changedKeys: validEntries.map(([key]) => key) },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

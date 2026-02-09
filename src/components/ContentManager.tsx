@@ -40,6 +40,16 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  // Close edit modal on Escape key
+  useEffect(() => {
+    if (!editSource) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEditSource(null);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [editSource]);
+
   const fetchSources = useCallback(async () => {
     setLoading(true);
     setError(null);

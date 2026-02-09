@@ -7,7 +7,7 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 
-import { shouldSendWarningEmail, checkAndIncrementCredits } from "@/lib/credits";
+import { shouldSendWarningEmail, checkAndIncrementCredits, getCreditStatus, resetCredits } from "@/lib/credits";
 import { supabaseAdmin } from "@/lib/supabase";
 
 describe("shouldSendWarningEmail", () => {
@@ -96,5 +96,93 @@ describe("checkAndIncrementCredits", () => {
 
     const result = await checkAndIncrementCredits("test-tenant");
     expect(result.percentUsed).toBe(0);
+  });
+});
+
+describe("getCreditStatus", () => {
+  const mockRpc = supabaseAdmin.rpc as ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns credit status on success", async () => {
+    mockRpc.mockResolvedValue({
+      data: {
+        credit_limit: 1000,
+        credits_used: 250,
+        credits_remaining: 750,
+        percent_used: 25,
+        billing_cycle_start: "2025-01-01T00:00:00Z",
+      },
+      error: null,
+    });
+
+    const result = await getCreditStatus("test-tenant");
+    expect(result).not.toBeNull();
+    expect(result!.creditLimit).toBe(1000);
+    expect(result!.creditsUsed).toBe(250);
+    expect(result!.creditsRemaining).toBe(750);
+    expect(result!.percentUsed).toBe(25);
+    expect(result!.billingCycleStart).toBe("2025-01-01T00:00:00Z");
+    expect(result!.billingCycleEnd).toBeDefined();
+  });
+
+  it("returns null on database error", async () => {
+    mockRpc.mockResolvedValue({
+      data: null,
+      error: { message: "DB error" },
+    });
+
+    const result = await getCreditStatus("test-tenant");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when data has error field", async () => {
+    mockRpc.mockResolvedValue({
+      data: { error: "Tenant not found" },
+      error: null,
+    });
+
+    const result = await getCreditStatus("test-tenant");
+    expect(result).toBeNull();
+  });
+});
+
+describe("resetCredits", () => {
+  const mockRpc = supabaseAdmin.rpc as ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns true on success", async () => {
+    mockRpc.mockResolvedValue({
+      data: { success: true },
+      error: null,
+    });
+
+    const result = await resetCredits("test-tenant");
+    expect(result).toBe(true);
+  });
+
+  it("returns false on database error", async () => {
+    mockRpc.mockResolvedValue({
+      data: null,
+      error: { message: "DB error" },
+    });
+
+    const result = await resetCredits("test-tenant");
+    expect(result).toBe(false);
+  });
+
+  it("returns false when data has error field", async () => {
+    mockRpc.mockResolvedValue({
+      data: { error: "Reset failed" },
+      error: null,
+    });
+
+    const result = await resetCredits("test-tenant");
+    expect(result).toBe(false);
   });
 });

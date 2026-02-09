@@ -18,7 +18,7 @@ const WIDGET_CONFIG_LIMIT = { maxRequests: 60, windowMs: 60_000 };
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { storeId } = await params;
 
-  if (!storeId || storeId.length > 100) {
+  if (!storeId || storeId.length > 100 || !/^[a-z0-9-]+$/.test(storeId)) {
     return NextResponse.json({ config: null }, { headers: CORS_HEADERS });
   }
 

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { logAudit } from "@/lib/audit";
 import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
+
+const MAX_CONTENT_LENGTH = 500_000; // 500KB max blog content
 
 const log = createLogger("api/admin/blog");
 
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Create a new blog post
 export async function POST(request: NextRequest) {
-  const { authorized, error: authError } = await verifyAdmin();
+  const { authorized, error: authError, email } = await verifyAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -53,6 +56,13 @@ export async function POST(request: NextRequest) {
     if (!slug || !title || !content || !author_name) {
       return NextResponse.json(
         { error: "slug, title, content, and author_name are required" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof content === "string" && content.length > MAX_CONTENT_LENGTH) {
+      return NextResponse.json(
+        { error: `Content too long (max ${MAX_CONTENT_LENGTH} characters)` },
         { status: 400 }
       );
     }
@@ -87,6 +97,14 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
     }
+
+    await logAudit({
+      actorEmail: email || "unknown",
+      action: "create",
+      entityType: "blog_post",
+      entityId: post.id,
+      details: { slug, title },
+    });
 
     return NextResponse.json({ post }, { status: 201 });
   } catch (error) {

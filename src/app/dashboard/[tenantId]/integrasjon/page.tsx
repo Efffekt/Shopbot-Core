@@ -171,7 +171,20 @@ export default function IntegrationPage() {
     }
   }
 
+  const COLOR_KEYS = new Set(["accentColor", "textColor", "bgColor", "surfaceColor"]);
+  const isValidHexColor = (v: string) => /^#[0-9A-Fa-f]{6}$/.test(v);
+
   const updateConfig = (key: keyof WidgetConfig, value: string) => {
+    // For color fields: allow empty (reset) or partial typing, but only apply valid hex
+    if (COLOR_KEYS.has(key)) {
+      if (value === "" || isValidHexColor(value)) {
+        setConfig((prev) => ({ ...prev, [key]: value }));
+      } else if (value.startsWith("#") && value.length <= 7) {
+        // Allow typing in progress (partial hex)
+        setConfig((prev) => ({ ...prev, [key]: value }));
+      }
+      return;
+    }
     setConfig((prev) => ({ ...prev, [key]: value }));
   };
 

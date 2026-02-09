@@ -52,11 +52,14 @@ function getVertex() {
   }
 
   const project = process.env.GOOGLE_CLOUD_PROJECT;
+  if (!project) {
+    log.error("GOOGLE_CLOUD_PROJECT is not set");
+  }
   // Use global endpoint to avoid regional burst limits (429 errors)
   const location = "global";
 
   const vertex = createVertex({
-    project: project!,
+    project: project || "",
     location: location,
     googleAuthOptions: {
       credentials: credentials,
@@ -104,7 +107,7 @@ const messageSchema = z.object({
 
 const chatSchema = z.object({
   messages: z.array(messageSchema).min(1).max(MAX_MESSAGES),
-  storeId: z.string().max(100).optional(),
+  storeId: z.string().max(100).regex(/^[a-z0-9-]+$/).optional(),
   sessionId: z.string().max(100).optional(),
   noStream: z.boolean().optional(),
 });
