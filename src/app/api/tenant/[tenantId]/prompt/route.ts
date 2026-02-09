@@ -3,6 +3,7 @@ import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/tenant/prompt");
 
@@ -84,6 +85,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (contentLength > 64_000) {
       return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const { systemPrompt } = body;

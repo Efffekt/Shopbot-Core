@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import type { GlobalUser } from "@/types/admin";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("GlobalUserManagement");
 
 export default function GlobalUserManagement() {
   const [users, setUsers] = useState<GlobalUser[]>([]);
@@ -25,7 +28,7 @@ export default function GlobalUserManagement() {
       if (!res.ok) throw new Error(data.error);
       setUsers(data.users || []);
     } catch (error) {
-      console.error("Failed to fetch users:", error);
+      log.error("Failed to fetch users:", error);
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +53,7 @@ export default function GlobalUserManagement() {
         };
       }));
     } catch (error) {
-      console.error("Failed to remove access:", error);
+      log.error("Failed to remove access:", error);
     } finally {
       setRemovingAccess(null);
     }

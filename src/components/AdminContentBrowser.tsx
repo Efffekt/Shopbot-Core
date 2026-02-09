@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("AdminContentBrowser");
 
 interface ContentSource {
   source: string;
@@ -34,7 +37,7 @@ export default function AdminContentBrowser({ tenantId }: AdminContentBrowserPro
       if (!res.ok) throw new Error(data.error);
       setSources(data.sources || []);
     } catch (error) {
-      console.error("Failed to fetch content:", error);
+      log.error("Failed to fetch content:", error);
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +53,7 @@ export default function AdminContentBrowser({ tenantId }: AdminContentBrowserPro
       if (!res.ok) throw new Error("Failed to delete");
       setSources(prev => prev.filter(s => s.source !== source));
     } catch (error) {
-      console.error("Failed to delete content:", error);
+      log.error("Failed to delete content:", error);
     } finally {
       setDeleting(null);
     }

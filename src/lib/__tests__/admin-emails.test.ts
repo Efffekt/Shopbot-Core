@@ -6,8 +6,8 @@ describe("admin-emails", () => {
   });
 
   it("parses comma-separated super admin emails", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPER_ADMIN_EMAILS", "Alice@Example.com, bob@test.no");
-    vi.stubEnv("NEXT_PUBLIC_ADMIN_EMAILS", "");
+    vi.stubEnv("SUPER_ADMIN_EMAILS", "Alice@Example.com, bob@test.no");
+    vi.stubEnv("ADMIN_EMAILS", "");
 
     // Re-import to pick up new env
     vi.resetModules();
@@ -17,8 +17,8 @@ describe("admin-emails", () => {
   });
 
   it("returns empty array when env is undefined", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPER_ADMIN_EMAILS", "");
-    vi.stubEnv("NEXT_PUBLIC_ADMIN_EMAILS", "");
+    vi.stubEnv("SUPER_ADMIN_EMAILS", "");
+    vi.stubEnv("ADMIN_EMAILS", "");
 
     vi.resetModules();
     const { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } = await import("@/lib/admin-emails");
@@ -28,8 +28,8 @@ describe("admin-emails", () => {
   });
 
   it("trims whitespace and lowercases emails", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPER_ADMIN_EMAILS", "  A@B.COM , ");
-    vi.stubEnv("NEXT_PUBLIC_ADMIN_EMAILS", "");
+    vi.stubEnv("SUPER_ADMIN_EMAILS", "  A@B.COM , ");
+    vi.stubEnv("ADMIN_EMAILS", "");
 
     vi.resetModules();
     const { SUPER_ADMIN_EMAILS } = await import("@/lib/admin-emails");
@@ -38,8 +38,8 @@ describe("admin-emails", () => {
   });
 
   it("filters empty entries from double commas", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPER_ADMIN_EMAILS", "a@b.com,,c@d.com,");
-    vi.stubEnv("NEXT_PUBLIC_ADMIN_EMAILS", "");
+    vi.stubEnv("SUPER_ADMIN_EMAILS", "a@b.com,,c@d.com,");
+    vi.stubEnv("ADMIN_EMAILS", "");
 
     vi.resetModules();
     const { SUPER_ADMIN_EMAILS } = await import("@/lib/admin-emails");
@@ -48,8 +48,8 @@ describe("admin-emails", () => {
   });
 
   it("parses admin emails separately from super admin", async () => {
-    vi.stubEnv("NEXT_PUBLIC_SUPER_ADMIN_EMAILS", "super@admin.com");
-    vi.stubEnv("NEXT_PUBLIC_ADMIN_EMAILS", "regular@admin.com");
+    vi.stubEnv("SUPER_ADMIN_EMAILS", "super@admin.com");
+    vi.stubEnv("ADMIN_EMAILS", "regular@admin.com");
 
     vi.resetModules();
     const { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } = await import("@/lib/admin-emails");

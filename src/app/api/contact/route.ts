@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
 import { sendContactNotification } from "@/lib/email";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/contact");
 
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
     if (contentLength > 16_000) {
       return NextResponse.json({ error: "Payload too large" }, { status: 413 });
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const parsed = contactSchema.safeParse(body);

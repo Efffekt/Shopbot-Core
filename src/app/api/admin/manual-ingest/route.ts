@@ -7,6 +7,7 @@ import { verifySuperAdmin } from "@/lib/admin-auth";
 import { splitIntoChunks } from "@/lib/chunking";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/admin/manual-ingest");
 
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest) {
     if (contentLength > 2_000_000) {
       return NextResponse.json({ error: "Request body too large (max 2MB)" }, { status: 413 });
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const parsed = manualIngestSchema.safeParse(body);

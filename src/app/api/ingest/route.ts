@@ -9,6 +9,7 @@ import { verifySuperAdmin } from "@/lib/admin-auth";
 import { isSafeUrl } from "@/lib/url-safety";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/ingest");
 
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
     if (!rl.allowed) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const parsed = ingestSchema.safeParse(body);

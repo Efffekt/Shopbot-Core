@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const deleteAccessSchema = z.object({
   tenantId: z.string().min(1),
@@ -25,6 +26,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { userId } = await params;
 
   try {
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
     const body = await request.json();
     const parsed = deleteAccessSchema.safeParse(body);
     if (!parsed.success) {

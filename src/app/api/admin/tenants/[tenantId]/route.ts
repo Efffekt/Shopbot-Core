@@ -5,6 +5,7 @@ import { verifySuperAdmin } from "@/lib/admin-auth";
 import { resetCredits } from "@/lib/credits";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const patchTenantSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -96,6 +97,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     }
 
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
     const body = await request.json();
     const parsed = patchTenantSchema.safeParse(body);
     if (!parsed.success) {
@@ -143,6 +147,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const { tenantId } = await params;
 
   try {
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
     const body = await request.json();
     const { action } = body;
 

@@ -4,6 +4,7 @@ import { verifyAdmin } from "@/lib/admin-auth";
 import { logAudit } from "@/lib/audit";
 import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const MAX_CONTENT_LENGTH = 500_000; // 500KB max blog content
 
@@ -50,6 +51,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
     const body = await request.json();
     const { slug, title, excerpt, content, author_name, published_at, meta_title, meta_description, cover_image_url } = body;
 

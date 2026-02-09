@@ -20,6 +20,9 @@ import {
   Database,
   Building2,
 } from "lucide-react";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("AnalyticsDashboard");
 
 interface Stats {
   total_conversations: number;
@@ -391,7 +394,7 @@ function CreditUsageLog({ tenantId }: { tenantId: string }) {
       if (!res.ok) throw new Error(data.error);
       setLogs(data.logs || []);
     } catch (error) {
-      console.error("Failed to fetch credit log:", error);
+      log.error("Failed to fetch credit log:", error);
     } finally {
       setIsLoading(false);
     }

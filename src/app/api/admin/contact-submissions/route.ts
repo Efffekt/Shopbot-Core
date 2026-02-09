@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { supabaseAdmin } from "@/lib/supabase";
 import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/admin/contact-submissions");
 
@@ -55,6 +56,9 @@ export async function DELETE(request: NextRequest) {
     if (!auth.authorized) {
       return NextResponse.json({ error: auth.error }, { status: 403 });
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const parsed = deleteSchema.safeParse(body);

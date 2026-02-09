@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } from "@/lib/admin-emails";
 
 export const metadata: Metadata = {
+  title: "Admin – Preik",
   robots: { index: false, follow: false },
 };
 

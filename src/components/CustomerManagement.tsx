@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import AdminPromptEditor from "@/components/AdminPromptEditor";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("CustomerManagement");
 
 interface Tenant {
   id: string;
@@ -67,7 +70,7 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
       const data = await res.json();
       setTenants(data.tenants || []);
     } catch (error) {
-      console.error("Failed to fetch tenants:", error);
+      log.error("Failed to fetch tenants:", error);
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +84,7 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
       setTenantUsers(data.users || []);
       onSelectTenant(data.tenant.id, data.tenant.name);
     } catch (error) {
-      console.error("Failed to fetch tenant details:", error);
+      log.error("Failed to fetch tenant details:", error);
     }
   }
 
@@ -630,7 +633,7 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
       if (!res.ok) throw new Error("Failed to update");
       onUpdate();
     } catch (error) {
-      console.error("Failed to update credit limit:", error);
+      log.error("Failed to update credit limit:", error);
     } finally {
       setSaving(false);
     }
@@ -647,7 +650,7 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
       if (!res.ok) throw new Error("Failed to reset");
       onUpdate();
     } catch (error) {
-      console.error("Failed to reset credits:", error);
+      log.error("Failed to reset credits:", error);
     } finally {
       setResetting(false);
     }
@@ -817,7 +820,7 @@ function FeatureToggles({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () => 
       if (!res.ok) throw new Error("Failed to update");
       onUpdate();
     } catch (error) {
-      console.error("Failed to toggle feature:", error);
+      log.error("Failed to toggle feature:", error);
     }
   }
 

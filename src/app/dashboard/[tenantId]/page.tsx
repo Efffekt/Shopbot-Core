@@ -10,15 +10,22 @@ interface PageProps {
 
 export default async function TenantPage({ params }: PageProps) {
   const { tenantId } = await params;
-  const user = await getUser();
-  const supabase = await createSupabaseServerClient();
 
-  const { data: access, error } = await supabase
-    .from("tenant_user_access")
-    .select("tenant_id, role")
-    .eq("user_id", user?.id)
-    .eq("tenant_id", tenantId)
-    .single();
+  // Run auth check and credit fetch in parallel
+  const [user, supabase] = await Promise.all([
+    getUser(),
+    createSupabaseServerClient(),
+  ]);
+
+  const [{ data: access, error }, credits] = await Promise.all([
+    supabase
+      .from("tenant_user_access")
+      .select("tenant_id, role")
+      .eq("user_id", user?.id)
+      .eq("tenant_id", tenantId)
+      .single(),
+    getCreditStatus(tenantId),
+  ]);
 
   if (error || !access) {
     redirect("/dashboard");
@@ -30,7 +37,6 @@ export default async function TenantPage({ params }: PageProps) {
   }
 
   const isAdmin = access.role === "admin";
-  const credits = await getCreditStatus(tenantId);
   const percentUsed = credits?.percentUsed ?? 0;
 
   return (

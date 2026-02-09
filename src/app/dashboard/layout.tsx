@@ -4,6 +4,7 @@ import { getUser } from "@/lib/supabase-server";
 import Link from "next/link";
 
 export const metadata: Metadata = {
+  title: "Dashboard – Preik",
   robots: { index: false, follow: false },
 };
 

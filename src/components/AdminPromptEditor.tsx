@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("AdminPromptEditor");
 
 interface AdminPromptEditorProps {
   tenantId: string;
@@ -33,7 +36,7 @@ export default function AdminPromptEditor({ tenantId }: AdminPromptEditorProps) 
         setVersion(0);
       }
     } catch (error) {
-      console.error("Failed to fetch prompt:", error);
+      log.error("Failed to fetch prompt:", error);
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +56,7 @@ export default function AdminPromptEditor({ tenantId }: AdminPromptEditorProps) 
       setVersion(data.prompt?.version || version + 1);
       setSaveStatus("saved");
     } catch (error) {
-      console.error("Failed to save prompt:", error);
+      log.error("Failed to save prompt:", error);
       setSaveStatus("unsaved");
     }
   }, [tenantId, version]);

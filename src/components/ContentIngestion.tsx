@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import ScraperControl from "@/components/ScraperControl";
 import AdminContentBrowser from "@/components/AdminContentBrowser";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("ContentIngestion");
 
 interface Tenant {
   id: string;
@@ -35,7 +38,7 @@ export default function ContentIngestion({ selectedTenantId, selectedTenantName 
       const data = await res.json();
       setTenants(data.tenants || []);
     } catch (error) {
-      console.error("Failed to fetch tenants:", error);
+      log.error("Failed to fetch tenants:", error);
     } finally {
       setIsLoadingTenants(false);
     }

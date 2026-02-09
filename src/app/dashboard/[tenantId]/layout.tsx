@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
 import { redirect } from "next/navigation";
@@ -6,6 +7,14 @@ import TenantNav from "@/components/TenantNav";
 interface LayoutProps {
   children: React.ReactNode;
   params: Promise<{ tenantId: string }>;
+}
+
+export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
+  const { tenantId } = await params;
+  const config = TENANT_CONFIGS[tenantId];
+  return {
+    title: `${config?.name || tenantId} – Preik`,
+  };
 }
 
 export default async function TenantLayout({ children, params }: LayoutProps) {

@@ -4,7 +4,6 @@ import { Suspense, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } from "@/lib/admin-emails";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -31,13 +30,14 @@ function LoginForm() {
       return;
     }
 
-    const redirect = searchParams.get("redirect");
-    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
-      router.push(redirect);
-    } else if (data.user?.email && (SUPER_ADMIN_EMAILS.includes(data.user.email.toLowerCase()) || ADMIN_EMAILS.includes(data.user.email.toLowerCase()))) {
-      router.push("/admin");
+    const redirectParam = searchParams.get("redirect");
+    if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) {
+      router.push(redirectParam);
     } else {
-      router.push("/dashboard");
+      // Determine redirect server-side (keeps admin emails out of client bundle)
+      const res = await fetch("/api/auth/post-login");
+      const { redirect: target } = await res.json();
+      router.push(target || "/dashboard");
     }
     router.refresh();
   }

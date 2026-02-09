@@ -85,6 +85,7 @@ import { getTenantConfig, getTenantSystemPrompt, validateOrigin } from "@/lib/te
 import { checkRateLimit, getClientIdentifier, getClientIp, RATE_LIMITS } from "@/lib/ratelimit";
 import { checkAndIncrementCredits, shouldSendWarningEmail } from "@/lib/credits";
 import { sendCreditWarningIfNeeded } from "@/lib/email";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const partSchema = z.object({
   type: z.string(),
@@ -264,6 +265,9 @@ export async function POST(request: NextRequest) {
         { status: 413, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const parsed = chatSchema.safeParse(body);

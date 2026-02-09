@@ -36,8 +36,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Find tenants whose billing cycle started more than 1 month ago
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    // Use Date constructor to avoid setMonth overflow (e.g. Mar 31 - 1 month = Feb 28, not Mar 3)
+    const now = new Date();
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    if (oneMonthAgo.getDate() !== now.getDate()) {
+      oneMonthAgo.setDate(0); // Clamp to last day of target month
+    }
 
     const { data: tenants, error } = await supabaseAdmin
       .from("tenants")

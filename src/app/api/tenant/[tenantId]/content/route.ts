@@ -8,6 +8,7 @@ import { openai } from "@ai-sdk/openai";
 import { safeParseInt } from "@/lib/params";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/tenant/content");
 
@@ -179,6 +180,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: authError }, { status });
 
   try {
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
     const body = await request.json();
     const parsed = addContentSchema.safeParse(body);
 
@@ -273,6 +277,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: authError }, { status });
 
   try {
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
+
     const body = await request.json();
     const parsed = editContentSchema.safeParse(body);
 

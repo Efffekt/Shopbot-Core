@@ -4,6 +4,7 @@ import { verifySuperAdmin } from "@/lib/admin-auth";
 import { sendWelcomeEmail } from "@/lib/email";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/admin/tenants");
 
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
     if (contentLength > 64_000) {
       return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const { id, name, allowed_domains, language, persona, contact_email } = body;

@@ -19,40 +19,16 @@ export interface CreditStatus {
   billingCycleEnd: string;
 }
 
-// Circuit breaker: fail closed after consecutive DB failures
-const CIRCUIT_BREAKER_THRESHOLD = 5;
-const CIRCUIT_BREAKER_WINDOW_MS = 60_000;
-let consecutiveFailures = 0;
-let firstFailureAt = 0;
-
 export async function checkAndIncrementCredits(tenantId: string): Promise<CreditCheckResult> {
-  // Circuit breaker: if too many recent failures, fail closed
-  if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
-    const elapsed = Date.now() - firstFailureAt;
-    if (elapsed < CIRCUIT_BREAKER_WINDOW_MS) {
-      log.error("Credit circuit breaker open — rejecting request");
-      return { allowed: false, creditsUsed: 0, creditLimit: 0, percentUsed: 0 };
-    }
-    // Window expired, reset and try again
-    consecutiveFailures = 0;
-    firstFailureAt = 0;
-  }
-
   const { data, error } = await supabaseAdmin.rpc("increment_credits", {
     p_tenant_id: tenantId,
   });
 
   if (error) {
     log.error("Credit check error:", error);
-    if (consecutiveFailures === 0) firstFailureAt = Date.now();
-    consecutiveFailures++;
     // Fail closed — reject request when credit system is down
     return { allowed: false, creditsUsed: 0, creditLimit: 0, percentUsed: 0 };
   }
-
-  // Success — reset circuit breaker
-  consecutiveFailures = 0;
-  firstFailureAt = 0;
 
   const result = data as { allowed: boolean; credits_used: number; credit_limit: number };
   const percentUsed = result.credit_limit > 0
@@ -85,10 +61,13 @@ export async function getCreditStatus(tenantId: string): Promise<CreditStatus | 
     percent_used: number;
   };
 
-  // Calculate billing cycle end (1 month from start)
+  // Calculate billing cycle end (1 month from start, clamped to month boundary)
   const cycleStart = new Date(result.billing_cycle_start);
-  const cycleEnd = new Date(cycleStart);
-  cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+  const cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, cycleStart.getDate());
+  // If day overflowed (e.g. Jan 31 → Mar 3), clamp to last day of target month
+  if (cycleEnd.getDate() !== cycleStart.getDate()) {
+    cycleEnd.setDate(0); // Sets to last day of previous month (the correct target month)
+  }
 
   return {
     creditLimit: result.credit_limit,

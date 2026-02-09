@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { ConversationRecord } from "@/types/admin";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("ConversationBrowser");
 
 interface ConversationBrowserProps {
   selectedTenantId?: string | null;
@@ -59,7 +62,7 @@ export default function ConversationBrowser({ selectedTenantId, selectedTenantNa
       setTotalPages(data.pagination?.totalPages || 1);
       setTotal(data.pagination?.total || 0);
     } catch (error) {
-      console.error("Failed to fetch conversations:", error);
+      log.error("Failed to fetch conversations:", error);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +78,7 @@ export default function ConversationBrowser({ selectedTenantId, selectedTenantNa
       const data = await res.json();
       setTenants(data.tenants || []);
     } catch (error) {
-      console.error("Failed to fetch tenants:", error);
+      log.error("Failed to fetch tenants:", error);
     }
   }
 

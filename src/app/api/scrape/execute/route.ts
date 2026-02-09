@@ -10,6 +10,7 @@ import { verifySuperAdmin } from "@/lib/admin-auth";
 import { isSafeUrl } from "@/lib/url-safety";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/scrape/execute");
 
@@ -46,6 +47,9 @@ export async function POST(request: NextRequest) {
         { status: 429, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const parsed = executeSchema.safeParse(body);

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("ChatWidget");
 
 interface Message {
   role: "user" | "assistant";
@@ -76,7 +79,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         { role: "assistant", content: data.content },
       ]);
     } catch (error) {
-      console.error("Chat error:", error);
+      log.error("Chat error:", error);
       setMessages((prev) => [
         ...prev,
         {

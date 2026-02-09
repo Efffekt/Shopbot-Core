@@ -4,6 +4,7 @@ import { verifyAdmin } from "@/lib/admin-auth";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 import { z } from "zod";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/admin/settings");
 
@@ -62,6 +63,9 @@ export async function PUT(request: NextRequest) {
   if (contentLength > 64_000) {
     return NextResponse.json({ error: "Request body too large" }, { status: 413 });
   }
+
+  const contentTypeError = validateJsonContentType(request);
+  if (contentTypeError) return contentTypeError;
 
   try {
     const body = await request.json();

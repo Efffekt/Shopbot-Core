@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const log = createLogger("api/admin/users");
 
@@ -75,6 +76,9 @@ export async function POST(request: NextRequest) {
     if (contentLength > 16_000) {
       return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     }
+
+    const contentTypeError = validateJsonContentType(request);
+    if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
     const { email, tenantId, role } = body;

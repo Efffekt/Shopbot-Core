@@ -36,5 +36,5 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: placeholder
           GOOGLE_CLOUD_PROJECT: placeholder
           OPENAI_API_KEY: placeholder
-          NEXT_PUBLIC_SUPER_ADMIN_EMAILS: ci@test.com
-          NEXT_PUBLIC_ADMIN_EMAILS: ci@test.com
+          SUPER_ADMIN_EMAILS: ci@test.com
+          ADMIN_EMAILS: ci@test.com
