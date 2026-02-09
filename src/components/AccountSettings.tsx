@@ -245,7 +245,8 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
             id="blogAuthorName"
             value={blogAuthorName}
             onChange={(e) => setBlogAuthorName(e.target.value)}
-            className="w-full bg-preik-bg border border-preik-border rounded-xl px-4 py-3 text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all"
+            disabled={blogSettingsLoading}
+            className="w-full bg-preik-bg border border-preik-border rounded-xl px-4 py-3 text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all disabled:opacity-50"
             placeholder="Forhåndsutfylt navn ved nye innlegg"
           />
         </div>
@@ -259,7 +260,8 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
             value={blogAuthorBio}
             onChange={(e) => setBlogAuthorBio(e.target.value)}
             rows={3}
-            className="w-full bg-preik-bg border border-preik-border rounded-xl px-4 py-3 text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all resize-none"
+            disabled={blogSettingsLoading}
+            className="w-full bg-preik-bg border border-preik-border rounded-xl px-4 py-3 text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all resize-none disabled:opacity-50"
             placeholder="Kort biografi som vises på blogginnlegg"
           />
         </div>

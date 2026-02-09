@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sanitizedName = file.name
+      .slice(0, 200)
       .toLowerCase()
       .replace(/[^a-z0-9.-]/g, "-")
       .replace(/\.{2,}/g, ".")    // collapse consecutive dots

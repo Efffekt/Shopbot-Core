@@ -46,12 +46,21 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   const { tenantId } = await params;
 
+  const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+  if (contentLength > 64_000) {
+    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+  }
+
   try {
     const body = await request.json();
     const { system_prompt } = body;
 
     if (!system_prompt || typeof system_prompt !== "string") {
       return NextResponse.json({ error: "system_prompt is required" }, { status: 400 });
+    }
+
+    if (system_prompt.length > 50_000) {
+      return NextResponse.json({ error: "System prompt too long (max 50,000 characters)" }, { status: 400 });
     }
 
     // Check if prompt exists

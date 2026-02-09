@@ -284,7 +284,8 @@ export default function IntegrationPage() {
                       return label;
                     }
                     const safeUrl = url.replace(/"/g, "&quot;");
-                    return `<a href="${safeUrl}" style="color:${config.accentColor};text-decoration:underline">${label}</a>`;
+                    const safeColor = /^#[0-9A-Fa-f]{6}$/.test(config.accentColor) ? config.accentColor : "#6366f1";
+                    return `<a href="${safeUrl}" style="color:${safeColor};text-decoration:underline">${label}</a>`;
                   })
                   .split("\n\n")
                   .map((p: string) => `<p style="margin:0 0 0.75em">${p.replace(/\n/g, "<br>")}</p>`)

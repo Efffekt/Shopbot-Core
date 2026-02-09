@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { createLogger } from "@/lib/logger";
+import { z } from "zod";
+
+const widgetConfigSchema = z.object({
+  accentColor: z.string().max(50).optional(),
+  textColor: z.string().max(50).optional(),
+  bgColor: z.string().max(50).optional(),
+  surfaceColor: z.string().max(50).optional(),
+  fontBody: z.string().max(100).optional(),
+  fontBrand: z.string().max(100).optional(),
+  brandStyle: z.enum(["normal", "italic"]).optional(),
+  position: z.enum(["bottom-right", "bottom-left"]).optional(),
+  greeting: z.string().max(500).optional(),
+  placeholder: z.string().max(200).optional(),
+  brandName: z.string().max(100).optional(),
+  theme: z.enum(["auto", "light", "dark"]).optional(),
+  startOpen: z.boolean().optional(),
+  contained: z.boolean().optional(),
+  onboarding: z.string().max(5000).optional(),
+  onboardingCta: z.string().max(100).optional(),
+}).strict();
 
 const log = createLogger("api/tenant/widget-config");
 
@@ -57,12 +77,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Admin role required" }, { status: 403 });
   }
 
-  const body = await request.json();
-  const { config } = body;
-
-  if (!config || typeof config !== "object") {
-    return NextResponse.json({ error: "Config object required" }, { status: 400 });
+  const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+  if (contentLength > 64_000) {
+    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
   }
+
+  const body = await request.json();
+  const parsed = widgetConfigSchema.safeParse(body.config);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid config", details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const config = parsed.data;
 
   const { error } = await supabaseAdmin
     .from("widget_config")
