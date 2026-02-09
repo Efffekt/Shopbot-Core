@@ -20,7 +20,7 @@ const manualIngestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   // Verify super admin access
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, email: actorEmail, error: authError } = await verifySuperAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     log.info("Manual ingest complete", { chunks: chunks.length });
 
-    await logAudit({ actorEmail: "super-admin", action: "create", entityType: "documents", details: { storeId, chunks: chunks.length, source: url || "manual" } });
+    await logAudit({ actorEmail: actorEmail!, action: "create", entityType: "documents", details: { storeId, chunks: chunks.length, source: url || "manual" } });
 
     return NextResponse.json({
       success: true,

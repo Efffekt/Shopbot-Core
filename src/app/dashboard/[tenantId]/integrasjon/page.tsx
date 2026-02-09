@@ -279,7 +279,11 @@ export default function IntegrationPage() {
                   .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
                   .replace(/\*(.+?)\*/g, "<em>$1</em>")
                   .replace(/\[(.+?)\]\((.+?)\)/g, (_m: string, label: string, url: string) => {
-                    // Only allow safe URL protocols
+                    // Block dangerous protocols explicitly, then allowlist safe ones
+                    const trimmed = url.trim().toLowerCase();
+                    if (trimmed.startsWith("javascript:") || trimmed.startsWith("data:") || trimmed.startsWith("vbscript:")) {
+                      return label;
+                    }
                     if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url) && !/^\/[^/]/i.test(url)) {
                       return label;
                     }

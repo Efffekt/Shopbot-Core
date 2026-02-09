@@ -84,7 +84,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PATCH - Update tenant
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   // Verify super admin access
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, email: actorEmail, error: authError } = await verifySuperAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -128,7 +128,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Failed to update tenant" }, { status: 500 });
     }
 
-    await logAudit({ actorEmail: "super-admin", action: "update", entityType: "tenant", entityId: tenantId, details: { updatedFields: Object.keys(updates) } });
+    await logAudit({ actorEmail: actorEmail!, action: "update", entityType: "tenant", entityId: tenantId, details: { updatedFields: Object.keys(updates) } });
 
     return NextResponse.json({ tenant });
   } catch (error) {

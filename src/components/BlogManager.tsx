@@ -305,7 +305,7 @@ export default function BlogManager() {
               <div className="mb-2 relative inline-block">
                 <img
                   src={form.cover_image_url}
-                  alt="Cover"
+                  alt={form.title || "Coverbilde"}
                   className="max-h-40 rounded-xl border border-preik-border"
                 />
                 <button

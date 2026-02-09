@@ -40,7 +40,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
 // PUT - Upsert tenant prompt
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, email: actorEmail, error: authError } = await verifySuperAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: "Failed to update prompt" }, { status: 500 });
       }
 
-      await logAudit({ actorEmail: "super-admin", action: "update", entityType: "tenant_prompt", entityId: tenantId });
+      await logAudit({ actorEmail: actorEmail!, action: "update", entityType: "tenant_prompt", entityId: tenantId });
       return NextResponse.json({ prompt });
     } else {
       // Create new
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: "Failed to create prompt" }, { status: 500 });
       }
 
-      await logAudit({ actorEmail: "super-admin", action: "create", entityType: "tenant_prompt", entityId: tenantId });
+      await logAudit({ actorEmail: actorEmail!, action: "create", entityType: "tenant_prompt", entityId: tenantId });
       return NextResponse.json({ prompt }, { status: 201 });
     }
   } catch (error) {

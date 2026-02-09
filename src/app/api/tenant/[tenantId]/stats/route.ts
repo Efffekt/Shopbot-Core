@@ -47,12 +47,40 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     dateThreshold.setDate(dateThreshold.getDate() - days);
     const dateString = dateThreshold.toISOString();
 
-    // Get conversations stats
-    const { data: allConversations, error: convError } = await supabaseAdmin
-      .from("conversations")
-      .select("id, was_handled, referred_to_email, detected_intent, created_at")
-      .eq("store_id", tenantId)
-      .gte("created_at", dateString);
+    const volumeThreshold = new Date();
+    volumeThreshold.setDate(volumeThreshold.getDate() - 14);
+
+    // Run all independent queries in parallel
+    const [
+      { data: allConversations, error: convError },
+      { data: unansweredData },
+      { data: volumeData },
+      { count: documentCount },
+      creditStatus,
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("conversations")
+        .select("id, was_handled, referred_to_email, detected_intent, created_at, user_query")
+        .eq("store_id", tenantId)
+        .gte("created_at", dateString),
+      supabaseAdmin
+        .from("conversations")
+        .select("id, created_at, user_query, ai_response")
+        .eq("store_id", tenantId)
+        .eq("was_handled", false)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabaseAdmin
+        .from("conversations")
+        .select("created_at")
+        .eq("store_id", tenantId)
+        .gte("created_at", volumeThreshold.toISOString()),
+      supabaseAdmin
+        .from("documents")
+        .select("*", { count: "exact", head: true })
+        .eq("store_id", tenantId),
+      getCreditStatus(tenantId),
+    ]);
 
     if (convError) throw convError;
 
@@ -69,13 +97,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         : 100,
     };
 
-    // Get top search terms
-    const { data: queryData } = await supabaseAdmin
-      .from("conversations")
-      .select("user_query")
-      .eq("store_id", tenantId)
-      .gte("created_at", dateString);
-
+    // Extract top search terms from the same conversations data
     const wordCounts: Record<string, number> = {};
     const stopWords = new Set([
       "hva", "hvem", "hvor", "hvordan", "hvorfor", "hvilke", "hvilken", "hvilket",
@@ -94,7 +116,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       "how", "can", "want", "need", "looking", "best", "good", "any"
     ]);
 
-    (queryData || []).forEach((row) => {
+    conversations.forEach((row) => {
+      if (!row.user_query) return;
       const words = row.user_query
         .toLowerCase()
         .replace(/[^a-zæøå0-9\s-]/g, "")
@@ -112,25 +135,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
 
-    // Get unanswered queries
-    const { data: unansweredData } = await supabaseAdmin
-      .from("conversations")
-      .select("id, created_at, user_query, ai_response")
-      .eq("store_id", tenantId)
-      .eq("was_handled", false)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    // Get daily volume (last 14 days)
-    const volumeThreshold = new Date();
-    volumeThreshold.setDate(volumeThreshold.getDate() - 14);
-
-    const { data: volumeData } = await supabaseAdmin
-      .from("conversations")
-      .select("created_at")
-      .eq("store_id", tenantId)
-      .gte("created_at", volumeThreshold.toISOString());
-
+    // Build daily volume from volume data
     const dailyCounts: Record<string, number> = {};
     (volumeData || []).forEach((row) => {
       const date = row.created_at.split("T")[0];
@@ -147,15 +152,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         count: dailyCounts[dateStr] || 0,
       });
     }
-
-    // Get document count
-    const { count: documentCount } = await supabaseAdmin
-      .from("documents")
-      .select("*", { count: "exact", head: true })
-      .eq("store_id", tenantId);
-
-    // Get credit status
-    const creditStatus = await getCreditStatus(tenantId);
 
     return NextResponse.json({
       success: true,

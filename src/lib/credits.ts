@@ -1,7 +1,22 @@
+import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("credits");
+
+const incrementCreditsSchema = z.object({
+  allowed: z.boolean(),
+  credits_used: z.number(),
+  credit_limit: z.number(),
+});
+
+const creditStatusSchema = z.object({
+  credit_limit: z.number(),
+  credits_used: z.number(),
+  credits_remaining: z.number(),
+  billing_cycle_start: z.string(),
+  percent_used: z.number(),
+});
 
 export interface CreditCheckResult {
   allowed: boolean;
@@ -30,7 +45,12 @@ export async function checkAndIncrementCredits(tenantId: string): Promise<Credit
     return { allowed: false, creditsUsed: 0, creditLimit: 0, percentUsed: 0 };
   }
 
-  const result = data as { allowed: boolean; credits_used: number; credit_limit: number };
+  const parsed = incrementCreditsSchema.safeParse(data);
+  if (!parsed.success) {
+    log.error("Unexpected RPC response shape:", parsed.error.flatten());
+    return { allowed: false, creditsUsed: 0, creditLimit: 0, percentUsed: 0 };
+  }
+  const result = parsed.data;
   const percentUsed = result.credit_limit > 0
     ? Math.round((result.credits_used / result.credit_limit) * 100)
     : 0;
@@ -53,13 +73,12 @@ export async function getCreditStatus(tenantId: string): Promise<CreditStatus | 
     return null;
   }
 
-  const result = data as {
-    credit_limit: number;
-    credits_used: number;
-    credits_remaining: number;
-    billing_cycle_start: string;
-    percent_used: number;
-  };
+  const parsed = creditStatusSchema.safeParse(data);
+  if (!parsed.success) {
+    log.error("Unexpected credit status response shape:", parsed.error.flatten());
+    return null;
+  }
+  const result = parsed.data;
 
   // Calculate billing cycle end (1 month from start, clamped to month boundary)
   const cycleStart = new Date(result.billing_cycle_start);

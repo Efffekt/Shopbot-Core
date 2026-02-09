@@ -3,6 +3,8 @@ import Image from "next/image";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Metadata } from "next";
 
+export const revalidate = 3600; // ISR: revalidate every hour
+
 export const metadata: Metadata = {
   title: "Blogg | Preik",
   description: "Les artikler om AI, chatbots og norsk teknologi fra Preik.",
