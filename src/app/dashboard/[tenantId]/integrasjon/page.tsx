@@ -342,15 +342,6 @@ export default function IntegrationPage() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <Link
-          href={`/dashboard/${tenantId}`}
-          className="text-sm text-preik-text-muted hover:text-preik-text transition-colors mb-4 inline-flex items-center gap-1"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Tilbake
-        </Link>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-brand font-light text-preik-text">Integrasjon</h1>
@@ -735,7 +726,7 @@ export default function IntegrationPage() {
         </div>
 
         {/* Right column - Preview & Code */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
           {/* Preview */}
           <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
             <div className="flex items-center justify-between mb-4">

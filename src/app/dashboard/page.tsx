@@ -2,6 +2,9 @@ import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("dashboard");
 
 interface TenantAccess {
   tenant_id: string;
@@ -18,7 +21,7 @@ export default async function DashboardPage() {
     .eq("user_id", user?.id);
 
   if (error) {
-    console.error("Error fetching tenant access:", error);
+    log.error("Error fetching tenant access:", error);
   }
 
   const tenants = (tenantAccess || []) as TenantAccess[];

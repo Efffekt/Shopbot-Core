@@ -37,15 +37,6 @@ export default async function TenantPage({ params }: PageProps) {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <Link
-          href="/dashboard"
-          className="text-sm text-preik-text-muted hover:text-preik-text transition-colors mb-4 inline-flex items-center gap-1"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Tilbake
-        </Link>
         <h1 className="text-3xl font-brand font-light text-preik-text">{config.name}</h1>
         <p className="mt-2 text-preik-text-muted">{config.persona}</p>
         <div className="mt-3">

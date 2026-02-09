@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import type { GlobalUser } from "@/types/admin";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function GlobalUserManagement() {
   const [users, setUsers] = useState<GlobalUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [removingAccess, setRemovingAccess] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<{ userId: string; tenantId: string } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -30,7 +32,6 @@ export default function GlobalUserManagement() {
   }
 
   async function handleRemoveAccess(userId: string, tenantId: string) {
-    if (!confirm("Fjern brukerens tilgang til denne kunden?")) return;
     const key = `${userId}-${tenantId}`;
     setRemovingAccess(key);
     try {
@@ -122,7 +123,7 @@ export default function GlobalUserManagement() {
                         </span>
                       </div>
                       <button
-                        onClick={() => handleRemoveAccess(user.id, m.tenant_id)}
+                        onClick={() => setPendingRemove({ userId: user.id, tenantId: m.tenant_id })}
                         disabled={removingAccess === `${user.id}-${m.tenant_id}`}
                         className="text-xs text-red-600 hover:text-red-700 disabled:opacity-40"
                       >
@@ -138,6 +139,20 @@ export default function GlobalUserManagement() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingRemove}
+        title="Fjern tilgang"
+        description="Er du sikker på at du vil fjerne brukerens tilgang til denne kunden?"
+        confirmLabel="Fjern"
+        onConfirm={() => {
+          if (pendingRemove) {
+            handleRemoveAccess(pendingRemove.userId, pendingRemove.tenantId);
+          }
+          setPendingRemove(null);
+        }}
+        onCancel={() => setPendingRemove(null)}
+      />
     </div>
   );
 }

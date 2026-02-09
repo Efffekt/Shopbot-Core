@@ -7,6 +7,11 @@ import BlogPostContent from "./BlogPostContent";
 
 const SITE_URL = "https://preik.no";
 
+function getReadingTime(text: string): number {
+  const words = text.trim().split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
 interface BlogPost {
   id: string;
   slug: string;
@@ -31,6 +36,33 @@ async function getPost(slug: string): Promise<BlogPost | null> {
     .single();
 
   return post as BlogPost | null;
+}
+
+async function getAdjacentPosts(publishedAt: string, slug: string) {
+  const [{ data: prev }, { data: next }] = await Promise.all([
+    supabaseAdmin
+      .from("blog_posts")
+      .select("slug, title")
+      .not("published_at", "is", null)
+      .lt("published_at", publishedAt)
+      .neq("slug", slug)
+      .order("published_at", { ascending: false })
+      .limit(1)
+      .single(),
+    supabaseAdmin
+      .from("blog_posts")
+      .select("slug, title")
+      .not("published_at", "is", null)
+      .gt("published_at", publishedAt)
+      .neq("slug", slug)
+      .order("published_at", { ascending: true })
+      .limit(1)
+      .single(),
+  ]);
+  return {
+    prev: prev as { slug: string; title: string } | null,
+    next: next as { slug: string; title: string } | null,
+  };
 }
 
 async function getAuthorBio(): Promise<string | null> {
@@ -90,10 +122,12 @@ export default async function BlogPostPage({
   const { slug } = await params;
   const [post, authorBio] = await Promise.all([getPost(slug), getAuthorBio()]);
 
+
   if (!post) {
     notFound();
   }
 
+  const adjacentPosts = await getAdjacentPosts(post.published_at, post.slug);
   const canonicalUrl = `${SITE_URL}/blogg/${post.slug}`;
 
   const jsonLd = {
@@ -175,13 +209,17 @@ export default async function BlogPostPage({
 
         <article className="mt-8">
           <header className="mb-10">
-            <time className="text-sm text-preik-text-muted">
-              {new Date(post.published_at).toLocaleDateString("nb-NO", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </time>
+            <div className="flex items-center gap-3 text-sm text-preik-text-muted">
+              <time>
+                {new Date(post.published_at).toLocaleDateString("nb-NO", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </time>
+              <span aria-hidden="true">&middot;</span>
+              <span>{getReadingTime(post.content)} min lesetid</span>
+            </div>
             <h1 className="text-4xl font-brand font-light text-preik-text mt-2 mb-4">
               {post.title}
             </h1>
@@ -206,7 +244,68 @@ export default async function BlogPostPage({
           <BlogPostContent content={post.content} />
         </article>
 
+        {/* Share buttons */}
         <div className="mt-12 pt-8 border-t border-preik-border">
+          <p className="text-sm font-medium text-preik-text mb-3">Del denne artikkelen</p>
+          <div className="flex items-center gap-3">
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(canonicalUrl)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-sm rounded-xl bg-preik-surface border border-preik-border text-preik-text-muted hover:text-preik-text hover:bg-preik-bg transition-colors"
+            >
+              X / Twitter
+            </a>
+            <a
+              href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(canonicalUrl)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-sm rounded-xl bg-preik-surface border border-preik-border text-preik-text-muted hover:text-preik-text hover:bg-preik-bg transition-colors"
+            >
+              LinkedIn
+            </a>
+            <a
+              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonicalUrl)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-sm rounded-xl bg-preik-surface border border-preik-border text-preik-text-muted hover:text-preik-text hover:bg-preik-bg transition-colors"
+            >
+              Facebook
+            </a>
+          </div>
+        </div>
+
+        {/* Previous / Next post */}
+        {(adjacentPosts.prev || adjacentPosts.next) && (
+          <div className="mt-8 pt-8 border-t border-preik-border grid sm:grid-cols-2 gap-4">
+            {adjacentPosts.prev ? (
+              <Link
+                href={`/blogg/${adjacentPosts.prev.slug}`}
+                className="group bg-preik-surface border border-preik-border rounded-xl p-4 hover:border-preik-accent/30 transition-colors"
+              >
+                <span className="text-xs text-preik-text-muted">&larr; Forrige</span>
+                <p className="text-sm font-medium text-preik-text mt-1 group-hover:text-preik-accent transition-colors line-clamp-2">
+                  {adjacentPosts.prev.title}
+                </p>
+              </Link>
+            ) : (
+              <div />
+            )}
+            {adjacentPosts.next && (
+              <Link
+                href={`/blogg/${adjacentPosts.next.slug}`}
+                className="group bg-preik-surface border border-preik-border rounded-xl p-4 hover:border-preik-accent/30 transition-colors text-right"
+              >
+                <span className="text-xs text-preik-text-muted">Neste &rarr;</span>
+                <p className="text-sm font-medium text-preik-text mt-1 group-hover:text-preik-accent transition-colors line-clamp-2">
+                  {adjacentPosts.next.title}
+                </p>
+              </Link>
+            )}
+          </div>
+        )}
+
+        <div className="mt-8 pt-8 border-t border-preik-border">
           <Link
             href="/blogg"
             className="text-preik-accent hover:text-preik-accent-hover transition-colors"

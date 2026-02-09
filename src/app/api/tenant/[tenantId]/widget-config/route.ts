@@ -48,65 +48,75 @@ async function verifyAccess(tenantId: string) {
 
 // GET - Load widget config for tenant
 export async function GET(_request: NextRequest, { params }: RouteParams) {
-  const { tenantId } = await params;
-  const { user, error: authError, status } = await verifyAccess(tenantId);
-  if (!user) return NextResponse.json({ error: authError }, { status });
+  try {
+    const { tenantId } = await params;
+    const { user, error: authError, status } = await verifyAccess(tenantId);
+    if (!user) return NextResponse.json({ error: authError }, { status });
 
-  const { data, error } = await supabaseAdmin
-    .from("widget_config")
-    .select("config, updated_at")
-    .eq("tenant_id", tenantId)
-    .single();
+    const { data, error } = await supabaseAdmin
+      .from("widget_config")
+      .select("config, updated_at")
+      .eq("tenant_id", tenantId)
+      .single();
 
-  if (error || !data) {
-    return NextResponse.json({ config: null }, {
+    if (error || !data) {
+      return NextResponse.json({ config: null }, {
+        headers: { "Cache-Control": "private, max-age=60" },
+      });
+    }
+
+    return NextResponse.json({ config: data.config, updatedAt: data.updated_at }, {
       headers: { "Cache-Control": "private, max-age=60" },
     });
+  } catch (err) {
+    log.error("Unexpected error fetching widget config:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  return NextResponse.json({ config: data.config, updatedAt: data.updated_at }, {
-    headers: { "Cache-Control": "private, max-age=60" },
-  });
 }
 
 // PUT - Save widget config for tenant
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  const { tenantId } = await params;
-  const { user, role, error: authError, status } = await verifyAccess(tenantId);
-  if (!user) return NextResponse.json({ error: authError }, { status });
-  if (role !== "admin") {
-    return NextResponse.json({ error: "Admin role required" }, { status: 403 });
+  try {
+    const { tenantId } = await params;
+    const { user, role, error: authError, status } = await verifyAccess(tenantId);
+    if (!user) return NextResponse.json({ error: authError }, { status });
+    if (role !== "admin") {
+      return NextResponse.json({ error: "Admin role required" }, { status: 403 });
+    }
+
+    const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+    if (contentLength > 64_000) {
+      return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    }
+
+    const body = await request.json();
+    const parsed = widgetConfigSchema.safeParse(body.config);
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid config", details: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const config = parsed.data;
+
+    const { error } = await supabaseAdmin
+      .from("widget_config")
+      .upsert({
+        tenant_id: tenantId,
+        config,
+        updated_at: new Date().toISOString(),
+        updated_by: user.id,
+      }, { onConflict: "tenant_id" });
+
+    if (error) {
+      log.error("Failed to save widget config:", error);
+      return NextResponse.json({ error: "Failed to save config" }, { status: 500 });
+    }
+
+    await logAudit({ actorEmail: user.email || user.id, action: "update", entityType: "widget_config", entityId: tenantId });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    log.error("Unexpected error saving widget config:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
-  if (contentLength > 64_000) {
-    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
-  }
-
-  const body = await request.json();
-  const parsed = widgetConfigSchema.safeParse(body.config);
-
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid config", details: parsed.error.flatten() }, { status: 400 });
-  }
-
-  const config = parsed.data;
-
-  const { error } = await supabaseAdmin
-    .from("widget_config")
-    .upsert({
-      tenant_id: tenantId,
-      config,
-      updated_at: new Date().toISOString(),
-      updated_by: user.id,
-    }, { onConflict: "tenant_id" });
-
-  if (error) {
-    log.error("Failed to save widget config:", error);
-    return NextResponse.json({ error: "Failed to save config" }, { status: 500 });
-  }
-
-  await logAudit({ actorEmail: user.email || user.id, action: "update", entityType: "widget_config", entityId: tenantId });
-
-  return NextResponse.json({ success: true });
 }

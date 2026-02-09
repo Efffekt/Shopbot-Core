@@ -164,6 +164,7 @@ export default function ResetPasswordPage() {
                     name="password"
                     type="password"
                     required
+                    autoFocus
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-preik-bg border border-preik-border rounded-xl text-preik-text placeholder:text-preik-text-muted focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all"

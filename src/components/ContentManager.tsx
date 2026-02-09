@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface SourceGroup {
   source: string;
@@ -39,15 +39,41 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
   // Delete state
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-  // Close edit modal on Escape key
+  // Modal keyboard handling: Escape to close + focus trap
   useEffect(() => {
     if (!editSource) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setEditSource(null);
+      if (e.key === "Escape") {
+        setEditSource(null);
+        return;
+      }
+      if (e.key === "Tab" && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'input, textarea, button, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    // Focus first input when modal opens
+    const timer = setTimeout(() => {
+      modalRef.current?.querySelector<HTMLElement>("input, textarea")?.focus();
+    }, 50);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(timer);
+    };
   }, [editSource]);
 
   const fetchSources = useCallback(async () => {
@@ -380,7 +406,7 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
 
       {/* Edit modal */}
       {editSource && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+        <div ref={modalRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
           <div className="bg-preik-surface rounded-2xl border border-preik-border shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="p-5 border-b border-preik-border">
               <h2 id="edit-modal-title" className="text-lg font-medium text-preik-text">Rediger innhold</h2>

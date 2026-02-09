@@ -22,20 +22,45 @@ interface BlogPost {
   slug: string;
   title: string;
   excerpt: string | null;
+  content: string;
   author_name: string;
   published_at: string;
   cover_image_url: string | null;
 }
 
-export default async function BloggPage() {
-  const { data: posts } = await supabaseAdmin
-    .from("blog_posts")
-    .select("id, slug, title, excerpt, author_name, published_at, cover_image_url")
-    .not("published_at", "is", null)
-    .lte("published_at", new Date().toISOString())
-    .order("published_at", { ascending: false });
+function getReadingTime(text: string): number {
+  const words = text.trim().split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+const POSTS_PER_PAGE = 6;
+
+export default async function BloggPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ side?: string }>;
+}) {
+  const { side } = await searchParams;
+  const currentPage = Math.max(1, parseInt(side || "1", 10) || 1);
+  const offset = (currentPage - 1) * POSTS_PER_PAGE;
+
+  const [{ data: posts }, { count }] = await Promise.all([
+    supabaseAdmin
+      .from("blog_posts")
+      .select("id, slug, title, excerpt, content, author_name, published_at, cover_image_url")
+      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
+      .order("published_at", { ascending: false })
+      .range(offset, offset + POSTS_PER_PAGE - 1),
+    supabaseAdmin
+      .from("blog_posts")
+      .select("*", { count: "exact", head: true })
+      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString()),
+  ]);
 
   const blogPosts = (posts || []) as BlogPost[];
+  const totalPages = Math.ceil((count || 0) / POSTS_PER_PAGE);
 
   return (
     <div className="min-h-screen bg-preik-bg transition-colors duration-200">
@@ -81,13 +106,17 @@ export default async function BloggPage() {
                   </div>
                 )}
                 <article className="p-8">
-                  <time className="text-sm text-preik-text-muted">
-                    {new Date(post.published_at).toLocaleDateString("nb-NO", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </time>
+                  <div className="flex items-center gap-2 text-sm text-preik-text-muted">
+                    <time>
+                      {new Date(post.published_at).toLocaleDateString("nb-NO", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </time>
+                    <span aria-hidden="true">&middot;</span>
+                    <span>{getReadingTime(post.content)} min</span>
+                  </div>
                   <h2 className="text-2xl font-semibold text-preik-text mt-2 mb-3 group-hover:text-preik-accent transition-colors">
                     {post.title}
                   </h2>
@@ -107,6 +136,30 @@ export default async function BloggPage() {
                 </article>
               </Link>
             ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-12">
+            {currentPage > 1 && (
+              <Link
+                href={currentPage === 2 ? "/blogg" : `/blogg?side=${currentPage - 1}`}
+                className="px-4 py-2 text-sm rounded-xl bg-preik-surface border border-preik-border text-preik-text hover:bg-preik-bg transition-colors"
+              >
+                &larr; Forrige
+              </Link>
+            )}
+            <span className="text-sm text-preik-text-muted px-2">
+              Side {currentPage} av {totalPages}
+            </span>
+            {currentPage < totalPages && (
+              <Link
+                href={`/blogg?side=${currentPage + 1}`}
+                className="px-4 py-2 text-sm rounded-xl bg-preik-surface border border-preik-border text-preik-text hover:bg-preik-bg transition-colors"
+              >
+                Neste &rarr;
+              </Link>
+            )}
           </div>
         )}
 

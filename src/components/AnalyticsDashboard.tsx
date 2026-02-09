@@ -206,6 +206,7 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
             onClick={fetchData}
             className="p-2 text-preik-text-muted hover:text-preik-text transition-colors"
             title="Oppdater"
+            aria-label="Oppdater data"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -370,9 +371,13 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
   );
 }
 
+type CreditSortKey = "created_at" | "credits_consumed";
+
 function CreditUsageLog({ tenantId }: { tenantId: string }) {
   const [logs, setLogs] = useState<{ id: string; created_at: string; credits_consumed: number; session_id: string | null }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<CreditSortKey>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     fetchLogs();
@@ -392,6 +397,30 @@ function CreditUsageLog({ tenantId }: { tenantId: string }) {
     }
   }
 
+  const sortedLogs = useMemo(() => {
+    return [...logs].sort((a, b) => {
+      const valA = a[sortKey];
+      const valB = b[sortKey];
+      if (valA < valB) return sortDir === "asc" ? -1 : 1;
+      if (valA > valB) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [logs, sortKey, sortDir]);
+
+  function toggleSort(key: CreditSortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "created_at" ? "desc" : "asc");
+    }
+  }
+
+  function SortIcon({ column }: { column: CreditSortKey }) {
+    if (sortKey !== column) return <span className="ml-1 text-preik-text-muted/40">&uarr;&darr;</span>;
+    return <span className="ml-1">{sortDir === "asc" ? "\u2191" : "\u2193"}</span>;
+  }
+
   return (
     <div className="bg-preik-surface p-4 rounded-2xl border border-preik-border">
       <h3 className="font-medium text-preik-text mb-4">Kredittbruk (siste 30 dager)</h3>
@@ -406,13 +435,23 @@ function CreditUsageLog({ tenantId }: { tenantId: string }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-preik-border">
-                <th className="text-left py-2 text-preik-text-muted font-medium">Tidspunkt</th>
-                <th className="text-left py-2 text-preik-text-muted font-medium">Kreditter</th>
+                <th
+                  className="text-left py-2 text-preik-text-muted font-medium cursor-pointer select-none hover:text-preik-text transition-colors"
+                  onClick={() => toggleSort("created_at")}
+                >
+                  Tidspunkt<SortIcon column="created_at" />
+                </th>
+                <th
+                  className="text-left py-2 text-preik-text-muted font-medium cursor-pointer select-none hover:text-preik-text transition-colors"
+                  onClick={() => toggleSort("credits_consumed")}
+                >
+                  Kreditter<SortIcon column="credits_consumed" />
+                </th>
                 <th className="text-left py-2 text-preik-text-muted font-medium">Session</th>
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
+              {sortedLogs.map((log) => (
                 <tr key={log.id} className="border-b border-preik-border/50">
                   <td className="py-2 text-preik-text">
                     {new Date(log.created_at).toLocaleString("nb-NO", {

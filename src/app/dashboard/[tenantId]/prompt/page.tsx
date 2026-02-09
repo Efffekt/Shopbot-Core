@@ -1,7 +1,6 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
 import PromptEditorWithTest from "@/components/PromptEditorWithTest";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 interface PageProps {
@@ -45,18 +44,6 @@ export default async function PromptEditorPage({ params }: PageProps) {
 
   return (
     <div>
-      <div className="mb-6">
-        <Link
-          href={`/dashboard/${tenantId}`}
-          className="text-sm text-preik-text-muted hover:text-preik-text transition-colors inline-flex items-center gap-1"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Tilbake til {config.name}
-        </Link>
-      </div>
-
       <div className="mb-6">
         <h1 className="text-2xl font-brand font-light text-preik-text">
           Systemprompt

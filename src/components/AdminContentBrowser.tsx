@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface ContentSource {
   source: string;
@@ -19,6 +20,7 @@ export default function AdminContentBrowser({ tenantId }: AdminContentBrowserPro
   const [sources, setSources] = useState<ContentSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [pendingDeleteSource, setPendingDeleteSource] = useState<string | null>(null);
 
   useEffect(() => {
     fetchContent();
@@ -39,7 +41,6 @@ export default function AdminContentBrowser({ tenantId }: AdminContentBrowserPro
   }
 
   async function handleDelete(source: string) {
-    if (!confirm(`Slett alt innhold fra "${source}"? Dette kan ikke angres.`)) return;
     setDeleting(source);
     try {
       const res = await fetch(
@@ -98,7 +99,7 @@ export default function AdminContentBrowser({ tenantId }: AdminContentBrowserPro
               )}
             </div>
             <button
-              onClick={() => handleDelete(src.source)}
+              onClick={() => setPendingDeleteSource(src.source)}
               disabled={deleting === src.source}
               className="px-2 py-1 bg-red-500/10 text-red-600 text-xs rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-40 shrink-0"
             >
@@ -107,6 +108,17 @@ export default function AdminContentBrowser({ tenantId }: AdminContentBrowserPro
           </div>
         </div>
       ))}
+      <ConfirmDialog
+        open={!!pendingDeleteSource}
+        title="Slett innhold"
+        description={`Slett alt innhold fra "${pendingDeleteSource}"? Dette kan ikke angres.`}
+        confirmLabel="Slett"
+        onConfirm={() => {
+          if (pendingDeleteSource) handleDelete(pendingDeleteSource);
+          setPendingDeleteSource(null);
+        }}
+        onCancel={() => setPendingDeleteSource(null)}
+      />
     </div>
   );
 }

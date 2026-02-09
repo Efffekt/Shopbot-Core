@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 interface AuditEntry {
   id: string;
@@ -26,6 +26,8 @@ export default function AuditLogBrowser() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [entityType, setEntityType] = useState("");
+  const [sortKey, setSortKey] = useState<"created_at" | "actor_email" | "action">("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   async function fetchLog(p: number, et: string) {
     setLoading(true);
@@ -57,6 +59,31 @@ export default function AuditLogBrowser() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  }
+
+  const sortedEntries = useMemo(() => {
+    const sorted = [...entries].sort((a, b) => {
+      const valA = a[sortKey] ?? "";
+      const valB = b[sortKey] ?? "";
+      if (valA < valB) return sortDir === "asc" ? -1 : 1;
+      if (valA > valB) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [entries, sortKey, sortDir]);
+
+  function toggleSort(key: typeof sortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "created_at" ? "desc" : "asc");
+    }
+  }
+
+  function SortIcon({ column }: { column: typeof sortKey }) {
+    if (sortKey !== column) return <span className="ml-1 text-preik-text-muted/40">&uarr;&darr;</span>;
+    return <span className="ml-1">{sortDir === "asc" ? "\u2191" : "\u2193"}</span>;
   }
 
   function actionLabel(action: string): string {
@@ -109,14 +136,29 @@ export default function AuditLogBrowser() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-preik-border">
-                <th className="text-left px-4 py-3 text-preik-text-muted font-medium">Tidspunkt</th>
-                <th className="text-left px-4 py-3 text-preik-text-muted font-medium">Bruker</th>
-                <th className="text-left px-4 py-3 text-preik-text-muted font-medium">Handling</th>
+                <th
+                  className="text-left px-4 py-3 text-preik-text-muted font-medium cursor-pointer select-none hover:text-preik-text transition-colors"
+                  onClick={() => toggleSort("created_at")}
+                >
+                  Tidspunkt<SortIcon column="created_at" />
+                </th>
+                <th
+                  className="text-left px-4 py-3 text-preik-text-muted font-medium cursor-pointer select-none hover:text-preik-text transition-colors"
+                  onClick={() => toggleSort("actor_email")}
+                >
+                  Bruker<SortIcon column="actor_email" />
+                </th>
+                <th
+                  className="text-left px-4 py-3 text-preik-text-muted font-medium cursor-pointer select-none hover:text-preik-text transition-colors"
+                  onClick={() => toggleSort("action")}
+                >
+                  Handling<SortIcon column="action" />
+                </th>
                 <th className="text-left px-4 py-3 text-preik-text-muted font-medium">Detaljer</th>
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
+              {sortedEntries.map((entry) => (
                 <tr key={entry.id} className="border-b border-preik-border last:border-0">
                   <td className="px-4 py-3 text-preik-text-muted whitespace-nowrap">
                     {formatDate(entry.created_at)}

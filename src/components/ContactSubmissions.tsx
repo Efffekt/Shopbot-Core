@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Submission {
   id: string;
@@ -18,6 +19,7 @@ export default function ContactSubmissions() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   async function fetchSubmissions(p: number) {
     setLoading(true);
@@ -40,7 +42,6 @@ export default function ContactSubmissions() {
   }, [page]);
 
   async function handleDelete(id: string) {
-    if (!confirm("Er du sikker på at du vil slette denne henvendelsen?")) return;
     const res = await fetch("/api/admin/contact-submissions", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -129,7 +130,7 @@ export default function ContactSubmissions() {
                       Svar via e-post
                     </a>
                     <button
-                      onClick={() => handleDelete(sub.id)}
+                      onClick={() => setPendingDeleteId(sub.id)}
                       className="text-sm text-red-500 hover:text-red-600 transition-colors"
                     >
                       Slett
@@ -163,6 +164,17 @@ export default function ContactSubmissions() {
           </button>
         </div>
       )}
+      <ConfirmDialog
+        open={!!pendingDeleteId}
+        title="Slett henvendelse"
+        description="Er du sikker på at du vil slette denne henvendelsen? Dette kan ikke angres."
+        confirmLabel="Slett"
+        onConfirm={() => {
+          if (pendingDeleteId) handleDelete(pendingDeleteId);
+          setPendingDeleteId(null);
+        }}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   );
 }

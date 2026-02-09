@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import AdminPromptEditor from "@/components/AdminPromptEditor";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Tenant {
   id: string;
@@ -53,6 +54,7 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
     type: null,
     message: "",
   });
+  const [pendingDeleteTenantId, setPendingDeleteTenantId] = useState<string | null>(null);
 
   // Fetch tenants
   useEffect(() => {
@@ -156,10 +158,6 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
   }
 
   async function handleDeleteTenant(tenantId: string) {
-    if (!confirm(`Er du sikker på at du vil slette ${tenantId}? Dette kan ikke angres.`)) {
-      return;
-    }
-
     try {
       const res = await fetch(`/api/admin/tenants/${tenantId}`, {
         method: "DELETE",
@@ -321,7 +319,7 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
                     Eksporter data
                   </a>
                   <button
-                    onClick={() => handleDeleteTenant(selectedTenant.id)}
+                    onClick={() => setPendingDeleteTenantId(selectedTenant.id)}
                     className="px-3 py-1.5 bg-red-500/10 text-red-600 text-sm font-medium rounded-xl hover:bg-red-500/20 transition-colors"
                   >
                     Slett
@@ -593,6 +591,18 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDeleteTenantId}
+        title="Slett kunde"
+        description={`Er du sikker på at du vil slette ${pendingDeleteTenantId}? Dette kan ikke angres.`}
+        confirmLabel="Slett"
+        onConfirm={() => {
+          if (pendingDeleteTenantId) handleDeleteTenant(pendingDeleteTenantId);
+          setPendingDeleteTenantId(null);
+        }}
+        onCancel={() => setPendingDeleteTenantId(null)}
+      />
     </div>
   );
 }
@@ -601,6 +611,7 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
   const [editLimit, setEditLimit] = useState(String(tenant.credit_limit));
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const percentUsed = tenant.credit_limit > 0
     ? Math.round((tenant.credits_used / tenant.credit_limit) * 100)
@@ -626,7 +637,6 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
   }
 
   async function handleReset() {
-    if (!confirm("Nullstill kreditter for denne kunden? Dette kan ikke angres.")) return;
     setResetting(true);
     try {
       const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
@@ -686,7 +696,7 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
 
         {/* Reset button */}
         <button
-          onClick={handleReset}
+          onClick={() => setShowResetConfirm(true)}
           disabled={resetting || tenant.credits_used === 0}
           className="px-3 py-1.5 bg-yellow-500/10 text-yellow-700 text-sm font-medium rounded-xl hover:bg-yellow-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -699,6 +709,18 @@ function CreditManagement({ tenant, onUpdate }: { tenant: Tenant; onUpdate: () =
           </p>
         )}
       </div>
+
+      <ConfirmDialog
+        open={showResetConfirm}
+        title="Nullstill kreditter"
+        description="Nullstill kreditter for denne kunden? Dette kan ikke angres."
+        confirmLabel="Nullstill"
+        onConfirm={() => {
+          handleReset();
+          setShowResetConfirm(false);
+        }}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   );
 }

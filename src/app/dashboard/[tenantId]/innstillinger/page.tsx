@@ -1,6 +1,4 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
-import { TENANT_CONFIGS } from "@/lib/tenants";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import AccountSettings from "@/components/AccountSettings";
 import { getCreditStatus } from "@/lib/credits";
@@ -25,7 +23,6 @@ export default async function SettingsPage({ params }: PageProps) {
     redirect("/dashboard");
   }
 
-  const config = TENANT_CONFIGS[tenantId];
   const credits = await getCreditStatus(tenantId);
 
   const percentUsed = credits?.percentUsed ?? 0;
@@ -37,18 +34,6 @@ export default async function SettingsPage({ params }: PageProps) {
 
   return (
     <div>
-      <div className="mb-6">
-        <Link
-          href={`/dashboard/${tenantId}`}
-          className="text-sm text-preik-text-muted hover:text-preik-text transition-colors inline-flex items-center gap-1"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Tilbake til {config?.name || tenantId}
-        </Link>
-      </div>
-
       <div className="space-y-6">
         {/* Account Settings */}
         <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
