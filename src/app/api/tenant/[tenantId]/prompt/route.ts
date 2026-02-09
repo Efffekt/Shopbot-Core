@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/tenant/prompt");
@@ -120,6 +121,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    await logAudit({ actorEmail: user.email || user.id, action: "update", entityType: "tenant_prompt", entityId: tenantId });
+
     return NextResponse.json({
       success: true,
       version: existing.version + 1,
@@ -139,6 +142,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         { status: 500 }
       );
     }
+
+    await logAudit({ actorEmail: user.email || user.id, action: "create", entityType: "tenant_prompt", entityId: tenantId });
 
     return NextResponse.json({
       success: true,

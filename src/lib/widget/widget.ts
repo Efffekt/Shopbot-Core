@@ -244,6 +244,8 @@ class PreikChatWidget extends HTMLElement {
   private apiUrl: string;
   private abortController: AbortController | null = null;
   private boundEscapeHandler: ((e: KeyboardEvent) => void) | null = null;
+  private mediaQuery: MediaQueryList | null = null;
+  private boundMediaHandler: (() => void) | null = null;
 
   // DOM references
   private trigger: HTMLButtonElement | null = null;
@@ -300,11 +302,13 @@ class PreikChatWidget extends HTMLElement {
     this.setupEventListeners();
 
     // Listen for theme changes
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    this.mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    this.boundMediaHandler = () => {
       if (this.config.theme === "auto") {
         this.updateStyles();
       }
-    });
+    };
+    this.mediaQuery.addEventListener("change", this.boundMediaHandler);
 
     // Open chat on init if startOpen is true or in contained mode
     if (this.config.startOpen || this.config.contained) {
@@ -332,6 +336,11 @@ class PreikChatWidget extends HTMLElement {
     if (this.boundEscapeHandler) {
       document.removeEventListener("keydown", this.boundEscapeHandler);
       this.boundEscapeHandler = null;
+    }
+    if (this.mediaQuery && this.boundMediaHandler) {
+      this.mediaQuery.removeEventListener("change", this.boundMediaHandler);
+      this.mediaQuery = null;
+      this.boundMediaHandler = null;
     }
   }
 

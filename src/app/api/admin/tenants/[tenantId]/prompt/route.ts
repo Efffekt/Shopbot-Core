@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/tenants/prompt");
@@ -88,6 +89,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: "Failed to update prompt" }, { status: 500 });
       }
 
+      await logAudit({ actorEmail: "super-admin", action: "update", entityType: "tenant_prompt", entityId: tenantId });
       return NextResponse.json({ prompt });
     } else {
       // Create new
@@ -106,6 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: "Failed to create prompt" }, { status: 500 });
       }
 
+      await logAudit({ actorEmail: "super-admin", action: "create", entityType: "tenant_prompt", entityId: tenantId });
       return NextResponse.json({ prompt }, { status: 201 });
     }
   } catch (error) {

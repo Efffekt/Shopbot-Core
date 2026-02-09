@@ -12,9 +12,6 @@ const MAX_BODY_BYTES = 32_000; // ~32KB max request body
 const MAX_MESSAGE_LENGTH = 4_000; // per-message text limit
 const MAX_MESSAGES = 50; // max conversation history
 
-// Retry configuration
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 300;
 import { supabaseAdmin } from "@/lib/supabase";
 
 const log = createLogger("api/chat");
@@ -73,9 +70,6 @@ function getVertex() {
 const startupCreds = getCredentials();
 log.info("Chat API initialized", { credentialsOk: !!startupCreds });
 
-// Helper to delay execution
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 // Check if error is a rate limit error
 function isRateLimitError(error: unknown): boolean {
   if (error instanceof Error) {
@@ -87,7 +81,7 @@ function isRateLimitError(error: unknown): boolean {
   }
   return false;
 }
-import { getTenantConfig, getTenantSystemPrompt, validateOrigin, DEFAULT_TENANT } from "@/lib/tenants";
+import { getTenantConfig, getTenantSystemPrompt, validateOrigin } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, getClientIp, RATE_LIMITS } from "@/lib/ratelimit";
 import { checkAndIncrementCredits, shouldSendWarningEmail } from "@/lib/credits";
 import { sendCreditWarningIfNeeded } from "@/lib/email";

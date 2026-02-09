@@ -5,6 +5,7 @@ import { openai } from "@ai-sdk/openai";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
 import { splitIntoChunks } from "@/lib/chunking";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/admin/manual-ingest");
@@ -90,6 +91,8 @@ export async function POST(request: NextRequest) {
     }
 
     log.info("Manual ingest complete", { chunks: chunks.length });
+
+    await logAudit({ actorEmail: "super-admin", action: "create", entityType: "documents", details: { storeId, chunks: chunks.length, source: url || "manual" } });
 
     return NextResponse.json({
       success: true,

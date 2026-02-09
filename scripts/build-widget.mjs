@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Widget build script using esbuild
 import * as esbuild from "esbuild";
-import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { safeParseInt } from "@/lib/params";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/tenant/content");
@@ -249,6 +250,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    await logAudit({ actorEmail: user.email || user.id, action: "create", entityType: "documents", entityId: tenantId, details: { chunks: chunks.length, source: url || "manual" } });
+
     return NextResponse.json({
       success: true,
       message: `Lagret ${chunks.length} deler`,
@@ -347,6 +350,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    await logAudit({ actorEmail: user.email || user.id, action: "update", entityType: "documents", entityId: tenantId, details: { source, chunks: chunks.length } });
+
     return NextResponse.json({
       success: true,
       message: `Oppdatert med ${chunks.length} deler`,
@@ -400,6 +405,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
           { status: 500 }
         );
       }
+
+      await logAudit({ actorEmail: user.email || user.id, action: "delete", entityType: "documents", entityId: tenantId, details: { source, deletedCount: docs.length } });
 
       return NextResponse.json({
         success: true,

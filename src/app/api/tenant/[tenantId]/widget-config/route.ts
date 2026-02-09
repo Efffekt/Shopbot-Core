@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 import { z } from "zod";
 
@@ -104,6 +105,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     log.error("Failed to save widget config:", error);
     return NextResponse.json({ error: "Failed to save config" }, { status: 500 });
   }
+
+  await logAudit({ actorEmail: user.email || user.id, action: "update", entityType: "widget_config", entityId: tenantId });
 
   return NextResponse.json({ success: true });
 }

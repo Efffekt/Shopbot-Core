@@ -16,10 +16,6 @@ function requiresSupabaseAuth(pathname: string): boolean {
   return SUPABASE_AUTH_PATHS.some((path) => pathname.startsWith(path));
 }
 
-function isPublicApiPath(pathname: string): boolean {
-  return PUBLIC_API_PATHS.some((path) => pathname.startsWith(path));
-}
-
 /** Add security headers (CSP, X-Frame-Options, etc.) to a page response */
 function addSecurityHeaders(response: NextResponse): void {
   response.headers.set("X-Content-Type-Options", "nosniff");

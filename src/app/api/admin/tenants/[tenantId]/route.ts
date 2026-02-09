@@ -124,6 +124,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Failed to update tenant" }, { status: 500 });
     }
 
+    await logAudit({ actorEmail: "super-admin", action: "update", entityType: "tenant", entityId: tenantId, details: { updatedFields: Object.keys(updates) } });
+
     return NextResponse.json({ tenant });
   } catch (error) {
     log.error("Error updating tenant:", error);
