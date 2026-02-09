@@ -314,21 +314,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     }));
 
-    // Delete old then insert new in quick succession (embedding was the slow part)
-    const { error: deleteError } = await supabaseAdmin
+    // Collect old chunk IDs before modifying
+    const { data: oldDocs } = await supabaseAdmin
       .from("documents")
-      .delete()
+      .select("id")
       .eq("store_id", tenantId)
       .eq("metadata->>source", source);
+    const oldIds = (oldDocs || []).map((d: { id: string }) => d.id);
 
-    if (deleteError) {
-      log.error("Error deleting old chunks:", deleteError);
-      return NextResponse.json(
-        { error: "Failed to delete old content" },
-        { status: 500 }
-      );
-    }
-
+    // Insert new chunks first — if this fails, old content is preserved
     const { error: insertError } = await supabaseAdmin
       .from("documents")
       .insert(documents);
@@ -339,6 +333,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         { error: "Failed to save updated content" },
         { status: 500 }
       );
+    }
+
+    // Delete old chunks by ID — new content is already safely saved
+    if (oldIds.length > 0) {
+      const { error: deleteError } = await supabaseAdmin
+        .from("documents")
+        .delete()
+        .in("id", oldIds);
+
+      if (deleteError) {
+        log.warn("Old chunks not cleaned up (new content saved)", { error: deleteError.message });
+      }
     }
 
     return NextResponse.json({

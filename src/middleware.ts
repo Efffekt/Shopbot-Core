@@ -27,6 +27,10 @@ function addSecurityHeaders(response: NextResponse): void {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+
   const cspDirectives = [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
@@ -37,6 +41,7 @@ function addSecurityHeaders(response: NextResponse): void {
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    "upgrade-insecure-requests",
   ];
   response.headers.set("Content-Security-Policy", cspDirectives.join("; "));
 }

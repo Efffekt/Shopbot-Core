@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+    if (contentLength > 64_000) {
+      return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    }
+
     const body = await request.json();
     const { id, name, allowed_domains, language, persona, contact_email } = body;
 

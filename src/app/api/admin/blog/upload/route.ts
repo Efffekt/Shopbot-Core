@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
     const sanitizedName = file.name
       .toLowerCase()
       .replace(/[^a-z0-9.-]/g, "-")
+      .replace(/\.{2,}/g, ".")    // collapse consecutive dots
+      .replace(/^[.-]+/, "")      // strip leading dots/hyphens
       .replace(/-+/g, "-");
     const path = `${Date.now()}-${sanitizedName}`;
 

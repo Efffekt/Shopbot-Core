@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySuperAdmin } from "@/lib/admin-auth";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 
 const deleteAccessSchema = z.object({
@@ -16,7 +17,7 @@ interface RouteParams {
 
 // DELETE - Remove user's access to a tenant
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const { authorized, error: authError } = await verifySuperAdmin();
+  const { authorized, error: authError, email } = await verifySuperAdmin();
   if (!authorized) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
@@ -41,6 +42,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       log.error("Error removing user access:", error);
       return NextResponse.json({ error: "Failed to remove access" }, { status: 500 });
     }
+
+    await logAudit({
+      actorEmail: email || "unknown",
+      action: "delete",
+      entityType: "tenant_user_access",
+      entityId: userId,
+      details: { tenantId },
+    });
 
     return NextResponse.json({ success: true, message: "Tilgang fjernet" });
   } catch (error) {

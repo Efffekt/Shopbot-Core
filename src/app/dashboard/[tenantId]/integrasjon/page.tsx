@@ -78,6 +78,18 @@ export default function IntegrationPage() {
     loadConfig();
   }, [tenantId]);
 
+  if (!loaded) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-48 bg-preik-border rounded animate-pulse" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="h-96 bg-preik-surface border border-preik-border rounded-2xl animate-pulse" />
+          <div className="h-96 bg-preik-surface border border-preik-border rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   // Save config
   const saveConfig = useCallback(async () => {
     setSaving(true);
