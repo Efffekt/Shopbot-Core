@@ -380,10 +380,10 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
 
       {/* Edit modal */}
       {editSource && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
           <div className="bg-preik-surface rounded-2xl border border-preik-border shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="p-5 border-b border-preik-border">
-              <h2 className="text-lg font-medium text-preik-text">Rediger innhold</h2>
+              <h2 id="edit-modal-title" className="text-lg font-medium text-preik-text">Rediger innhold</h2>
               <p className="text-sm text-preik-text-muted mt-1 truncate">{editSource}</p>
             </div>
 

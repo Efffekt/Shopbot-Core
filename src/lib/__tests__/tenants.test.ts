@@ -51,70 +51,46 @@ describe("validateOrigin", () => {
   const config = TENANT_CONFIGS["baatpleiebutikken"];
 
   it("rejects null origin and referer in production", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-    try {
-      const result = validateOrigin(config, null, null);
-      expect(result.allowed).toBe(false);
-      expect(result.reason).toContain("Missing origin");
-    } finally {
-      process.env.NODE_ENV = originalEnv;
-    }
+    vi.stubEnv("NODE_ENV", "production");
+    const result = validateOrigin(config, null, null);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain("Missing origin");
+    vi.unstubAllEnvs();
   });
 
   it("rejects unauthorized domain in production", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-    try {
-      const result = validateOrigin(config, "https://evil.com", null);
-      expect(result.allowed).toBe(false);
-      expect(result.reason).toContain("not authorized");
-    } finally {
-      process.env.NODE_ENV = originalEnv;
-    }
+    vi.stubEnv("NODE_ENV", "production");
+    const result = validateOrigin(config, "https://evil.com", null);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain("not authorized");
+    vi.unstubAllEnvs();
   });
 
   it("allows authorized domain in production", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-    try {
-      const result = validateOrigin(config, "https://baatpleiebutikken.no", null);
-      expect(result.allowed).toBe(true);
-    } finally {
-      process.env.NODE_ENV = originalEnv;
-    }
+    vi.stubEnv("NODE_ENV", "production");
+    const result = validateOrigin(config, "https://baatpleiebutikken.no", null);
+    expect(result.allowed).toBe(true);
+    vi.unstubAllEnvs();
   });
 
   it("allows subdomain matching in production", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-    try {
-      const result = validateOrigin(config, "https://www.baatpleiebutikken.no", null);
-      expect(result.allowed).toBe(true);
-    } finally {
-      process.env.NODE_ENV = originalEnv;
-    }
+    vi.stubEnv("NODE_ENV", "production");
+    const result = validateOrigin(config, "https://www.baatpleiebutikken.no", null);
+    expect(result.allowed).toBe(true);
+    vi.unstubAllEnvs();
   });
 
   it("allows all origins in development", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
-    try {
-      const result = validateOrigin(config, "https://anything.com", null);
-      expect(result.allowed).toBe(true);
-    } finally {
-      process.env.NODE_ENV = originalEnv;
-    }
+    vi.stubEnv("NODE_ENV", "development");
+    const result = validateOrigin(config, "https://anything.com", null);
+    expect(result.allowed).toBe(true);
+    vi.unstubAllEnvs();
   });
 
   it("falls back to referer when origin is null", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-    try {
-      const result = validateOrigin(config, null, "https://baatpleiebutikken.no/page");
-      expect(result.allowed).toBe(true);
-    } finally {
-      process.env.NODE_ENV = originalEnv;
-    }
+    vi.stubEnv("NODE_ENV", "production");
+    const result = validateOrigin(config, null, "https://baatpleiebutikken.no/page");
+    expect(result.allowed).toBe(true);
+    vi.unstubAllEnvs();
   });
 });

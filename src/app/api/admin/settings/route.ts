@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
+import { z } from "zod";
 
 const log = createLogger("api/admin/settings");
 
@@ -57,16 +58,26 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
   }
 
+  const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+  if (contentLength > 64_000) {
+    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+  }
+
   try {
     const body = await request.json();
-    const { settings } = body as { settings?: Record<string, string> };
+    const settingsSchema = z.object({
+      settings: z.record(z.string(), z.string()),
+    });
+    const parsed = settingsSchema.safeParse(body);
 
-    if (!settings || typeof settings !== "object") {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Request body must include a settings object" },
+        { error: "Request body must include a settings object with string values" },
         { status: 400 }
       );
     }
+
+    const { settings } = parsed.data;
 
     // Filter to allowed keys only
     const validEntries = Object.entries(settings).filter(([key]) => ALLOWED_SETTING_KEYS.has(key));
