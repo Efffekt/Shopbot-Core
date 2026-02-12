@@ -1,14 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase";
 import { resetCredits } from "@/lib/credits";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("/api/cron/reset-credits");
 
+function verifyCronSecret(authHeader: string | null): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    log.error("CRON_SECRET environment variable is not set");
+    return false;
+  }
+
+  if (!authHeader) return false;
+
+  const expected = `Bearer ${secret}`;
+  if (authHeader.length !== expected.length) return false;
+
+  try {
+    return timingSafeEqual(
+      Buffer.from(authHeader),
+      Buffer.from(expected),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
-  // Verify cron secret
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Verify cron secret (timing-safe, fails if env var missing)
+  if (!verifyCronSecret(request.headers.get("authorization"))) {
     log.warn("Unauthorized cron attempt");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
