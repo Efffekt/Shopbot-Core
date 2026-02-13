@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { ChatWidget, ChatWidgetRef } from "./ChatWidget";
+import { ScrollReveal } from "./ScrollReveal";
 
 const sampleQuestions = [
   "Hva er Preik?",
@@ -50,17 +51,19 @@ export function DemoSection() {
     <section id="hvordan" className="py-32 px-6 bg-preik-bg transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
         {/* Section header */}
-        <div className="text-center mb-20">
-          <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
-            Prøv selv
-          </p>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-brand font-light text-preik-text mb-6">
-            Se hvordan det fungerer
-          </h2>
-          <p className="text-lg text-preik-text-muted max-w-2xl mx-auto">
-            En AI-assistent som faktisk forstår bedriften din. Trent på ditt innhold, tilpasset din tone.
-          </p>
-        </div>
+        <ScrollReveal animation="up">
+          <div className="text-center mb-20">
+            <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
+              Prøv selv
+            </p>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-brand font-light text-preik-text mb-6">
+              Se hvordan det fungerer
+            </h2>
+            <p className="text-lg text-preik-text-muted max-w-2xl mx-auto">
+              En AI-assistent som faktisk forstår bedriften din. Trent på ditt innhold, tilpasset din tone.
+            </p>
+          </div>
+        </ScrollReveal>
 
         {/* Demo container */}
         <div className="grid lg:grid-cols-2 gap-16 items-start">
@@ -68,43 +71,47 @@ export function DemoSection() {
           <div className="space-y-10">
             <div className="space-y-8">
               {features.map((feature, index) => (
-                <div key={index} className="flex gap-5">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-preik-accent/10 flex items-center justify-center text-preik-accent">
-                    {feature.icon}
+                <ScrollReveal key={index} animation="left" stagger={index + 1}>
+                  <div className="flex gap-5">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-preik-accent/10 flex items-center justify-center text-preik-accent">
+                      {feature.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-preik-text mb-2">{feature.title}</h3>
+                      <p className="text-preik-text-muted leading-relaxed">{feature.description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-preik-text mb-2">{feature.title}</h3>
-                    <p className="text-preik-text-muted leading-relaxed">{feature.description}</p>
-                  </div>
-                </div>
+                </ScrollReveal>
               ))}
             </div>
 
             {/* Suggestion prompts */}
-            <div className="pt-6 border-t border-preik-border">
-              <p className="text-sm font-medium text-preik-text mb-4">Prøv å spørre:</p>
-              <div className="flex flex-wrap gap-2">
-                {sampleQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleQuestionClick(question)}
-                    className="px-4 py-2 text-sm rounded-full border border-preik-border text-preik-text-muted hover:border-preik-accent hover:text-preik-accent transition-colors"
-                  >
-                    {question}
-                  </button>
-                ))}
+            <ScrollReveal animation="up" delay={400}>
+              <div className="pt-6 border-t border-preik-border">
+                <p className="text-sm font-medium text-preik-text mb-4">Prøv å spørre:</p>
+                <div className="flex flex-wrap gap-2">
+                  {sampleQuestions.map((question, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleQuestionClick(question)}
+                      className="px-4 py-2 text-sm rounded-full border border-preik-border text-preik-text-muted hover:border-preik-accent hover:text-preik-accent transition-colors"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            </ScrollReveal>
           </div>
 
           {/* Right - Chat Widget */}
-          <div className="lg:sticky lg:top-24">
+          <ScrollReveal animation="right" delay={200} className="lg:sticky lg:top-24">
             <ChatWidget
               ref={chatRef}
               storeId="preik-demo"
               placeholder="Spør om Preik..."
             />
-          </div>
+          </ScrollReveal>
         </div>
       </div>
     </section>

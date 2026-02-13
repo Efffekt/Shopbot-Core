@@ -82,6 +82,28 @@ body {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
+/* Frosted blur bar at bottom of viewport — hidden on mobile to avoid overlap with browser chrome */
+body::after {
+  content: "";
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, var(--preik-bg));
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  z-index: 50;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  body::after {
+    display: block;
+  }
+}
+
 
 /* Preik Wordmark - Fraunces Italic 600, SOFT 100 */
 .preik-wordmark {
@@ -118,4 +140,166 @@ body {
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out forwards;
+}
+
+/* ═══════════════════════════════════════════════════
+   Scroll reveal animations
+   ═══════════════════════════════════════════════════ */
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes reveal-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes reveal-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Base class — hides element until revealed, GPU-composited */
+.scroll-reveal {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+/* Animation classes applied when revealed — delay driven by CSS variable */
+.scroll-reveal.revealed.reveal-up {
+  animation: reveal-up 0.6s ease-out forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.scroll-reveal.revealed.reveal-scale {
+  animation: reveal-scale 0.5s ease-out forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.scroll-reveal.revealed.reveal-left {
+  animation: reveal-left 0.6s ease-out forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.scroll-reveal.revealed.reveal-right {
+  animation: reveal-right 0.6s ease-out forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* Desktop stagger delays (100ms increments) */
+.stagger-1 { animation-delay: 100ms !important; }
+.stagger-2 { animation-delay: 200ms !important; }
+.stagger-3 { animation-delay: 300ms !important; }
+.stagger-4 { animation-delay: 400ms !important; }
+.stagger-5 { animation-delay: 500ms !important; }
+.stagger-6 { animation-delay: 600ms !important; }
+
+/* Staggered items keep opacity 0 until their delay fires */
+.scroll-reveal.revealed[class*="stagger-"] {
+  animation-fill-mode: forwards;
+}
+
+/* ═══════════════════════════════════════════════════
+   Mobile optimizations (< 768px)
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Shorter translate distance — 16px instead of 24px */
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Replace horizontal slides with fade-up on narrow screens */
+  .scroll-reveal.revealed.reveal-left,
+  .scroll-reveal.revealed.reveal-right {
+    animation-name: reveal-up;
+  }
+
+  /* Faster durations — snappier feel for touch scrolling */
+  .scroll-reveal.revealed.reveal-up,
+  .scroll-reveal.revealed.reveal-left,
+  .scroll-reveal.revealed.reveal-right {
+    animation-duration: 0.4s;
+  }
+
+  .scroll-reveal.revealed.reveal-scale {
+    animation-duration: 0.35s;
+  }
+
+  /* Halve custom delays so hero/content appears faster */
+  .scroll-reveal.revealed.reveal-up,
+  .scroll-reveal.revealed.reveal-scale,
+  .scroll-reveal.revealed.reveal-left,
+  .scroll-reveal.revealed.reveal-right {
+    animation-delay: calc(var(--reveal-delay, 0ms) * 0.5);
+  }
+
+  /* Tighter stagger delays (60ms increments instead of 100ms) */
+  .stagger-1 { animation-delay: 60ms !important; }
+  .stagger-2 { animation-delay: 120ms !important; }
+  .stagger-3 { animation-delay: 180ms !important; }
+  .stagger-4 { animation-delay: 240ms !important; }
+  .stagger-5 { animation-delay: 300ms !important; }
+  .stagger-6 { animation-delay: 360ms !important; }
+}
+
+/* Clean up will-change after animation completes to free GPU memory */
+.scroll-reveal.revealed {
+  will-change: auto;
+}
+
+/* ═══════════════════════════════════════════════════
+   Accessibility — disable all motion for reduced-motion users
+   ═══════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1 !important;
+    will-change: auto;
+  }
+
+  .scroll-reveal.revealed.reveal-up,
+  .scroll-reveal.revealed.reveal-scale,
+  .scroll-reveal.revealed.reveal-left,
+  .scroll-reveal.revealed.reveal-right {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

@@ -1,5 +1,6 @@
 import { PreikWave } from "./PreikWave";
 import { AnimatedChat } from "./AnimatedChat";
+import { ScrollReveal } from "./ScrollReveal";
 
 export function HeroSection() {
   return (
@@ -37,44 +38,54 @@ export function HeroSection() {
           {/* Left - Text and CTA */}
           <div className="text-center lg:text-left">
             {/* Eyebrow */}
-            <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
-              AI-drevet kundeservice
-            </p>
+            <ScrollReveal animation="left">
+              <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
+                AI-drevet kundeservice
+              </p>
+            </ScrollReveal>
 
             {/* Main slogan */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-preik-text transition-colors duration-200 font-brand font-light leading-[0.95]">
-              Ikke mer leting.
-              <br />
-              <span className="text-preik-text-muted">Bare god </span>
-              <span className="preik-wordmark-accent">preik.</span>
-            </h1>
+            <ScrollReveal animation="left" delay={100}>
+              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-preik-text transition-colors duration-200 font-brand font-light leading-[0.95]">
+                Ikke mer leting.
+                <br />
+                <span className="text-preik-text-muted">Bare god </span>
+                <span className="preik-wordmark-accent">preik.</span>
+              </h1>
+            </ScrollReveal>
 
             {/* Supporting text */}
-            <p className="mt-8 max-w-xl text-lg sm:text-xl text-preik-text-muted leading-relaxed transition-colors duration-200">
-              Skreddersydde AI-assistenter som forstår bedriften din og svarer kundene dine – på ordentlig norsk.
-            </p>
+            <ScrollReveal animation="left" delay={200}>
+              <p className="mt-8 max-w-xl text-lg sm:text-xl text-preik-text-muted leading-relaxed transition-colors duration-200">
+                Skreddersydde AI-assistenter som forstår bedriften din og svarer kundene dine – på ordentlig norsk.
+              </p>
+            </ScrollReveal>
 
             {/* CTA Buttons */}
             <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <a
-                href="#kontakt"
-                className="inline-flex items-center justify-center rounded-full bg-preik-accent px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-preik-accent focus:ring-offset-2 focus:ring-offset-preik-bg"
-              >
-                Kom i gang
-              </a>
-              <a
-                href="#hvordan"
-                className="inline-flex items-center justify-center rounded-full border border-preik-border px-7 py-3.5 text-sm font-medium text-preik-text-muted transition-colors hover:border-preik-text-muted hover:text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-border focus:ring-offset-2 focus:ring-offset-preik-bg"
-              >
-                Se hvordan det fungerer
-              </a>
+              <ScrollReveal animation="scale" delay={350}>
+                <a
+                  href="#kontakt"
+                  className="inline-flex items-center justify-center rounded-full bg-preik-accent px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-preik-accent focus:ring-offset-2 focus:ring-offset-preik-bg"
+                >
+                  Kom i gang
+                </a>
+              </ScrollReveal>
+              <ScrollReveal animation="scale" delay={450}>
+                <a
+                  href="#hvordan"
+                  className="inline-flex items-center justify-center rounded-full border border-preik-border px-7 py-3.5 text-sm font-medium text-preik-text-muted transition-colors hover:border-preik-text-muted hover:text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-border focus:ring-offset-2 focus:ring-offset-preik-bg"
+                >
+                  Se hvordan det fungerer
+                </a>
+              </ScrollReveal>
             </div>
           </div>
 
           {/* Right - Animated chat */}
-          <div className="flex justify-center lg:justify-end">
+          <ScrollReveal animation="right" delay={200} className="flex justify-center lg:justify-end">
             <AnimatedChat />
-          </div>
+          </ScrollReveal>
         </div>
       </div>
     </section>

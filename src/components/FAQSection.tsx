@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ScrollReveal } from "./ScrollReveal";
 
 const faqs = [
   {
@@ -36,53 +37,56 @@ export function FAQSection() {
     <section id="faq" className="py-32 px-6 bg-preik-bg transition-colors duration-200">
       <div className="max-w-3xl mx-auto">
         {/* Section header */}
-        <div className="text-center mb-16">
-          <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
-            FAQ
-          </p>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-brand font-light text-preik-text">
-            Spørsmål og svar
-          </h2>
-        </div>
+        <ScrollReveal animation="up">
+          <div className="text-center mb-16">
+            <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
+              FAQ
+            </p>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-brand font-light text-preik-text">
+              Spørsmål og svar
+            </h2>
+          </div>
+        </ScrollReveal>
 
         {/* FAQ items */}
         <div className="space-y-3">
           {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className="border border-preik-border rounded-2xl overflow-hidden bg-preik-surface transition-all duration-200 hover:border-preik-text-muted/30"
-            >
-              <button
-                onClick={() => toggleFAQ(index)}
-                className="w-full px-6 py-5 text-left flex items-center justify-between gap-4"
-              >
-                <span className="font-medium text-preik-text">{faq.question}</span>
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${openIndex === index ? "bg-preik-accent text-white" : "bg-preik-bg text-preik-text-muted"}`}>
-                  <svg
-                    className={`w-4 h-4 transition-transform duration-300 ${
-                      openIndex === index ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </button>
+            <ScrollReveal key={index} animation="up" stagger={index + 1}>
               <div
-                className={`grid transition-all duration-300 ease-in-out ${
-                  openIndex === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                }`}
+                className="border border-preik-border rounded-2xl overflow-hidden bg-preik-surface transition-all duration-200 hover:border-preik-text-muted/30"
               >
-                <div className="overflow-hidden">
-                  <div className="px-6 pb-5">
-                    <p className="text-preik-text-muted leading-relaxed">{faq.answer}</p>
+                <button
+                  onClick={() => toggleFAQ(index)}
+                  className="w-full px-6 py-5 text-left flex items-center justify-between gap-4"
+                >
+                  <span className="font-medium text-preik-text">{faq.question}</span>
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${openIndex === index ? "bg-preik-accent text-white" : "bg-preik-bg text-preik-text-muted"}`}>
+                    <svg
+                      className={`w-4 h-4 transition-transform duration-300 ${
+                        openIndex === index ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    openIndex === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-6 pb-5">
+                      <p className="text-preik-text-muted leading-relaxed">{faq.answer}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
       </div>
