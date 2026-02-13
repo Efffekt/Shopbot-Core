@@ -58,6 +58,8 @@ const BG_OPTIONS = [
   // Nordic palette
   { value: "#F4F7F5", label: "Tåke (Fog)", surface: "#FFFFFF" },
   { value: "#E8EDE9", label: "Birk (Birch Bark)", surface: "#F4F7F5" },
+  // UU-Safe Forest
+  { value: "#F0F4F2", label: "Glacial Mist (UU-Safe)", surface: "#FFFFFF" },
   // Cream / warm neutrals
   { value: "#FEFAE0", label: "Cream (custom)", surface: "#FFFFFF" },
   { value: "#FAFAF9", label: "Stone 50", surface: "#FFFFFF" },
@@ -144,6 +146,13 @@ const COLOR_OPTIONS: { accent: string; label: string; group: string }[] = [
   { accent: "#1B2B24", label: "Skogbunn (Forest Floor)", group: "Nordic" },
   { accent: "#5F6F69", label: "Gråstein (Grey Stone)", group: "Nordic" },
   { accent: "#D9B991", label: "Kvae (Resin/Amber)", group: "Nordic" },
+
+  // UU-Safe Forest (WCAG-optimized)
+  { accent: "#2D6A4F", label: "Deep Moss (6.35:1)", group: "UU-Safe Forest" },
+  { accent: "#0B1F17", label: "Pine Bark (17.2:1)", group: "UU-Safe Forest" },
+  { accent: "#405249", label: "Slate Moss (8.1:1)", group: "UU-Safe Forest" },
+  { accent: "#005F85", label: "Nordic Sky (5.9:1)", group: "UU-Safe Forest" },
+  { accent: "#214F3B", label: "Deep Moss AAA (7+:1)", group: "UU-Safe Forest" },
 
   // Green / teal
   { accent: "#059669", label: "Emerald 600", group: "Green / teal" },
