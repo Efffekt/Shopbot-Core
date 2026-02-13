@@ -162,7 +162,7 @@ export function AnimatedChat() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button aria-label="Slett samtale" className="p-2 rounded-lg text-preik-text-muted opacity-70 transition-colors">
+          <button aria-label="Slett samtale" className="p-2 rounded-lg text-preik-text-muted transition-colors">
             <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -253,7 +253,7 @@ export function AnimatedChat() {
         </div>
 
         {/* Watermark */}
-        <p className="text-center mt-2.5 text-[11px] text-preik-text-muted opacity-60 transition-colors">
+        <p className="text-center mt-2.5 text-[11px] text-preik-text-muted transition-colors">
           Levert av <span className="font-brand font-semibold italic">preik</span>
         </p>
       </div>

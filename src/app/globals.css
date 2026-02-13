@@ -3,8 +3,8 @@
 :root {
   /* Kull (Coal) Palette */
   --preik-primary: #111827;
-  --preik-accent: #F97316;
-  --preik-accent-hover: #EA580C;
+  --preik-accent: #C2410C;
+  --preik-accent-hover: #9A3412;
   --preik-surface: #1F2937;
   --preik-border: #374151;
 
@@ -14,7 +14,7 @@
   --preik-text: #111827;
   --preik-text-muted: #6B7280;
   --preik-border-light: #E5E7EB;
-  --preik-blob: rgba(249, 115, 22, 0.1);
+  --preik-blob: rgba(194, 65, 12, 0.1);
 }
 
 [data-mode="light"] {
@@ -23,7 +23,7 @@
   --preik-text: #111827;
   --preik-text-muted: #6B7280;
   --preik-border: #E5E7EB;
-  --preik-blob: rgba(249, 115, 22, 0.1);
+  --preik-blob: rgba(194, 65, 12, 0.1);
 }
 
 [data-mode="dark"] {
@@ -33,6 +33,8 @@
   --preik-text-muted: #9CA3AF;
   --preik-border: #374151;
   --preik-blob: rgba(249, 115, 22, 0.15);
+  --preik-accent: #F97316;
+  --preik-accent-hover: #EA580C;
 }
 
 @theme inline {

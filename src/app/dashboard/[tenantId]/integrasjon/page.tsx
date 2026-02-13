@@ -22,7 +22,7 @@ interface WidgetConfig {
 }
 
 const defaultConfig: WidgetConfig = {
-  accentColor: "#F97316",
+  accentColor: "#C2410C",
   textColor: "",
   bgColor: "",
   surfaceColor: "",
@@ -39,7 +39,7 @@ const defaultConfig: WidgetConfig = {
 };
 
 const presetColors = [
-  { name: "Orange", value: "#F97316" },
+  { name: "Orange", value: "#C2410C" },
   { name: "Blue", value: "#3B82F6" },
   { name: "Green", value: "#22C55E" },
   { name: "Purple", value: "#8B5CF6" },
@@ -409,7 +409,7 @@ export default function IntegrationPage() {
                   value={config.accentColor}
                   onChange={(e) => updateConfig("accentColor", e.target.value)}
                   className="flex-1 px-3 py-2 bg-preik-bg border border-preik-border rounded-lg text-sm text-preik-text font-mono"
-                  placeholder="#F97316"
+                  placeholder="#C2410C"
                 />
               </div>
             </div>

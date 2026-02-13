@@ -6,7 +6,7 @@ import { getStyles, LIGHT_THEME, DARK_THEME } from "./styles";
 // Default configuration
 const DEFAULT_CONFIG: WidgetConfig = {
   storeId: "",
-  accentColor: "#F97316",
+  accentColor: "#C2410C",
   textColor: "",
   bgColor: "",
   surfaceColor: "",

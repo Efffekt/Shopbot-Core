@@ -9,8 +9,8 @@ export const LIGHT_THEME: ThemeColors = {
   text: "#111827",
   textMuted: "#6B7280",
   border: "#E5E7EB",
-  accent: "#F97316",
-  accentHover: "#EA580C",
+  accent: "#C2410C",
+  accentHover: "#9A3412",
   accentText: "#FFFFFF",
 };
 
@@ -250,13 +250,11 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       color: var(--widget-text-muted);
       border-radius: 8px;
       transition: all 0.15s ease;
-      opacity: 0.7;
     }
 
     .clear-btn:hover {
       background: var(--widget-surface-hover);
       color: #EF4444;
-      opacity: 1;
     }
 
     .clear-btn svg {
@@ -449,7 +447,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
 
     .input-wrapper:focus-within {
       border-color: var(--widget-accent);
-      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+      box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.1);
     }
 
     .input-field {
@@ -504,12 +502,11 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       font-size: 11px;
       color: var(--widget-text-muted);
       text-decoration: none;
-      opacity: 0.6;
       transition: opacity 0.15s ease;
     }
 
     .watermark:hover {
-      opacity: 1;
+      opacity: 0.8;
     }
 
     .watermark-brand {

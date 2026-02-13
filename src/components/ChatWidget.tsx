@@ -237,7 +237,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         <div className="flex items-center gap-1">
           <button
             onClick={clearMessages}
-            className="p-2 rounded-lg text-preik-text-muted hover:bg-preik-bg hover:text-red-500 transition-all opacity-70 hover:opacity-100"
+            className="p-2 rounded-lg text-preik-text-muted hover:bg-preik-bg hover:text-red-500 transition-all"
             title="Slett samtale"
             aria-label="Slett samtale"
           >
@@ -322,7 +322,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
           href="https://preik.ai"
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-center mt-2.5 text-[11px] text-preik-text-muted no-underline opacity-60 hover:opacity-100 transition-opacity"
+          className="block text-center mt-2.5 text-[11px] text-preik-text-muted no-underline hover:opacity-80 transition-opacity"
         >
           Levert av <span className="font-brand font-semibold italic">preik</span>
         </a>

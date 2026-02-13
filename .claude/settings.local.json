@@ -9,7 +9,14 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(git -C \"C:\\\\Users\\\\barla\\\\Desktop\\\\Jobb\\\\shopbot-core\" log --oneline --all)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(tree:*)",
+      "Bash(npx tsx:*)",
+      "Bash(node:*)",
+      "Bash(npm run build:widget:*)",
+      "Bash(git check-ignore:*)",
+      "WebSearch",
+      "Bash(npm run type-check:*)"
     ]
   }
 }

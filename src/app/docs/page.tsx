@@ -260,7 +260,7 @@ export default function DocsPage() {
 {`<script
   src="https://preik.ai/widget.js"
   data-store-id="din-butikk-id"
-  data-accent-color="#F97316"
+  data-accent-color="#C2410C"
   data-text-color="#111827"
   data-bg-color="#111827"
   data-surface-color="#1F2937"
@@ -303,7 +303,7 @@ export default function DocsPage() {
                       <tr>
                         <td className="px-6 py-4 font-mono text-preik-accent">data-accent-color</td>
                         <td className="px-6 py-4 text-preik-text-muted">Hovedfarge for knapper og bruker-meldinger</td>
-                        <td className="px-6 py-4 text-preik-text-muted">#F97316</td>
+                        <td className="px-6 py-4 text-preik-text-muted">#C2410C</td>
                       </tr>
                       <tr>
                         <td className="px-6 py-4 font-mono text-preik-accent">data-text-color</td>
