@@ -103,6 +103,7 @@ export default async function BloggPage({
                       alt={post.title}
                       fill
                       sizes="(max-width: 768px) 100vw, 896px"
+                      unoptimized
                       className="object-cover"
                     />
                   </div>

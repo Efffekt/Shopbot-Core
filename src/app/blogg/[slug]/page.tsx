@@ -235,6 +235,7 @@ export default async function BlogPostPage({
                   fill
                   sizes="(max-width: 768px) 100vw, 768px"
                   priority
+                  unoptimized
                   className="object-cover rounded-2xl"
                 />
               </div>

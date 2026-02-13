@@ -55,6 +55,7 @@ export default function BlogPostContent({ content }: { content: string }) {
               alt={alt || ""}
               fill
               sizes="(max-width: 768px) 100vw, 768px"
+              unoptimized
               className="object-contain rounded-xl"
             />
           </span>
