@@ -1,40 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  /* Kull (Coal) Palette */
-  --preik-primary: #111827;
-  --preik-accent: #C2410C;
-  --preik-accent-hover: #9A3412;
-  --preik-surface: #1F2937;
-  --preik-border: #374151;
+  /* UU-Safe Forest Palette */
+  --preik-primary: #0B1F17;
+  --preik-accent: #2D6A4F;
+  --preik-accent-hover: #214F3B;
+  --preik-surface: #FFFFFF;
+  --preik-border: #D1DBD6;
 
   /* Light mode defaults */
-  --preik-bg: #F9FAFB;
+  --preik-bg: #F0F4F2;
   --preik-surface-light: #FFFFFF;
-  --preik-text: #111827;
-  --preik-text-muted: #6B7280;
-  --preik-border-light: #E5E7EB;
-  --preik-blob: rgba(194, 65, 12, 0.1);
+  --preik-text: #0B1F17;
+  --preik-text-muted: #405249;
+  --preik-border-light: #D1DBD6;
+  --preik-blob: rgba(45, 106, 79, 0.1);
 }
 
 [data-mode="light"] {
-  --preik-bg: #F9FAFB;
+  --preik-bg: #F0F4F2;
   --preik-surface: #FFFFFF;
-  --preik-text: #111827;
-  --preik-text-muted: #6B7280;
-  --preik-border: #E5E7EB;
-  --preik-blob: rgba(194, 65, 12, 0.1);
+  --preik-text: #0B1F17;
+  --preik-text-muted: #405249;
+  --preik-border: #D1DBD6;
+  --preik-blob: rgba(45, 106, 79, 0.1);
 }
 
 [data-mode="dark"] {
-  --preik-bg: #111827;
-  --preik-surface: #1F2937;
-  --preik-text: #F9FAFB;
-  --preik-text-muted: #9CA3AF;
-  --preik-border: #374151;
-  --preik-blob: rgba(249, 115, 22, 0.15);
-  --preik-accent: #F97316;
-  --preik-accent-hover: #EA580C;
+  --preik-bg: #111C18;
+  --preik-surface: #1F332B;
+  --preik-text: #F0F4F2;
+  --preik-text-muted: #AABEB5;
+  --preik-border: #2D4036;
+  --preik-blob: rgba(45, 106, 79, 0.15);
+  --preik-accent: #52B788;
+  --preik-accent-hover: #40916C;
 }
 
 @theme inline {
