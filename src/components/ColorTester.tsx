@@ -55,6 +55,9 @@ const BG_OPTIONS = [
   { value: "#EFF6FF", label: "Blue 50", surface: "#FFFFFF" },
   { value: "#F5F3FF", label: "Violet 50", surface: "#FFFFFF" },
   { value: "#ECFDF5", label: "Emerald 50", surface: "#FFFFFF" },
+  // Nordic palette
+  { value: "#F4F7F5", label: "Tåke (Fog)", surface: "#FFFFFF" },
+  { value: "#E8EDE9", label: "Birk (Birch Bark)", surface: "#F4F7F5" },
   // Cream / warm neutrals
   { value: "#FEFAE0", label: "Cream (custom)", surface: "#FFFFFF" },
   { value: "#FAFAF9", label: "Stone 50", surface: "#FFFFFF" },
@@ -135,6 +138,12 @@ const COLOR_OPTIONS: { accent: string; label: string; group: string }[] = [
   { accent: "#2E6BB5", label: "Steel blue", group: "Blue" },
   { accent: "#1A5FB4", label: "Royal blue", group: "Blue" },
   { accent: "#185ABD", label: "Cobalt", group: "Blue" },
+
+  // Nordic palette
+  { accent: "#2D6A4F", label: "Dyp Mose (Deep Moss)", group: "Nordic" },
+  { accent: "#1B2B24", label: "Skogbunn (Forest Floor)", group: "Nordic" },
+  { accent: "#5F6F69", label: "Gråstein (Grey Stone)", group: "Nordic" },
+  { accent: "#D9B991", label: "Kvae (Resin/Amber)", group: "Nordic" },
 
   // Green / teal
   { accent: "#059669", label: "Emerald 600", group: "Green / teal" },
