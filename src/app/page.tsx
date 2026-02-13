@@ -6,7 +6,7 @@ import { PricingSection } from "@/components/PricingSection";
 import { FAQSection } from "@/components/FAQSection";
 import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
-import { getUser } from "@/lib/supabase-server";
+import { cookies } from "next/headers";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -71,7 +71,8 @@ const faqLd = {
 };
 
 export default async function Home() {
-  const user = await getUser().catch(() => null);
+  const cookieStore = await cookies();
+  const hasSession = cookieStore.getAll().some((c) => c.name.includes("auth-token"));
 
   return (
     <>
@@ -83,7 +84,7 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
       />
-      <Header isLoggedIn={!!user} />
+      <Header isLoggedIn={hasSession} />
       <main id="main-content">
         <HeroSection />
         <ProcessSection />
