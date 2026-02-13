@@ -5,9 +5,10 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface AccountSettingsProps {
   userEmail: string;
+  showBlogSettings?: boolean;
 }
 
-export default function AccountSettings({ userEmail }: AccountSettingsProps) {
+export default function AccountSettings({ userEmail, showBlogSettings = false }: AccountSettingsProps) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -23,6 +24,7 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
   const [blogSettingsSuccess, setBlogSettingsSuccess] = useState(false);
 
   useEffect(() => {
+    if (!showBlogSettings) return;
     async function loadSettings() {
       try {
         const res = await fetch("/api/admin/settings");
@@ -35,7 +37,7 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
       }
     }
     loadSettings();
-  }, []);
+  }, [showBlogSettings]);
 
   async function handleBlogSettingsSave(e: React.FormEvent) {
     e.preventDefault();
@@ -220,8 +222,8 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
         </button>
       </form>
 
-      {/* Blog Settings */}
-      <form onSubmit={handleBlogSettingsSave} className="space-y-4 pt-6 border-t border-preik-border">
+      {/* Blog Settings — admin only */}
+      {showBlogSettings && <form onSubmit={handleBlogSettingsSave} className="space-y-4 pt-6 border-t border-preik-border">
         <h3 className="text-base font-medium text-preik-text">Blogg-innstillinger</h3>
 
         {blogSettingsError && (
@@ -283,7 +285,7 @@ export default function AccountSettings({ userEmail }: AccountSettingsProps) {
             "Lagre blogg-innstillinger"
           )}
         </button>
-      </form>
+      </form>}
     </div>
   );
 }

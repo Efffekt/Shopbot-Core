@@ -129,7 +129,7 @@ export default function AdminPanel({ isSuperAdmin, userEmail }: AdminPanelProps)
       {activeSection === "innstillinger" && (
         <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
           <h2 className="text-xl font-semibold text-preik-text mb-6">Kontoinnstillinger</h2>
-          <AccountSettings userEmail={userEmail} />
+          <AccountSettings userEmail={userEmail} showBlogSettings />
         </div>
       )}
     </div>
