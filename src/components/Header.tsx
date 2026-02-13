@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-export function Header() {
+export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -91,12 +91,21 @@ export function Header() {
               <a href="#kontakt" className="text-sm text-preik-text-muted hover:text-preik-text transition-colors">
                 Kontakt
               </a>
-              <Link
-                href="/login"
-                className="text-sm text-preik-text-muted hover:text-preik-text transition-colors"
-              >
-                Logg inn
-              </Link>
+              {isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="text-sm text-preik-text-muted hover:text-preik-text transition-colors"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-sm text-preik-text-muted hover:text-preik-text transition-colors"
+                >
+                  Logg inn
+                </Link>
+              )}
               <a
                 href="#kontakt"
                 className="text-sm font-medium bg-preik-accent text-white px-4 py-2 rounded-full hover:bg-preik-accent-hover transition-colors"
@@ -154,13 +163,23 @@ export function Header() {
             Kontakt
           </a>
           <div className="flex flex-col gap-4 mt-8">
-            <Link
-              href="/login"
-              onClick={handleLinkClick}
-              className="text-lg text-preik-text-muted hover:text-preik-text transition-colors text-center"
-            >
-              Logg inn
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                onClick={handleLinkClick}
+                className="text-lg text-preik-text-muted hover:text-preik-text transition-colors text-center"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                onClick={handleLinkClick}
+                className="text-lg text-preik-text-muted hover:text-preik-text transition-colors text-center"
+              >
+                Logg inn
+              </Link>
+            )}
             <a
               href="#kontakt"
               onClick={handleLinkClick}

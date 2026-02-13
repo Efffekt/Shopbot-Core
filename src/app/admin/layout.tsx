@@ -50,6 +50,12 @@ export default async function AdminLayout({
             </div>
             <div className="flex items-center gap-6">
               <Link
+                href="/"
+                className="text-sm text-preik-text-muted hover:text-preik-text transition-colors"
+              >
+                Hjem
+              </Link>
+              <Link
                 href="/dashboard"
                 className="text-sm text-preik-text-muted hover:text-preik-text transition-colors"
               >

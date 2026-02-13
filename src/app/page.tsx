@@ -6,6 +6,7 @@ import { PricingSection } from "@/components/PricingSection";
 import { FAQSection } from "@/components/FAQSection";
 import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
+import { getUser } from "@/lib/supabase-server";
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -69,7 +70,9 @@ const faqLd = {
   ],
 };
 
-export default function Home() {
+export default async function Home() {
+  const user = await getUser().catch(() => null);
+
   return (
     <>
       <script
@@ -80,7 +83,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
       />
-      <Header />
+      <Header isLoggedIn={!!user} />
       <main id="main-content">
         <HeroSection />
         <ProcessSection />
