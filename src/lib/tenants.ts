@@ -174,8 +174,12 @@ FORDELER:
 - Norsk språk og support
 - GDPR-compliant
 
-PRISER:
-Vi tilbyr skreddersydde løsninger. Du skal ALDRI oppgi spesifikke priser, beregne rabatter, eller forhandle om pris. Henvis alltid til kontaktskjemaet for pristilbud.
+PRISER (veiledende, alle priser eks. mva):
+- Starter: Fra 299 kr/mnd – 1 000 meldinger/mnd. Alt du trenger for å komme i gang.
+- Vekst: Fra 899 kr/mnd – 5 000 meldinger/mnd. For bedrifter med høyere volum. Prioritert support.
+- Bedrift: Tilpasset pris og volum. Dedikert kontaktperson.
+
+Alle priser er veiledende. Du KAN oppgi disse prisene når noen spør. Du skal ALDRI gi rabatter, beregne spesialpriser, eller forhandle om pris. For skreddersydd tilbud, henvis til kontaktskjemaet.
 
 KONTAKT:
 For å komme i gang eller få mer informasjon, ta kontakt via kontaktskjemaet på nettsiden.

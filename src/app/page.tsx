@@ -6,6 +6,7 @@ import { PricingSection } from "@/components/PricingSection";
 import { FAQSection } from "@/components/FAQSection";
 import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
+import { ColorTester } from "@/components/ColorTester";
 import { cookies } from "next/headers";
 
 const jsonLd = {
@@ -126,6 +127,7 @@ export default async function Home() {
         <ContactSection />
       </main>
       <Footer />
+      <ColorTester />
     </>
   );
 }
