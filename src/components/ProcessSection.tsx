@@ -43,7 +43,7 @@ export function ProcessSection() {
             <ScrollReveal key={index} animation="up" stagger={index + 1}>
               <div className="text-center md:text-left">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-preik-accent/10 mb-6">
-                  <span className="text-xl font-brand font-light text-preik-accent">{step.number}</span>
+                  <span className="text-xl font-brand font-light text-preik-text">{step.number}</span>
                 </div>
                 <h3 className="text-xl font-medium text-preik-text mb-3">{step.title}</h3>
                 <p className="text-preik-text-muted leading-relaxed">{step.description}</p>

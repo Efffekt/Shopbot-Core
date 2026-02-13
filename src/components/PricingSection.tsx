@@ -36,7 +36,7 @@ export function PricingSection() {
 
               <div className="relative flex flex-col flex-1">
                 <div className="mb-6 h-7">
-                  <span className="inline-block px-4 py-1 rounded-full bg-preik-accent/10 text-sm font-medium text-preik-accent">
+                  <span className="inline-block px-4 py-1 rounded-full bg-preik-accent text-sm font-medium text-white">
                     Anbefalt
                   </span>
                 </div>
@@ -131,7 +131,7 @@ export function PricingSection() {
 
                 <a
                   href="#kontakt"
-                  className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] bg-preik-accent/10 text-preik-accent hover:bg-preik-accent/20"
+                  className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] border border-preik-accent text-preik-text hover:bg-preik-accent hover:text-white"
                 >
                   Ta kontakt
                 </a>
@@ -186,7 +186,7 @@ export function PricingSection() {
 
                 <a
                   href="#kontakt"
-                  className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] bg-preik-accent/10 text-preik-accent hover:bg-preik-accent/20"
+                  className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] border border-preik-accent text-preik-text hover:bg-preik-accent hover:text-white"
                 >
                   Kontakt oss for tilbud
                 </a>
