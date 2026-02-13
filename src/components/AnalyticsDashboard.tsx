@@ -76,7 +76,7 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [days, setDays] = useState(30);
-  const [selectedTenant, setSelectedTenant] = useState(selectedTenantId || "baatpleiebutikken");
+  const [selectedTenant, setSelectedTenant] = useState(selectedTenantId || "");
   const [availableTenants, setAvailableTenants] = useState<Tenant[]>([]);
 
   // Update when parent changes selection
@@ -85,6 +85,25 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
       setSelectedTenant(selectedTenantId);
     }
   }, [selectedTenantId]);
+
+  // Fetch accessible tenants on mount
+  useEffect(() => {
+    async function fetchTenants() {
+      try {
+        const res = await fetch("/api/admin/my-tenants");
+        const data = await res.json();
+        if (res.ok && data.tenants?.length > 0) {
+          setAvailableTenants(data.tenants);
+          if (!selectedTenant) {
+            setSelectedTenant(data.tenants[0].id);
+          }
+        }
+      } catch {
+        // Will show error when trying to fetch stats
+      }
+    }
+    fetchTenants();
+  }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -115,7 +134,9 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
   };
 
   useEffect(() => {
-    fetchData();
+    if (selectedTenant) {
+      fetchData();
+    }
   }, [days, selectedTenant]);
 
   const chartData = useMemo(() =>
@@ -181,18 +202,11 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
               onChange={(e) => setSelectedTenant(e.target.value)}
               className="px-3 py-1.5 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text font-medium focus:ring-preik-accent focus:border-preik-accent"
             >
-              {availableTenants.length > 0 ? (
-                availableTenants.map((tenant) => (
-                  <option key={tenant.id} value={tenant.id}>
-                    {tenant.name}
-                  </option>
-                ))
-              ) : (
-                <>
-                  <option value="baatpleiebutikken">Båtpleiebutikken</option>
-                  <option value="docs-site">Docs Project</option>
-                </>
-              )}
+              {availableTenants.map((tenant) => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.name}
+                </option>
+              ))}
             </select>
           </div>
 

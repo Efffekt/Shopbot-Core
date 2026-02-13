@@ -1,5 +1,6 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { TENANT_CONFIGS } from "@/lib/tenants";
+import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } from "@/lib/admin-emails";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createLogger } from "@/lib/logger";
@@ -31,6 +32,14 @@ export default async function DashboardPage() {
     redirect(`/dashboard/${tenants[0].tenant_id}`);
   }
 
+  // If user has no tenant projects but is an admin, redirect to admin panel
+  if (tenants.length === 0) {
+    const email = user?.email?.toLowerCase() ?? "";
+    if (SUPER_ADMIN_EMAILS.includes(email) || ADMIN_EMAILS.includes(email)) {
+      redirect("/admin");
+    }
+  }
+
   return (
     <div>
       <h1 className="text-3xl font-brand font-light text-preik-text mb-8">
@@ -39,7 +48,7 @@ export default async function DashboardPage() {
 
       {tenants.length === 0 ? (
         <div className="bg-preik-accent/10 border border-preik-accent/20 rounded-2xl p-8">
-          <h2 className="text-lg font-medium text-preik-text">Ingen tilgang</h2>
+          <h2 className="text-lg font-medium text-preik-text">Ingen prosjekter</h2>
           <p className="mt-2 text-preik-text-muted">
             Du har ikke tilgang til noen prosjekter ennå. Kontakt en administrator for å få tilgang.
           </p>
