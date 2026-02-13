@@ -42,7 +42,9 @@ function addSecurityHeaders(response: NextResponse): void {
   response.headers.set("Content-Security-Policy", cspDirectives.join("; "));
 }
 
-async function verifySupabaseAuth(request: NextRequest): Promise<{ authenticated: boolean; response?: NextResponse }> {
+/** Refresh the Supabase session and return the user + updated response.
+ *  This must run for ALL page routes so token refresh cookies propagate. */
+async function refreshSupabaseSession(request: NextRequest): Promise<{ user: unknown; response: NextResponse }> {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -68,30 +70,13 @@ async function verifySupabaseAuth(request: NextRequest): Promise<{ authenticated
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  return { authenticated: !!user, response };
+  return { user, response };
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if path requires Supabase Auth (tenant dashboard + admin panel)
-  if (requiresSupabaseAuth(pathname)) {
-    const { authenticated, response } = await verifySupabaseAuth(request);
-    if (!authenticated) {
-      log.warn("Unauthenticated access attempt", { pathname });
-      const loginUrl = new URL("/login", request.url);
-      // Only pass known safe paths as redirect to prevent open redirect
-      const safeRedirectPrefixes = ["/dashboard", "/admin"];
-      if (safeRedirectPrefixes.some((p) => pathname.startsWith(p))) {
-        loginUrl.searchParams.set("redirect", pathname);
-      }
-      return NextResponse.redirect(loginUrl);
-    }
-    addSecurityHeaders(response!);
-    return response;
-  }
-
-  // Handle CORS for API routes — three tiers:
+  // Handle CORS for API routes — three tiers (no session refresh needed):
   // 1. Public-wildcard: /api/widget, /api/health → Access-Control-Allow-Origin: *
   // 2. Widget-facing: /api/chat, /api/contact → reflect request Origin, Vary: Origin
   // 3. Internal (everything else) → no CORS headers (same-origin only)
@@ -125,8 +110,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Public page routes — add security headers
-  const response = NextResponse.next({ request });
+  // All page routes: refresh Supabase session so token cookies stay valid
+  const { user, response } = await refreshSupabaseSession(request);
+
+  // Protected routes: require authentication
+  if (requiresSupabaseAuth(pathname) && !user) {
+    log.warn("Unauthenticated access attempt", { pathname });
+    const loginUrl = new URL("/login", request.url);
+    const safeRedirectPrefixes = ["/dashboard", "/admin"];
+    if (safeRedirectPrefixes.some((p) => pathname.startsWith(p))) {
+      loginUrl.searchParams.set("redirect", pathname);
+    }
+    return NextResponse.redirect(loginUrl);
+  }
+
   addSecurityHeaders(response);
   return response;
 }
