@@ -30,8 +30,10 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -51,12 +53,16 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
 
   const sendMessage = async (externalMessage?: string) => {
     const messageToSend = externalMessage || input.trim();
-    if (!messageToSend || isLoading) return;
+    if (!messageToSend || isLoading || isStreaming) return;
 
     const userMessage = messageToSend;
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
+
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const timeoutId = setTimeout(() => abortControllerRef.current?.abort(), 30000);
 
     try {
       const response = await fetch("/api/chat", {
@@ -65,21 +71,126 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: userMessage }],
           storeId,
-          noStream: true,
         }),
+        signal: abortControllerRef.current.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error("Failed to get response");
       }
 
-      const data = await response.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.content },
-      ]);
+      const contentType = response.headers.get("content-type") || "";
+
+      // Non-streaming fallback (JSON response)
+      if (contentType.includes("application/json")) {
+        const data = await response.json();
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: data.content || data.text || "" },
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Streaming response — word-by-word reveal
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      setIsLoading(false);
+      setIsStreaming(true);
+
+      // Add empty assistant message
+      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
+      const decoder = new TextDecoder();
+      let fullContent = "";
+      let displayedContent = "";
+      let streamDone = false;
+
+      const WORDS_PER_TICK = 2;
+      const TICK_MS = 30;
+
+      // Word-by-word reveal loop
+      const revealWords = () => {
+        if (displayedContent.length >= fullContent.length && streamDone) {
+          // Final update
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { role: "assistant", content: fullContent };
+            return updated;
+          });
+          setIsStreaming(false);
+          return;
+        }
+
+        const remaining = fullContent.slice(displayedContent.length);
+        const words = remaining.split(/(\s+)/);
+        let toAdd = "";
+        for (let i = 0; i < WORDS_PER_TICK * 2 && i < words.length; i++) {
+          toAdd += words[i];
+        }
+
+        if (toAdd) {
+          displayedContent += toAdd;
+          const snapshot = displayedContent;
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { role: "assistant", content: snapshot };
+            return updated;
+          });
+        }
+
+        if (displayedContent.length < fullContent.length || !streamDone) {
+          setTimeout(revealWords, TICK_MS);
+        }
+      };
+
+      setTimeout(revealWords, TICK_MS);
+
+      // Read stream chunks
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          streamDone = true;
+          break;
+        }
+        const chunk = decoder.decode(value, { stream: true });
+        fullContent += chunk;
+      }
+
+      // Flush decoder
+      const remaining = decoder.decode();
+      if (remaining) fullContent += remaining;
+      streamDone = true;
+
+      // Wait for reveal to finish
+      while (displayedContent.length < fullContent.length) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+
+      // Ensure final content
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: "assistant", content: fullContent };
+        return updated;
+      });
+      setIsStreaming(false);
     } catch (error) {
+      clearTimeout(timeoutId);
+      if ((error as Error).name === "AbortError") {
+        setIsLoading(false);
+        setIsStreaming(false);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Forespørselen tok for lang tid. Prøv igjen." },
+        ]);
+        return;
+      }
       log.error("Chat error:", error);
+      setIsLoading(false);
+      setIsStreaming(false);
       setMessages((prev) => [
         ...prev,
         {
@@ -87,8 +198,6 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
           content: "Beklager, noe gikk galt. Prøv igjen senere.",
         },
       ]);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -192,11 +301,11 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className="flex-1 bg-transparent text-[15px] text-preik-text placeholder:text-preik-text-muted outline-none min-w-0 transition-colors"
-            disabled={isLoading}
+            disabled={isLoading || isStreaming}
           />
           <button
             onClick={() => sendMessage()}
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || isStreaming || !input.trim()}
             className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center hover:bg-preik-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
             <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
