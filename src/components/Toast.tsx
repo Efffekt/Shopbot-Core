@@ -38,6 +38,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {/* Toast container */}
       <div
+        role="region"
         aria-live="polite"
         aria-label="Varsler"
         className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none"

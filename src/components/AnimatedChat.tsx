@@ -162,13 +162,13 @@ export function AnimatedChat() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button className="p-2 rounded-lg text-preik-text-muted opacity-70 transition-colors">
+          <button aria-label="Slett samtale" className="p-2 rounded-lg text-preik-text-muted opacity-70 transition-colors">
             <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
           </button>
-          <button className="p-2 rounded-lg text-preik-text-muted transition-colors">
+          <button aria-label="Lukk chat" className="p-2 rounded-lg text-preik-text-muted transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -239,11 +239,13 @@ export function AnimatedChat() {
             )}
           </span>
           <div
+            role="img"
+            aria-label="Send melding"
             className={`w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
               isButtonPressed ? "scale-90 bg-preik-accent-hover" : "scale-100"
             }`}
           >
-            <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg aria-hidden="true" className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <line x1="22" y1="2" x2="11" y2="13"/>
               <polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
