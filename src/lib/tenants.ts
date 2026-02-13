@@ -227,6 +227,8 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
     allowedDomains: [
       "preik.no",
       "www.preik.no",
+      "preik.ai",
+      "www.preik.ai",
       "localhost",
       "localhost:3000",
       "127.0.0.1",
