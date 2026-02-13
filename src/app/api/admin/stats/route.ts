@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getTenantConfig, getAllTenants, DEFAULT_TENANT } from "@/lib/tenants";
-import { verifyAdminTenantAccess } from "@/lib/admin-auth";
+import { verifyAdmin } from "@/lib/admin-auth";
 import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const storeId = searchParams.get("storeId") || DEFAULT_TENANT;
 
-    const { authorized, error: authError } = await verifyAdminTenantAccess(storeId);
+    const { authorized, error: authError } = await verifyAdmin();
     if (!authorized) {
       return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
     }

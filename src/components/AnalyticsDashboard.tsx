@@ -91,15 +91,19 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
     async function fetchTenants() {
       try {
         const res = await fetch("/api/admin/my-tenants");
-        const data = await res.json();
-        if (res.ok && data.tenants?.length > 0) {
-          setAvailableTenants(data.tenants);
+        const json = await res.json();
+        if (res.ok && json.tenants?.length > 0) {
+          setAvailableTenants(json.tenants);
           if (!selectedTenant) {
-            setSelectedTenant(data.tenants[0].id);
+            setSelectedTenant(json.tenants[0].id);
           }
+        } else {
+          setIsLoading(false);
+          setError("Ingen kunder tilgjengelig for analyse");
         }
       } catch {
-        // Will show error when trying to fetch stats
+        setIsLoading(false);
+        setError("Kunne ikke hente tilgjengelige kunder");
       }
     }
     fetchTenants();
