@@ -449,7 +449,7 @@ export default function CustomerManagement({ onSelectTenant, onNavigateToContent
                 <h3 className="font-medium text-preik-text mb-2">Embed-kode</h3>
                 <pre className="bg-preik-bg p-3 rounded-xl text-sm overflow-x-auto text-preik-text">
 {`<script
-  src="https://preik.no/widget.js"
+  src="https://preik.ai/widget.js"
   data-store-id="${selectedTenant.id}"
   async
 ></script>`}

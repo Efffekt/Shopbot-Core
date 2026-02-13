@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Vilkår for bruk – Preik",
     description: "Les vilkårene for bruk av Preik sine tjenester.",
-    url: "https://preik.no/vilkar",
+    url: "https://preik.ai/vilkar",
   },
-  alternates: { canonical: "https://preik.no/vilkar" },
+  alternates: { canonical: "https://preik.ai/vilkar" },
 };
 
 export default function TermsPage() {
@@ -126,8 +126,8 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-preik-text">11. Kontakt</h2>
             <p>
               For spørsmål om disse vilkårene, kontakt oss på{" "}
-              <a href="mailto:hei@preik.no" className="text-preik-accent hover:underline">
-                hei@preik.no
+              <a href="mailto:hei@preik.ai" className="text-preik-accent hover:underline">
+                hei@preik.ai
               </a>
             </p>
           </section>

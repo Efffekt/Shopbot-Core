@@ -127,7 +127,7 @@ export default async function SettingsPage({ params }: PageProps) {
 
                 <p className="text-sm text-preik-text-muted pt-2 border-t border-preik-border">
                   Trenger du flere kreditter?{" "}
-                  <a href="mailto:hei@preik.no" className="text-preik-accent hover:underline">
+                  <a href="mailto:hei@preik.ai" className="text-preik-accent hover:underline">
                     Kontakt oss for å oppgradere.
                   </a>
                 </p>
@@ -153,7 +153,7 @@ export default async function SettingsPage({ params }: PageProps) {
 
             <div className="space-y-3">
               <a
-                href="mailto:hei@preik.no"
+                href="mailto:hei@preik.ai"
                 className="flex items-center gap-3 p-4 bg-preik-bg rounded-xl border border-preik-border hover:border-preik-accent transition-colors group"
               >
                 <div className="w-10 h-10 rounded-xl bg-preik-accent/10 flex items-center justify-center group-hover:bg-preik-accent/20 transition-colors">
@@ -163,7 +163,7 @@ export default async function SettingsPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="text-preik-text font-medium text-sm">Send oss en e-post</p>
-                  <p className="text-xs text-preik-text-muted">hei@preik.no · Svar innen 24 timer</p>
+                  <p className="text-xs text-preik-text-muted">hei@preik.ai · Svar innen 24 timer</p>
                 </div>
               </a>
 

@@ -11,11 +11,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Blogg | Preik",
     description: "Les artikler om AI, chatbots og norsk teknologi fra Preik.",
-    url: "https://preik.no/blogg",
+    url: "https://preik.ai/blogg",
     type: "website",
   },
   alternates: {
-    canonical: "https://preik.no/blogg",
+    canonical: "https://preik.ai/blogg",
   },
 };
 
@@ -64,8 +64,34 @@ export default async function BloggPage({
   const blogPosts = (posts || []) as BlogPost[];
   const totalPages = Math.ceil((count || 0) / POSTS_PER_PAGE);
 
+  const blogListLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Blogg | Preik",
+    description: "Les artikler om AI, chatbots og norsk teknologi fra Preik.",
+    url: "https://preik.ai/blogg",
+    publisher: {
+      "@type": "Organization",
+      name: "Preik",
+      url: "https://preik.ai",
+    },
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: blogPosts.map((post, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `https://preik.ai/blogg/${post.slug}`,
+        name: post.title,
+      })),
+    },
+  };
+
   return (
     <div className="min-h-screen bg-preik-bg transition-colors duration-200">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogListLd) }}
+      />
       {/* Header */}
       <header className="px-6 py-6 border-b border-preik-border">
         <Link href="/" className="preik-wordmark text-2xl">

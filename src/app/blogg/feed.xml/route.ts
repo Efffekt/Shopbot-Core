@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 
-const SITE_URL = "https://preik.no";
+const SITE_URL = "https://preik.ai";
 
 export async function GET() {
   const { data: posts } = await supabaseAdmin

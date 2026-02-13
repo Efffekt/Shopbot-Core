@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/admin", "/dashboard", "/api/", "/login", "/glemt-passord", "/tilbakestill-passord"],
       },
     ],
-    sitemap: "https://preik.no/sitemap.xml",
+    sitemap: "https://preik.ai/sitemap.xml",
   };
 }

@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import type { Metadata } from "next";
 import BlogPostContent from "./BlogPostContent";
 
-const SITE_URL = "https://preik.no";
+const SITE_URL = "https://preik.ai";
 
 function getReadingTime(text: string): number {
   const words = text.trim().split(/\s+/).length;

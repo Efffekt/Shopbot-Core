@@ -39,7 +39,7 @@ export default function Error({
             Prøv igjen
           </button>
           <a
-            href="mailto:hei@preik.no"
+            href="mailto:hei@preik.ai"
             className="inline-flex items-center gap-2 px-6 py-3 border border-preik-border text-preik-text rounded-full hover:bg-preik-surface transition-colors"
           >
             Kontakt support

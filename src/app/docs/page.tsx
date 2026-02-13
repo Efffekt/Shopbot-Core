@@ -163,10 +163,10 @@ export default function DocsPage() {
             <div className="mt-8 mx-4 p-4 bg-preik-surface rounded-xl border border-preik-border">
               <p className="text-sm text-preik-text mb-2">Trenger du hjelp?</p>
               <a
-                href="mailto:hei@preik.no"
+                href="mailto:hei@preik.ai"
                 className="text-sm text-preik-accent hover:text-preik-accent-hover transition-colors"
               >
-                hei@preik.no
+                hei@preik.ai
               </a>
             </div>
           </nav>
@@ -245,7 +245,7 @@ export default function DocsPage() {
                 <div className="bg-preik-bg rounded-xl p-4 font-mono text-sm overflow-x-auto">
                   <pre className="text-preik-text-muted">
 {`<script
-  src="https://preik.no/widget.js"
+  src="https://preik.ai/widget.js"
   data-store-id="din-butikk-id"
   async
 ></script>`}
@@ -258,7 +258,7 @@ export default function DocsPage() {
                 <div className="bg-preik-bg rounded-xl p-4 font-mono text-sm overflow-x-auto">
                   <pre className="text-preik-text-muted">
 {`<script
-  src="https://preik.no/widget.js"
+  src="https://preik.ai/widget.js"
   data-store-id="din-butikk-id"
   data-accent-color="#F97316"
   data-text-color="#111827"
@@ -467,7 +467,7 @@ data-surface-color="#151B28"`}
 
 <!-- Bruk fontene i widgeten -->
 <script
-  src="https://preik.no/widget.js"
+  src="https://preik.ai/widget.js"
   data-store-id="din-butikk-id"
   data-font-body="Inter, sans-serif"
   data-font-brand="Playfair Display, serif"
@@ -681,7 +681,7 @@ Vanlige spørsmål:
                   <h3 className="font-medium text-preik-text mb-3">Endepunkt</h3>
                   <div className="bg-preik-bg rounded-xl p-4 font-mono text-sm">
                     <code className="text-preik-accent">POST</code>
-                    <code className="text-preik-text-muted ml-2">https://preik.no/api/chat</code>
+                    <code className="text-preik-text-muted ml-2">https://preik.ai/api/chat</code>
                   </div>
                 </div>
 
@@ -812,7 +812,7 @@ export default function App() {
     <>
       {/* ... din app ... */}
       <Script
-        src="https://preik.no/widget.js"
+        src="https://preik.ai/widget.js"
         data-store-id="din-butikk-id"
         strategy="lazyOnload"
       />
@@ -840,7 +840,7 @@ export default function App() {
   <!-- Nettsidens innhold -->
 
   <script
-    src="https://preik.no/widget.js"
+    src="https://preik.ai/widget.js"
     data-store-id="din-butikk-id"
     async
   ></script>
@@ -894,7 +894,7 @@ export default function App() {
                     <li>• Legg til en versjon-parameter for å tvinge oppdatering:</li>
                   </ul>
                   <div className="bg-preik-bg rounded-xl p-4 font-mono text-sm mt-2">
-                    <code className="text-preik-text-muted">src=&quot;https://preik.no/widget.js?v=2&quot;</code>
+                    <code className="text-preik-text-muted">src=&quot;https://preik.ai/widget.js?v=2&quot;</code>
                   </div>
                 </div>
 
@@ -965,13 +965,13 @@ export default function App() {
                   Sliter du med integrasjonen eller har spørsmål? Vi hjelper deg gjerne!
                 </p>
                 <a
-                  href="mailto:hei@preik.no"
+                  href="mailto:hei@preik.ai"
                   className="inline-flex items-center gap-2 text-preik-accent hover:text-preik-accent-hover font-medium transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  hei@preik.no
+                  hei@preik.ai
                 </a>
               </div>
             </section>

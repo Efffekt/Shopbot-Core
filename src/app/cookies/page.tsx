@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Informasjonskapsler – Preik",
     description: "Les om hvordan Preik bruker informasjonskapsler (cookies).",
-    url: "https://preik.no/cookies",
+    url: "https://preik.ai/cookies",
   },
-  alternates: { canonical: "https://preik.no/cookies" },
+  alternates: { canonical: "https://preik.ai/cookies" },
 };
 
 export default function CookiePolicyPage() {
@@ -115,8 +115,8 @@ export default function CookiePolicyPage() {
             <h2 className="text-xl font-semibold text-preik-text">Kontakt</h2>
             <p>
               Har du spørsmål om vår bruk av informasjonskapsler? Kontakt oss på{" "}
-              <a href="mailto:hei@preik.no" className="text-preik-accent hover:underline">
-                hei@preik.no
+              <a href="mailto:hei@preik.ai" className="text-preik-accent hover:underline">
+                hei@preik.ai
               </a>
             </p>
           </section>

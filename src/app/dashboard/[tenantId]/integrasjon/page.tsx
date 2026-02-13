@@ -113,7 +113,7 @@ export default function IntegrationPage() {
     if (typeof window !== "undefined") {
       return `${window.location.origin}/widget.js`;
     }
-    return "https://preik.no/widget.js";
+    return "https://preik.ai/widget.js";
   };
 
   // Generate embed code based on config

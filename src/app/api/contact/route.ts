@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const origin = request.headers.get("origin");
     const ALLOWED_ORIGINS = process.env.CONTACT_ALLOWED_ORIGINS
       ? process.env.CONTACT_ALLOWED_ORIGINS.split(",").map((s) => s.trim())
-      : ["https://preik.no", "https://www.preik.no", "https://baatpleiebutikken.no", "https://www.baatpleiebutikken.no"];
+      : ["https://preik.ai", "https://www.preik.ai", "https://preik.no", "https://www.preik.no", "https://baatpleiebutikken.no", "https://www.baatpleiebutikken.no"];
     const corsHeaders: Record<string, string> = { "Vary": "Origin" };
     if (origin && (ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV === "development")) {
       corsHeaders["Access-Control-Allow-Origin"] = origin;

@@ -12,15 +12,43 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Preik",
-  url: "https://preik.no",
+  url: "https://preik.ai",
   description: "Skreddersydde AI-assistenter for norske bedrifter. Ikke mer leting. Bare gode svar.",
   contactPoint: {
     "@type": "ContactPoint",
-    email: "hei@preik.no",
+    email: "hei@preik.ai",
     contactType: "customer service",
     availableLanguage: ["Norwegian", "English"],
   },
   sameAs: [],
+};
+
+const productLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Preik AI-chatbot",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  description: "Skreddersydd AI-chatbot trent på dine egne data. 24/7 kundeservice som svarer på sekunder, på norsk.",
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "NOK",
+    availability: "https://schema.org/InStock",
+  },
+  provider: {
+    "@type": "Organization",
+    name: "Preik",
+    url: "https://preik.ai",
+  },
+  featureList: [
+    "AI trent på dine egne data",
+    "Norsk språkstøtte",
+    "24/7 automatisk kundeservice",
+    "Enkel integrasjon via script-tag",
+    "GDPR-compliant",
+    "Tilpasset merkevare og tone",
+  ],
+  inLanguage: "nb",
 };
 
 const faqLd = {
@@ -79,6 +107,10 @@ export default async function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }}
       />
       <script
         type="application/ld+json"

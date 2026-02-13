@@ -22,11 +22,11 @@ export const metadata: Metadata = {
     template: "%s | Preik",
   },
   description: "Skreddersydde AI-assistenter for norske bedrifter. Ikke mer leting. Bare gode svar.",
-  metadataBase: new URL("https://preik.no"),
+  metadataBase: new URL("https://preik.ai"),
   openGraph: {
     type: "website",
     locale: "nb_NO",
-    url: "https://preik.no",
+    url: "https://preik.ai",
     siteName: "Preik",
     title: "Preik – AI som snakker ditt språk",
     description: "Skreddersydde AI-assistenter for norske bedrifter. Ikke mer leting. Bare gode svar.",
@@ -60,6 +60,7 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   alternates: {
+    canonical: "https://preik.ai",
     types: {
       "application/rss+xml": "/blogg/feed.xml",
     },

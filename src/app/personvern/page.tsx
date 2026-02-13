@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Personvernerklæring – Preik",
     description: "Les om hvordan Preik behandler dine personopplysninger.",
-    url: "https://preik.no/personvern",
+    url: "https://preik.ai/personvern",
   },
-  alternates: { canonical: "https://preik.no/personvern" },
+  alternates: { canonical: "https://preik.ai/personvern" },
 };
 
 export default function PrivacyPage() {
@@ -102,8 +102,8 @@ export default function PrivacyPage() {
             <p>
               Du har rett til innsyn, retting, sletting, og dataportabilitet. Du kan også protestere
               mot behandling og trekke tilbake samtykke. Kontakt oss på{" "}
-              <a href="mailto:hei@preik.no" className="text-preik-accent hover:underline">
-                hei@preik.no
+              <a href="mailto:hei@preik.ai" className="text-preik-accent hover:underline">
+                hei@preik.ai
               </a>{" "}
               for å utøve dine rettigheter.
             </p>
@@ -113,8 +113,8 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-preik-text">8. Kontakt</h2>
             <p>
               Har du spørsmål om vår behandling av personopplysninger? Kontakt oss på{" "}
-              <a href="mailto:hei@preik.no" className="text-preik-accent hover:underline">
-                hei@preik.no
+              <a href="mailto:hei@preik.ai" className="text-preik-accent hover:underline">
+                hei@preik.ai
               </a>
             </p>
           </section>
