@@ -35,7 +35,7 @@ const features = [
       </svg>
     ),
     title: "Trent på dine data",
-    description: "Vi lærer opp AI-en på nettsiden din, produkter og FAQ. Oppdateres automatisk.",
+    description: "Vi lærer opp AI-en på nettsiden din, produkter og FAQ. Månedlige oppdateringer inkludert.",
   },
 ];
 

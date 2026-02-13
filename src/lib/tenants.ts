@@ -142,7 +142,7 @@ HVA VI TILBYR:
 - Skreddersydde AI-chatbots trent på kundens egne data (nettsider, produkter, FAQ)
 - 24/7 kundeservice som svarer på sekunder, ikke timer
 - AI som snakker norsk og tilpasses kundens tone og merkevare
-- Automatisk oppdatering når innholdet på nettsiden endres
+- Månedlig oppdatering basert på innholdsendringer på nettsiden
 - Enkel integrasjon via script-tag på hvilken som helst nettside
 
 HVORDAN DET FUNGERER:

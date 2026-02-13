@@ -47,7 +47,7 @@ const faqLd = {
       name: "Hva skjer når innholdet på nettsiden endres?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Vi oppdaterer AI-en automatisk når innholdet ditt endres. Du trenger ikke gjøre noe manuelt.",
+        text: "Vi kjører en månedlig oppdatering basert på innholdsendringer på nettsiden din. Trenger du å legge til noe kritisk mellom oppdateringene? Ta kontakt, så ordner vi det raskt.",
       },
     },
     {
@@ -55,7 +55,7 @@ const faqLd = {
       name: "Er dataene mine trygge?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Ja. Vi er GDPR-compliant og lagrer kun data som er nødvendig for å gi gode svar. Ingen data deles med tredjeparter.",
+        text: "Ja. Vi er GDPR-compliant og lagrer kun data som er nødvendig for å gi gode svar. Data behandles av godkjente underleverandører (Google Cloud, OpenAI) under strenge databehandleravtaler.",
       },
     },
     {

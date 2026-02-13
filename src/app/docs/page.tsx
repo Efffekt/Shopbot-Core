@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     question: "Hva skjer når innholdet på nettsiden endres?",
-    answer: "Vi oppdaterer AI-en automatisk når innholdet ditt endres. Du trenger ikke gjøre noe manuelt.",
+    answer: "Vi kjører en månedlig oppdatering basert på innholdsendringer på nettsiden din. Trenger du å legge til noe kritisk mellom oppdateringene? Ta kontakt, så ordner vi det raskt.",
   },
   {
     question: "Støtter widgeten flere språk?",

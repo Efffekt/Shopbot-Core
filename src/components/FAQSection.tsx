@@ -5,7 +5,7 @@ import { useState } from "react";
 const faqs = [
   {
     question: "Hvor lang tid tar det å sette opp?",
-    answer: "De fleste kunder er oppe og kjører innen 24-48 timer. Vi crawler nettsiden din, trener AI-en, og gir deg en kode-snippet du legger inn på siden din.",
+    answer: "De fleste kunder er oppe og kjører innen 24-48 timer. Vi henter innhold fra nettsiden din, setter opp AI-en, og gir deg en kode-snippet du legger inn på siden din.",
   },
   {
     question: "Fungerer det på norsk?",
@@ -13,15 +13,15 @@ const faqs = [
   },
   {
     question: "Hva skjer når innholdet på nettsiden endres?",
-    answer: "Vi oppdaterer AI-en automatisk når innholdet ditt endres. Du trenger ikke gjøre noe manuelt.",
+    answer: "Vi kjører en månedlig oppdatering basert på innholdsendringer på nettsiden din. Trenger du å legge til noe kritisk mellom oppdateringene? Ta kontakt, så ordner vi det raskt.",
   },
   {
     question: "Er dataene mine trygge?",
-    answer: "Ja. Vi er GDPR-compliant og lagrer kun data som er nødvendig for å gi gode svar. Ingen data deles med tredjeparter.",
+    answer: "Ja. Vi er GDPR-compliant og lagrer kun data som er nødvendig for å gi gode svar. Data behandles av godkjente underleverandører (Google Cloud, OpenAI) under strenge databehandleravtaler.",
   },
   {
     question: "Kan jeg tilpasse utseendet på chatten?",
-    answer: "Absolutt. Farger, logo og tone tilpasses din merkevare så det ser ut som en naturlig del av nettsiden din.",
+    answer: "Absolutt. Farger, fonter og tone tilpasses din merkevare så det ser ut som en naturlig del av nettsiden din.",
   },
 ];
 

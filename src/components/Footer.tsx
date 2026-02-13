@@ -43,6 +43,7 @@ export function Footer() {
                 <li><a href="/blogg" className="hover:text-preik-text transition-colors">Blogg</a></li>
                 <li><a href="/docs" className="hover:text-preik-text transition-colors">Dokumentasjon</a></li>
                 <li><a href="/personvern" className="hover:text-preik-text transition-colors">Personvern</a></li>
+                <li><a href="/cookies" className="hover:text-preik-text transition-colors">Cookies</a></li>
                 <li><a href="/vilkar" className="hover:text-preik-text transition-colors">Vilkår</a></li>
               </ul>
             </div>
