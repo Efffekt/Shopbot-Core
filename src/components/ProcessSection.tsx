@@ -1,13 +1,13 @@
 const steps = [
   {
     number: "01",
-    title: "Vi crawler nettsiden din",
-    description: "Vi henter innhold fra nettsiden din, produkter, FAQ og dokumentasjon automatisk.",
+    title: "Vi henter innholdet ditt",
+    description: "Vi samler inn innhold fra nettsiden din — produkter, FAQ og dokumentasjon.",
   },
   {
     number: "02",
-    title: "AI-en læres opp",
-    description: "Innholdet blir prosessert og AI-en trenes til å forstå bedriften din og svare på kundenes spørsmål.",
+    title: "AI-en settes opp",
+    description: "Innholdet blir prosessert slik at AI-en forstår bedriften din og kan svare kundene dine.",
   },
   {
     number: "03",
