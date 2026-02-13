@@ -56,6 +56,7 @@ const BG_OPTIONS = [
   { value: "#F5F3FF", label: "Violet 50", surface: "#FFFFFF" },
   { value: "#ECFDF5", label: "Emerald 50", surface: "#FFFFFF" },
   // Cream / warm neutrals
+  { value: "#FEFAE0", label: "Cream (custom)", surface: "#FFFFFF" },
   { value: "#FAFAF9", label: "Stone 50", surface: "#FFFFFF" },
   { value: "#F5F5F4", label: "Stone 100", surface: "#FAFAF9" },
   { value: "#E7E5E4", label: "Stone 200", surface: "#F5F5F4" },
