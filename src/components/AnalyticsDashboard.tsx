@@ -118,6 +118,22 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
     fetchData();
   }, [days, selectedTenant]);
 
+  const chartData = useMemo(() =>
+    data?.dailyVolume.map((d) => ({
+      date: new Date(d.date).toLocaleDateString("nb-NO", {
+        day: "numeric",
+        month: "short",
+      }),
+      chats: d.count,
+    })) ?? [],
+  [data?.dailyVolume]);
+
+  const gapPercentage = useMemo(() =>
+    data?.stats.total_conversations && data.stats.total_conversations > 0
+      ? ((data.stats.unhandled_count / data.stats.total_conversations) * 100).toFixed(1)
+      : "0",
+  [data?.stats.total_conversations, data?.stats.unhandled_count]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-3">
@@ -144,21 +160,7 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
 
   if (!data) return null;
 
-  const { stats, topSearchTerms, unansweredQueries, dailyVolume, documentCount, tenantName } = data;
-
-  const chartData = useMemo(() => dailyVolume.map((d) => ({
-    date: new Date(d.date).toLocaleDateString("nb-NO", {
-      day: "numeric",
-      month: "short",
-    }),
-    chats: d.count,
-  })), [dailyVolume]);
-
-  const gapPercentage = useMemo(() =>
-    stats.total_conversations > 0
-      ? ((stats.unhandled_count / stats.total_conversations) * 100).toFixed(1)
-      : "0",
-  [stats.total_conversations, stats.unhandled_count]);
+  const { stats, topSearchTerms, unansweredQueries, documentCount, tenantName } = data;
 
   return (
     <div className="space-y-6">
