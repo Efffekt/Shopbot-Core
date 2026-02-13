@@ -17,7 +17,7 @@ const DEFAULT_CONFIG: WidgetConfig = {
   greeting: "Hei! Hvordan kan jeg hjelpe deg i dag?",
   placeholder: "Skriv en melding...",
   brandName: "Preik",
-  theme: "auto",
+  theme: "light",
   startOpen: false,
   contained: false,
   onboarding: "",
@@ -397,7 +397,7 @@ class PreikChatWidget extends HTMLElement {
               ${ICONS.send}
             </button>
           </div>
-          <a href="https://preik.no" target="_blank" rel="noopener noreferrer" class="watermark">
+          <a href="https://preik.ai" target="_blank" rel="noopener noreferrer" class="watermark">
             Levert av <span class="watermark-brand">preik</span>
           </a>
         </div>

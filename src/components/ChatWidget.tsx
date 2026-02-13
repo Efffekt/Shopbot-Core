@@ -317,7 +317,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
 
         {/* Watermark */}
         <a
-          href="https://preik.no"
+          href="https://preik.ai"
           target="_blank"
           rel="noopener noreferrer"
           className="block text-center mt-2.5 text-[11px] text-preik-text-muted no-underline opacity-60 hover:opacity-100 transition-opacity"
