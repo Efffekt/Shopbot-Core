@@ -34,9 +34,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 });
     }
 
-    return NextResponse.json({ posts, total: count || 0, page, limit }, {
-      headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" },
-    });
+    return NextResponse.json({ posts, total: count || 0, page, limit });
   } catch (error) {
     log.error("Error fetching blog posts:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
