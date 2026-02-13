@@ -197,6 +197,128 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
   }
 }
 
+// --- Onboarding lead notification ---
+
+const INDUSTRY_LABELS: Record<string, string> = {
+  ecommerce: "Nettbutikk",
+  service: "Servicebedrift",
+  restaurant: "Restaurant/café",
+  professional: "Faglig tjeneste",
+  other: "Annet",
+};
+
+const USE_CASE_LABELS: Record<string, string> = {
+  customer_service: "Kundeservice – svare på vanlige spørsmål",
+  product_help: "Produkthjelp – guide kunder til riktig produkt/tjeneste",
+  custom: "Spesifikt behov (se beskrivelse)",
+};
+
+const BUSINESS_SIZE_LABELS: Record<string, string> = {
+  "solo": "Solo / enkeltperson",
+  "2-10": "2–10 ansatte",
+  "11-50": "11–50 ansatte",
+  "50+": "Mer enn 50 ansatte",
+};
+
+const TRAFFIC_LABELS: Record<string, string> = {
+  "<500": "Under 500 besøkende/mnd",
+  "500-2000": "500–2 000 besøkende/mnd",
+  "2000-10000": "2 000–10 000 besøkende/mnd",
+  "10000+": "Mer enn 10 000 besøkende/mnd",
+};
+
+interface OnboardingSubmission {
+  industry: string;
+  useCase: string;
+  customChallenge?: string;
+  businessSize: string;
+  trafficRange: string;
+  name: string;
+  email: string;
+  company?: string;
+  websiteUrl?: string;
+}
+
+export async function sendOnboardingNotification(data: OnboardingSubmission): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+
+  const industry = INDUSTRY_LABELS[data.industry] ?? data.industry;
+  const useCase = USE_CASE_LABELS[data.useCase] ?? data.useCase;
+  const businessSize = BUSINESS_SIZE_LABELS[data.businessSize] ?? data.businessSize;
+  const traffic = TRAFFIC_LABELS[data.trafficRange] ?? data.trafficRange;
+
+  try {
+    await resend.emails.send({
+      from: `Preik <${FROM_EMAIL}>`,
+      to: ADMIN_EMAIL,
+      subject: `Ny lead: ${data.name}${data.company ? ` · ${data.company}` : ""}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1a1a2e;">Ny lead fra kom-i-gang-skjemaet</h2>
+
+          <div style="margin: 24px 0; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+            <h3 style="margin: 0 0 16px 0; color: #1a1a2e; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Kontaktinfo</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #666; width: 120px; font-size: 14px;">Navn:</td>
+                <td style="padding: 6px 0; color: #1a1a2e; font-weight: 500; font-size: 14px;">${escapeHtml(data.name)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #666; font-size: 14px;">E-post:</td>
+                <td style="padding: 6px 0; font-size: 14px;"><a href="mailto:${escapeHtml(data.email)}" style="color: #6C63FF;">${escapeHtml(data.email)}</a></td>
+              </tr>
+              ${data.company ? `
+              <tr>
+                <td style="padding: 6px 0; color: #666; font-size: 14px;">Bedrift:</td>
+                <td style="padding: 6px 0; color: #1a1a2e; font-size: 14px;">${escapeHtml(data.company)}</td>
+              </tr>` : ""}
+              ${data.websiteUrl ? `
+              <tr>
+                <td style="padding: 6px 0; color: #666; font-size: 14px;">Nettside:</td>
+                <td style="padding: 6px 0; font-size: 14px;"><a href="${escapeHtml(data.websiteUrl)}" style="color: #6C63FF;">${escapeHtml(data.websiteUrl)}</a></td>
+              </tr>` : ""}
+            </table>
+          </div>
+
+          <div style="margin: 24px 0; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+            <h3 style="margin: 0 0 16px 0; color: #1a1a2e; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Kvalifisering</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #666; width: 120px; font-size: 14px;">Bransje:</td>
+                <td style="padding: 6px 0; color: #1a1a2e; font-size: 14px;">${escapeHtml(industry)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #666; font-size: 14px;">Behov:</td>
+                <td style="padding: 6px 0; color: #1a1a2e; font-size: 14px;">${escapeHtml(useCase)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #666; font-size: 14px;">Størrelse:</td>
+                <td style="padding: 6px 0; color: #1a1a2e; font-size: 14px;">${escapeHtml(businessSize)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #666; font-size: 14px;">Trafikk:</td>
+                <td style="padding: 6px 0; color: #1a1a2e; font-size: 14px;">${escapeHtml(traffic)}</td>
+              </tr>
+            </table>
+          </div>
+
+          ${data.customChallenge ? `
+          <div style="margin: 24px 0; padding: 20px; background: #fff8e6; border: 1px solid #f0c040; border-radius: 8px;">
+            <h3 style="margin: 0 0 8px 0; color: #1a1a2e; font-size: 14px;">Spesifikt behov beskrevet av lead:</h3>
+            <p style="margin: 0; color: #1a1a2e; white-space: pre-wrap; font-size: 14px;">${escapeHtml(data.customChallenge)}</p>
+          </div>` : ""}
+
+          <p style="margin-top: 24px; font-size: 12px; color: #999;">Sendt fra kom-i-gang-skjemaet på preik.ai</p>
+        </div>
+      `,
+    });
+    log.info("Onboarding notification sent", { to: ADMIN_EMAIL, from: data.email });
+  } catch (error) {
+    log.error("Failed to send onboarding notification", { error: error as Error });
+  }
+}
+
 // --- HTML escaping ---
 
 function escapeHtml(str: string): string {

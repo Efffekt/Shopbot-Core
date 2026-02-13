@@ -159,6 +159,11 @@ export const RATE_LIMITS = {
     maxRequests: 5,
     windowMs: 60 * 60 * 1000, // 1 hour
   },
+  // Onboarding wizard: 3 submissions per hour per IP (multi-step, lower volume)
+  onboarding: {
+    maxRequests: 3,
+    windowMs: 60 * 60 * 1000, // 1 hour
+  },
   // Admin panel: 60 requests per minute per user
   admin: {
     maxRequests: 60,

@@ -65,7 +65,7 @@ export function HeroSection() {
             <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <ScrollReveal animation="scale" delay={350}>
                 <a
-                  href="#kontakt"
+                  href="/kom-i-gang"
                   className="inline-flex items-center justify-center rounded-full bg-preik-accent px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-preik-accent focus:ring-offset-2 focus:ring-offset-preik-bg"
                 >
                   Kom i gang

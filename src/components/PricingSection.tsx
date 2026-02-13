@@ -73,7 +73,7 @@ export function PricingSection() {
                 </ul>
 
                 <a
-                  href="#kontakt"
+                  href="/kom-i-gang"
                   className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] bg-preik-accent text-white hover:bg-preik-accent-hover"
                 >
                   Kom i gang
@@ -130,7 +130,7 @@ export function PricingSection() {
                 </ul>
 
                 <a
-                  href="#kontakt"
+                  href="/kom-i-gang"
                   className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] bg-preik-accent/10 text-preik-accent hover:bg-preik-accent/20"
                 >
                   Ta kontakt
@@ -185,7 +185,7 @@ export function PricingSection() {
                 </ul>
 
                 <a
-                  href="#kontakt"
+                  href="/kom-i-gang"
                   className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] bg-preik-accent/10 text-preik-accent hover:bg-preik-accent/20"
                 >
                   Kontakt oss for tilbud
@@ -199,7 +199,7 @@ export function PricingSection() {
         <ScrollReveal animation="up" delay={400}>
           <p className="text-center text-preik-text-muted text-sm mt-10">
             Alle priser er veiledende.{" "}
-            <a href="#kontakt" className="text-preik-accent hover:underline">
+            <a href="/kom-i-gang" className="text-preik-accent hover:underline">
               Vi skreddersyr en pakke for din bedrift.
             </a>
           </p>

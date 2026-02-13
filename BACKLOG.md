@@ -129,6 +129,15 @@
 
 ### P1 – Important (Should have for solid launch)
 
+#### Onboarding Flow (Lead Qualification Wizard)
+- [ ] Create OnboardingWizard component with adaptive 5–6 step flow
+- [ ] Create /kom-i-gang page and route
+- [ ] Create /api/onboarding endpoint with Zod validation and rate limiting
+- [ ] Add onboarding_submissions DB table (migration)
+- [ ] Add sendOnboardingNotification email template (enriched admin notification)
+- [ ] Update hero and pricing CTAs to link to /kom-i-gang
+- [ ] Write Vitest tests for /api/onboarding route
+
 #### Testing
 - [~] Set up Vitest with test config (done: 22 test files, 153 tests)
 - [~] Unit tests for rate limiting logic (done)
