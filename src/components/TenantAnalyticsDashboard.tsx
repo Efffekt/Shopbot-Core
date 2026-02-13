@@ -216,23 +216,22 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
         </h3>
         {data.dailyVolume.length > 0 ? (
           <div>
-            <div className="flex items-end gap-[2px] h-32 overflow-hidden">
+            <div className="flex items-end gap-[2px] h-32">
               {data.dailyVolume.map((day) => {
-                const heightPx = maxVolume > 0
-                  ? Math.max((day.count / maxVolume) * 128, day.count > 0 ? 10 : 3)
-                  : 3;
+                const heightPercent = maxVolume > 0
+                  ? Math.max((day.count / maxVolume) * 100, day.count > 0 ? 8 : 2)
+                  : 2;
                 return (
                   <div
                     key={day.date}
-                    className="flex-1 group relative"
-                    title={`${day.date}: ${day.count} samtaler`}
+                    className="flex-1 h-full flex items-end group relative"
                   >
                     <div
                       className="w-full bg-preik-accent rounded-sm transition-all group-hover:bg-preik-accent-hover"
-                      style={{ height: `${heightPx}px` }}
+                      style={{ height: `${heightPercent}%` }}
                     />
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-preik-surface border border-preik-border rounded text-xs text-preik-text whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                      {day.count} samtaler
+                      {day.date.slice(5)}: {day.count} samtaler
                     </div>
                   </div>
                 );

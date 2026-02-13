@@ -1,6 +1,6 @@
 # Preik – Backlog & Production Readiness
 
-> Last updated: 2026-02-06
+> Last updated: 2026-02-09
 
 ## Status Legend
 
@@ -130,14 +130,14 @@
 ### P1 – Important (Should have for solid launch)
 
 #### Testing
-- [ ] Set up Vitest (or Jest) with test config
-- [ ] Unit tests for rate limiting logic
-- [ ] Unit tests for credit tracking logic
+- [~] Set up Vitest with test config (done: 22 test files, 153 tests)
+- [~] Unit tests for rate limiting logic (done)
+- [~] Unit tests for credit tracking logic (done)
 - [ ] Integration tests for chat API (mock LLM responses)
 - [ ] Integration tests for auth middleware
 - [ ] Integration tests for content CRUD operations
 - [ ] Test credit limit enforcement (80%, 100% thresholds)
-- [ ] Test domain validation logic
+- [~] Test domain validation logic (done in tenants.test.ts)
 
 #### CI/CD Pipeline
 - [ ] GitHub Actions workflow: lint on PR
@@ -165,30 +165,184 @@
 - [ ] Widget loading state / skeleton
 
 #### SEO & Marketing Site
-- [ ] Add Open Graph meta tags (title, description, image)
+- [~] Add Open Graph meta tags (title, description, image) — partial: landing page has OG, blog posts missing
 - [ ] Add Twitter Card meta tags
-- [ ] Create sitemap.xml
-- [ ] Create robots.txt
-- [ ] Add JSON-LD structured data for organization
+- [x] Create sitemap.xml
+- [x] Create robots.txt
+- [x] Add JSON-LD structured data for organization
 
 ---
 
 ## Post-MVP Backlog – After Launch
 
-### P2 – Nice to Have (Next iteration)
+### P2 – Security & Reliability
 
-#### Payment Integration
+#### Security Fixes (from Feb 2026 audit)
+- [ ] Remove test domains from production whitelist (`shopbot-test.vercel.app`, `shopbot-core.vercel.app` in `tenants.ts:252-253`) or gate behind `NODE_ENV`
+- [ ] Add CSRF token validation to all state-changing POST/PUT/DELETE endpoints
+- [ ] Migrate CSP from `unsafe-inline` to nonce-based policy (`middleware.ts:30-42`)
+- [ ] Use timing-safe comparison for `CRON_SECRET` + fail if env var is undefined (`cron/reset-credits/route.ts:11`)
+- [ ] Fix SSRF mitigation: handle DNS rebinding, IPv6 loopback, `127.1` shortcuts (`url-safety.ts:37-46`)
+- [ ] Add Zod validation for blog metadata fields (`meta_title`, `meta_description`, `author_name`) in `admin/blog/route.ts:58-95`
+- [ ] Add max length constraint to blog slug validation (`admin/blog/route.ts:74-79`)
+- [ ] Sanitize EXIF/metadata on uploaded images (`admin/blog/upload/route.ts`)
+- [ ] Add widget session expiry (localStorage `preik_session_id` currently lives forever)
+- [ ] Add server-side session validation with TTL for widget sessions
+- [ ] Add `FOR UPDATE` row lock or `SERIALIZABLE` isolation to `increment_credits` to prevent race condition under extreme load
+
+#### Error Tracking & Monitoring
+- [ ] Integrate Sentry for error tracking (frontend + API routes)
+- [ ] Set up Sentry alerts for critical errors (chat failures, auth failures)
+- [ ] Set up uptime monitoring (e.g., BetterUptime, UptimeRobot, or Vercel's built-in)
+- [ ] Add Vercel Analytics for frontend performance (LCP, FID, CLS)
+- [ ] Add database query monitoring / slow query detection
+
+#### GDPR & Compliance
+- [ ] Add GDPR data export endpoint (Right to Access — export all tenant/user data)
+- [ ] Add GDPR data deletion endpoint (Right to Erasure — cascading delete from tenants table)
+- [ ] Add cookie consent banner (localStorage used without disclosure)
+- [ ] Add DPA (Data Processing Agreement) template for B2B customers
+
+### P3 – Code Quality & Developer Experience
+
+#### Code Duplication Reduction
+- [ ] Create `withAdminAuth(handler)` / `withSuperAdmin(handler)` wrapper to eliminate auth boilerplate in 15+ admin routes
+- [ ] Create `validateRequest(req, { maxBytes })` utility to replace duplicated content-type + body size + JSON parse pattern in 8+ routes
+- [ ] Import `getClientIp()` from `ratelimit.ts` everywhere instead of duplicating IP extraction in 4+ routes
+- [ ] Create `corsHeaders(origin, method)` builder to replace duplicated CORS header logic in chat, contact, widget-config routes
+- [ ] Standardize API response format to `{ success, error?, data? }` across all 32 routes
+
+#### Error Handling Improvements
+- [ ] Add type guard for tenant data in `email.ts:91-94` before accessing properties after DB fetch
+- [ ] Add Zod validation for all RPC response shapes in `credits.ts` and `chat/route.ts` before unpacking `.data`
+- [ ] Indicate to user when vector search fails in chat API (currently silently continues without context, `chat/route.ts:460`)
+- [ ] Fix inconsistent HTTP status codes: standardize 401 (not authenticated) vs 403 (authenticated but forbidden) across routes
+- [ ] Add proper error type narrowing in catch blocks (replace `error as Error` casts with `instanceof` checks)
+
+#### Performance Optimizations
+- [ ] Add in-memory TTL cache for `getTenantSystemPrompt()` — currently hits DB on every chat message (`tenants.ts:428-457`)
+- [ ] Use `GROUP BY metadata->>source` in SQL instead of loading all documents and grouping in JS (`tenant/[tenantId]/content/route.ts:106-120`)
+- [ ] Add embedding batch limit to content edit route to match ingest route pattern (100 at a time, `tenant/[tenantId]/content/route.ts:224-231`)
+- [ ] Make vector search `match_count` configurable per tenant instead of hardcoded 12 (`chat/route.ts:453`)
+- [ ] Add semantic query caching — cache embeddings by query hash with 1hr TTL in Redis to avoid re-embedding identical questions
+- [ ] Add `ivfflat` pgvector index: `CREATE INDEX ... USING ivfflat (embedding vector_cosine_ops)` for O(log n) vs O(n) search
+
+#### Database Schema Improvements
+- [ ] Add composite index for conversation filtering: `(store_id, was_handled, detected_intent, created_at DESC)`
+- [ ] Add index for documents: `(store_id, created_at DESC)` for paginated listing
+- [ ] Add index for tenant_prompts: `(tenant_id, version DESC)` for version history queries
+- [ ] Add `updated_at` column to `tenants`, `conversations`, and `documents` tables
+- [ ] Enforce schema on `documents.metadata` JSONB (require `source`, `url`, `title` fields)
+- [ ] Consider partitioning `conversations` table by date for tables > 10M rows
+
+#### Hardcoded Values Cleanup
+- [ ] Move all tenant configs from `tenants.ts:1-305` to database as primary source (keep hardcoded as fallback only)
+- [ ] Move hardcoded email addresses (`hei@preik.ai`, `noreply@preik.ai`) in `email.ts:7-8` to env vars
+- [ ] Move hardcoded dashboard URL in `email.ts:135` to env var
+- [ ] Extract magic numbers to named constants: 20-char fast-path threshold, 12 vector results, 1000-entry memory cleanup trigger
+- [ ] Make credit warning thresholds (80%, 100%) configurable via env vars or tenant config
+
+#### Developer Experience
+- [ ] Create database seed script for local development (demo tenant, sample conversations, test user)
+- [ ] Create env validation script (`scripts/validate-env.js`) that checks all required vars before `npm run dev`
+- [ ] Rewrite README from generic boilerplate to project-specific setup guide
+- [ ] Add rate limiting circuit breaker pattern (fail-closed when Redis is down instead of falling back to per-instance in-memory)
+
+### P4 – Test Coverage Expansion
+
+#### Critical Path Tests (Tier 1)
+- [ ] Tests for `POST /api/chat` — streaming, non-streaming, rate limiting, credit checks, model fallback (Gemini → GPT-4o), vector search, conversation logging, request validation (706 lines, zero tests)
+- [ ] Tests for `src/middleware.ts` — auth redirects, CORS tiers, security headers, CSP, OPTIONS preflight (140 lines, zero tests)
+- [ ] Tests for admin stats routes (`/api/admin/stats`, `/api/tenant/[tenantId]/stats`) — query aggregation, filters, parallel execution
+
+#### Admin Route Tests (Tier 2)
+- [ ] Tests for `POST /api/admin/tenants` — tenant creation, ID validation, duplicate detection
+- [ ] Tests for admin user management (`/api/admin/users`, `/api/admin/users/[userId]/access`)
+- [ ] Tests for admin blog CRUD (`/api/admin/blog`, `/api/admin/blog/[postId]`, `/api/admin/blog/upload`)
+- [ ] Tests for admin conversation/audit/credit-log browsers
+- [ ] Tests for admin export endpoint (`/api/admin/export/[tenantId]`)
+- [ ] Tests for admin settings endpoints (`/api/admin/settings`)
+- [ ] Tests for admin manual-ingest endpoint
+
+#### Tenant & Auth Route Tests (Tier 3)
+- [ ] Tests for tenant content CRUD (`/api/tenant/[tenantId]/content`)
+- [ ] Tests for tenant prompt endpoints (`/api/tenant/[tenantId]/prompt`)
+- [ ] Tests for tenant widget-config and credits endpoints
+- [ ] Tests for auth routes (`/api/auth/post-login`, `/api/auth/signout`)
+- [ ] Tests for scrape endpoints (`/api/scrape/discover`, `/api/scrape/execute`)
+- [ ] Tests for blog public endpoints (`/api/blog`, `/api/blog/[slug]`)
+- [ ] Tests for widget serving endpoint (`/api/widget`)
+
+#### Integration & E2E Tests (Tier 4)
+- [ ] Integration tests: chat → conversation logging → credit increment flow
+- [ ] Integration tests: ingest → chunking → embedding → vector search flow
+- [ ] Integration tests: multi-tenant isolation (one tenant can't access another's data)
+- [ ] E2E tests with Playwright for critical user flows (login → dashboard → chat)
+- [ ] Update vitest.config.ts to include API routes and middleware in coverage reports
+- [ ] Add code coverage reporting to CI (Codecov or similar)
+
+### P5 – Features (Revenue & Growth)
+
+#### Payment Integration (Stripe)
 - [ ] Stripe integration for subscription billing
+- [ ] `stripe_customers` and `stripe_webhook_events` DB tables
 - [ ] Plan selection UI in dashboard settings
 - [ ] Automatic invoicing based on plan
 - [ ] Plan upgrade/downgrade flow
 - [ ] Usage overage handling (auto-upgrade or block)
+- [ ] Billing portal for self-service invoice management
+
+#### Self-Service Signup & Onboarding
+- [ ] Public signup endpoint (`/api/auth/signup`) — creates auth user + tenant + access row + welcome email
+- [ ] Onboarding wizard for new tenants (content ingestion → prompt customization → widget installation)
+- [ ] Tenant creation from dashboard (not just admin panel)
+- [ ] Tenant templates for common use cases (e-commerce, support, docs)
+
+#### API Key Management
+- [ ] `tenant_api_keys` DB table (id, tenant_id, key_hash, name, last_used_at, expires_at)
+- [ ] API key generation/revocation UI in tenant dashboard
+- [ ] API key authentication on chat endpoint (`Authorization: Bearer <key>`)
+- [ ] Per-key access control (read-only, write, etc.)
+- [ ] Key usage audit trail
+
+#### Feedback System
+- [ ] `message_feedback` DB table (conversation_id, message_id, feedback thumbs up/down, reason)
+- [ ] Thumbs up/down buttons on AI responses in widget
+- [ ] `POST /api/feedback` endpoint
+- [ ] Feedback analytics in tenant dashboard (response quality over time)
+- [ ] Use feedback data to identify weak areas in knowledge base
+
+#### Webhook Support
+- [ ] `webhooks` and `webhook_events` DB tables
+- [ ] Webhook management UI in tenant dashboard (create, test, disable)
+- [ ] Supported events: `conversation.created`, `message.sent`, `message.feedback`, `credit.warning`, `credit.limit_reached`
+- [ ] HMAC signature on webhook payloads for security
+- [ ] Retry logic with exponential backoff for failed deliveries
+
+#### Conversation Export
+- [ ] Export conversations as CSV/JSON from tenant dashboard
+- [ ] Export conversations as CSV from admin panel
+- [ ] Date range and filter support for exports
+- [ ] `export_jobs` DB table for async large exports
+- [ ] GDPR-compliant full data export per tenant
+
+#### Widget Analytics
+- [ ] `widget_analytics` DB table (tenant_id, event_type, session_id, user_agent, referrer)
+- [ ] Track: impression, open, message_sent, close events
+- [ ] Widget analytics dashboard (open rate, engagement rate, geographic distribution)
+- [ ] ROI metrics for customers (conversations resolved vs. cost)
+
+#### Custom Training Data Upload
+- [ ] `training_data_sources` DB table (tenant_id, source_type, file_path, status, document_count)
+- [ ] PDF upload + text extraction + chunking + embedding
+- [ ] CSV upload + row-based content ingestion
+- [ ] File type validation (MIME + magic bytes) and virus scanning
+- [ ] Upload progress tracking in dashboard
 
 #### Advanced Analytics
 - [ ] Google Analytics or Mixpanel integration
 - [ ] Conversation funnel tracking (widget open → message sent → resolved)
 - [ ] Customer satisfaction scoring
-- [ ] Export analytics data (CSV/PDF)
 - [ ] Comparative analytics (this month vs. last month)
 
 #### Multi-Language Support
@@ -196,6 +350,7 @@
 - [ ] i18n framework for dashboard UI
 - [ ] Per-tenant language configuration in dashboard
 - [ ] Auto-detect user language in widget
+- [ ] Multi-language response support (detect user lang, respond in same lang)
 
 #### Advanced AI Features
 - [ ] Conversation memory across sessions (returning visitors)
@@ -204,32 +359,50 @@
 - [ ] Handoff to human support (email or live chat)
 - [ ] Suggested questions / quick replies in widget
 - [ ] AI-generated content summaries for dashboard
+- [ ] A/B testing for prompts (split traffic, measure quality)
+- [ ] Prompt injection mitigation (separate system prompt from user context more strictly)
 
 #### Content Management v2
 - [ ] Bulk content upload (CSV/JSON)
 - [ ] Content scheduling (publish/unpublish dates)
 - [ ] Content quality scoring (how often it's used in responses)
 - [ ] Automatic content refresh (re-scrape on schedule)
-- [ ] PDF/document upload and parsing
 
 #### Platform Growth
-- [ ] Self-service tenant signup (without admin involvement)
-- [ ] Onboarding wizard for new tenants
-- [ ] API key system for programmatic access
-- [ ] Webhook notifications (new conversation, credit warning)
 - [ ] White-label option (remove Preik branding)
 - [ ] Multiple chatbot personalities per tenant
+- [ ] Custom domain support for widget serving
 
-#### Monitoring
-- [ ] Integrate Sentry for error tracking (frontend + API routes)
-- [ ] Set up Sentry alerts for critical errors (chat failures, auth failures)
-- [ ] Set up uptime monitoring (e.g., BetterUptime, UptimeRobot, or Vercel's built-in)
+#### Widget UX Improvements
+- [ ] Add widget version tracking (version header in response)
+- [ ] Add "Powered by Preik" link in widget footer
+- [ ] Widget loading state / skeleton
+- [ ] Dark mode toggle button in widget (persist preference)
+- [ ] Mobile gesture support (swipe to close)
+- [ ] Offline indicator + message queue for network failures
+- [ ] Previous conversation badge (show returning user their history)
+
+#### Widget Accessibility
+- [ ] Add `role="log"` and `aria-live="polite"` to message container for screen readers
+- [ ] Add `role="article"` and `aria-label` to individual message bubbles
+- [ ] Add keyboard focus indicators on links within messages
+- [ ] Test and fix color contrast ratios (WCAG AA compliance)
+- [ ] Add alt text for bot avatar icon
+
+#### SEO & Marketing
+- [ ] Add Open Graph and Twitter Card meta tags to blog posts
+- [ ] Add canonical URLs to all blog posts
+- [ ] Add BlogPosting structured data (JSON-LD) to blog posts
+- [ ] Create English blog track (translate top Norwegian posts + new English content)
+- [ ] Create comparison landing pages ("Preik vs. ChatGPT for business", "Preik vs. Intercom")
+- [ ] Create use-case landing pages (e-commerce chatbot, support automation, docs assistant)
+- [ ] Improve homepage SEO (H1 with target keyword, above-fold value prop, social proof)
 
 #### Infrastructure
 - [ ] Redis caching layer (Upstash) for embeddings and frequent queries
 - [ ] CDN for widget delivery
-- [ ] Database connection pooling
-- [ ] Horizontal scaling preparation
+- [ ] Database connection pooling (`pool_mode: 'transaction'` in Supabase)
+- [ ] Date-based partitioning for conversations table (when > 10M rows)
 - [ ] Disaster recovery plan and testing
 
 ---
@@ -251,7 +424,7 @@
 | ~~CORS allows all origins (`*`)~~ | ~~High~~ | ~~All API routes~~ | Tiered CORS: wildcard for widget/health, reflected origin for chat/contact, no CORS for internal |
 | ~~Rate limiting is in-memory only~~ | ~~Medium~~ | ~~`/src/lib/ratelimit.ts`~~ | Migrated to Upstash Redis (with in-memory fallback for dev) |
 | Documents table not in migrations | Low | Supabase | Add to version-controlled migrations |
-| Tenant configs partially hardcoded | Medium | `/src/lib/tenants.ts` | 4 tenants hardcoded with DB fallback |
+| Tenant configs partially hardcoded | Medium | `/src/lib/tenants.ts` | 4 tenants hardcoded with DB fallback — should be fully DB-driven |
 | baatpleiebutikken allowed_domains empty in DB | Low | Supabase `tenants` table | Hardcoded config covers it, but DB should match |
 | ~~No .env.example file~~ | ~~Medium~~ | ~~Project root~~ | Created `.env.example` with all required variables |
 | ~~Admin password stored as plaintext~~ | ~~High~~ | ~~`.env.local` / Basic Auth~~ | Migrated to Supabase Auth with super admin email check |
@@ -259,6 +432,16 @@
 | No database backup configuration | High | Supabase | Data loss risk |
 | ~~Password reset flow likely non-functional~~ | ~~High~~ | ~~Auth pages~~ | Fixed: Supabase SMTP configured via Resend |
 | `nul` file in git working directory | Low | Project root | Stray file, should be deleted/gitignored |
+| Test domains in production whitelist | High | `tenants.ts:252-253` | `shopbot-test.vercel.app` + `shopbot-core.vercel.app` should be removed or gated |
+| No CSRF protection on state-changing endpoints | High | All POST/PUT/DELETE routes | Relies solely on SameSite cookies |
+| CSP uses `unsafe-inline` for scripts | Medium | `middleware.ts:30-42` | Should migrate to nonce-based CSP |
+| CRON_SECRET undefined = silent bypass | Medium | `cron/reset-credits/route.ts:11` | Comparison becomes `Bearer undefined` if env var missing |
+| Auth duplication across 15+ admin routes | Medium | `src/app/api/admin/*/route.ts` | Needs shared `withAdminAuth()` wrapper |
+| Inconsistent API response formats | Medium | All 32 API routes | Mix of `{error}`, `{success}`, `{data}` shapes |
+| 84% of API routes have zero tests | High | `src/app/api/` | Only 6 of 37 routes tested — chat API (core product) untested |
+| No pgvector ivfflat index | High | Supabase documents table | Vector search does O(n) full scan instead of O(log n) |
+| Prompt fetched from DB on every chat message | Medium | `tenants.ts:428-457` | No caching — unnecessary DB load |
+| Widget session never expires | Low | `widget.ts` localStorage | `preik_session_id` lives forever with no server validation |
 
 ---
 
@@ -284,3 +467,8 @@ Before going live with the first paying customer:
 - [ ] Basic test suite passing in CI
 - [ ] Production deployment on Vercel verified
 - [ ] Onboarding documentation written (for admin use)
+- [ ] Test domains removed from production whitelist
+- [ ] pgvector index created for vector search performance
+- [ ] CSRF protection added to state-changing endpoints
+- [ ] Chat API has test coverage
+- [ ] Stripe billing integration live

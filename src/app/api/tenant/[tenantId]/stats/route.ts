@@ -47,8 +47,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     dateThreshold.setDate(dateThreshold.getDate() - days);
     const dateString = dateThreshold.toISOString();
 
+    // Use the requested period for the volume chart (capped at 90 days for readability)
+    const volumeDays = Math.min(days, 90);
     const volumeThreshold = new Date();
-    volumeThreshold.setDate(volumeThreshold.getDate() - 14);
+    volumeThreshold.setDate(volumeThreshold.getDate() - volumeDays);
 
     // Run all independent queries in parallel
     const [
@@ -143,7 +145,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     const dailyVolume: { date: string; count: number }[] = [];
-    for (let i = 13; i >= 0; i--) {
+    for (let i = volumeDays - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split("T")[0];
