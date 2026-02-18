@@ -162,6 +162,57 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
                   {conv.session_id && (
                     <p className="text-xs text-preik-text-muted mt-2">Session: {conv.session_id}</p>
                   )}
+
+                  {conv.metadata && Object.keys(conv.metadata).length > 0 && (() => {
+                    const meta = conv.metadata;
+                    const timings = meta.timings as Record<string, number> | undefined;
+                    const fmtMs = (ms: number) => ms >= 1000
+                      ? `${(ms / 1000).toFixed(1).replace(".", ",")} s`
+                      : `${Math.round(ms)} ms`;
+                    return (
+                      <div className="mt-3 pt-3 border-t border-preik-border">
+                        <p className="text-xs font-medium text-preik-text-muted mb-2">Detaljer</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {meta.model != null && (
+                            <div className="bg-preik-bg rounded-lg px-3 py-2">
+                              <p className="text-[11px] text-preik-text-muted">Modell</p>
+                              <p className="text-xs font-medium text-preik-text">{String(meta.model)}</p>
+                            </div>
+                          )}
+                          {meta.docsFound != null && (
+                            <div className="bg-preik-bg rounded-lg px-3 py-2">
+                              <p className="text-[11px] text-preik-text-muted">Dokumenter funnet</p>
+                              <p className="text-xs font-medium text-preik-text">{String(meta.docsFound)}</p>
+                            </div>
+                          )}
+                          {meta.nonStreaming != null && (
+                            <div className="bg-preik-bg rounded-lg px-3 py-2">
+                              <p className="text-[11px] text-preik-text-muted">Modus</p>
+                              <p className="text-xs font-medium text-preik-text">{meta.nonStreaming ? "Non-streaming" : "Streaming"}</p>
+                            </div>
+                          )}
+                          {timings?.total != null && (
+                            <div className="bg-preik-bg rounded-lg px-3 py-2">
+                              <p className="text-[11px] text-preik-text-muted">Total responstid</p>
+                              <p className="text-xs font-medium text-preik-text">{fmtMs(timings.total)}</p>
+                            </div>
+                          )}
+                          {timings?.vectorSearch != null && (
+                            <div className="bg-preik-bg rounded-lg px-3 py-2">
+                              <p className="text-[11px] text-preik-text-muted">Vektorsøk</p>
+                              <p className="text-xs font-medium text-preik-text">{fmtMs(timings.vectorSearch)}</p>
+                            </div>
+                          )}
+                          {timings?.aiTotal != null && (
+                            <div className="bg-preik-bg rounded-lg px-3 py-2">
+                              <p className="text-[11px] text-preik-text-muted">AI-generering</p>
+                              <p className="text-xs font-medium text-preik-text">{fmtMs(timings.aiTotal)}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
