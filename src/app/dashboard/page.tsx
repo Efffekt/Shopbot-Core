@@ -1,5 +1,5 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
-import { TENANT_CONFIGS } from "@/lib/tenants";
+import { TENANT_CONFIGS, getTenantConfigFromDB } from "@/lib/tenants";
 import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } from "@/lib/admin-emails";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -32,6 +32,15 @@ export default async function DashboardPage() {
     redirect(`/dashboard/${tenants[0].tenant_id}`);
   }
 
+  // Fetch configs (hardcoded + DB) for display names
+  const tenantConfigs = await Promise.all(
+    tenants.map(async (t) => ({
+      tenant_id: t.tenant_id,
+      config: TENANT_CONFIGS[t.tenant_id] || await getTenantConfigFromDB(t.tenant_id),
+    }))
+  );
+  const configMap = Object.fromEntries(tenantConfigs.map((t) => [t.tenant_id, t.config]));
+
   // If user has no tenant projects but is an admin, redirect to admin panel
   if (tenants.length === 0) {
     const email = user?.email?.toLowerCase() ?? "";
@@ -56,7 +65,7 @@ export default async function DashboardPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {tenants.map((access) => {
-            const config = TENANT_CONFIGS[access.tenant_id];
+            const config = configMap[access.tenant_id];
             return (
               <Link
                 key={access.tenant_id}

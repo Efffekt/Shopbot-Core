@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
-import { TENANT_CONFIGS } from "@/lib/tenants";
+import { getTenantConfigFromDB } from "@/lib/tenants";
 import { redirect } from "next/navigation";
 import TenantNav from "@/components/TenantNav";
 
@@ -11,7 +11,7 @@ interface LayoutProps {
 
 export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
   const { tenantId } = await params;
-  const config = TENANT_CONFIGS[tenantId];
+  const config = await getTenantConfigFromDB(tenantId);
   return {
     title: `${config?.name || tenantId} – Preik`,
   };
@@ -33,7 +33,7 @@ export default async function TenantLayout({ children, params }: LayoutProps) {
     redirect("/dashboard");
   }
 
-  const config = TENANT_CONFIGS[tenantId];
+  const config = await getTenantConfigFromDB(tenantId);
   const tenantName = config?.name || tenantId;
   const isAdmin = access.role === "admin";
 

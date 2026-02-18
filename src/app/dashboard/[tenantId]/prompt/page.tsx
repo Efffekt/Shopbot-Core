@@ -1,5 +1,5 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
-import { TENANT_CONFIGS } from "@/lib/tenants";
+import { getTenantConfigFromDB } from "@/lib/tenants";
 import PromptEditorWithTest from "@/components/PromptEditorWithTest";
 import { notFound, redirect } from "next/navigation";
 
@@ -28,7 +28,7 @@ export default async function PromptEditorPage({ params }: PageProps) {
     redirect(`/dashboard/${tenantId}`);
   }
 
-  const config = TENANT_CONFIGS[tenantId];
+  const config = await getTenantConfigFromDB(tenantId);
   if (!config) {
     notFound();
   }
@@ -39,7 +39,7 @@ export default async function PromptEditorPage({ params }: PageProps) {
     .eq("tenant_id", tenantId)
     .single();
 
-  const currentPrompt = promptData?.system_prompt || config.systemPrompt;
+  const currentPrompt = promptData?.system_prompt || config.systemPrompt || "";
   const isAdmin = access.role === "admin";
 
   return (

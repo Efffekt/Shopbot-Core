@@ -1,5 +1,5 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
-import { TENANT_CONFIGS } from "@/lib/tenants";
+import { getTenantConfigFromDB } from "@/lib/tenants";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCreditStatus } from "@/lib/credits";
@@ -31,7 +31,7 @@ export default async function TenantPage({ params }: PageProps) {
     redirect("/dashboard");
   }
 
-  const config = TENANT_CONFIGS[tenantId];
+  const config = await getTenantConfigFromDB(tenantId);
   if (!config) {
     notFound();
   }
