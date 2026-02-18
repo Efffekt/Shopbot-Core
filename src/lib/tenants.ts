@@ -416,7 +416,13 @@ export function validateOrigin(
     return { allowed: false, reason: "Missing origin header" };
   }
 
-  const isAllowed = tenantConfig.allowedDomains.some((allowed) => {
+  // Always allow the platform domain so dashboard test widgets work
+  const platformDomains = ["preik.ai", "www.preik.ai"];
+  const isPlatform = platformDomains.some(
+    (d) => requestDomain === d || requestDomain.endsWith(`.${d}`)
+  );
+
+  const isAllowed = isPlatform || tenantConfig.allowedDomains.some((allowed) => {
     return requestDomain === allowed || requestDomain.endsWith(`.${allowed}`);
   });
 
