@@ -418,6 +418,7 @@ export async function POST(request: NextRequest) {
     }));
 
     let context = "";
+    let availableUrls: string[] = [];
     let systemPrompt: string;
     let docsFound = 0;
 
@@ -463,6 +464,16 @@ export async function POST(request: NextRequest) {
       }
 
       if (relevantDocs && relevantDocs.length > 0) {
+        // Extract unique valid URLs from context chunks for the allowlist
+        const contextUrls = new Set<string>();
+        for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string } }[]) {
+          const url = doc.metadata?.source || doc.metadata?.url;
+          if (url && url.startsWith("http")) {
+            contextUrls.add(url);
+          }
+        }
+        availableUrls = [...contextUrls];
+
         context = relevantDocs
           .map((doc: { content: string; metadata?: { source?: string; url?: string } }) => {
             const url = doc.metadata?.source || doc.metadata?.url || "NO URL AVAILABLE";
@@ -505,9 +516,18 @@ export async function POST(request: NextRequest) {
           contextHeader: `KONTEKST FRA DATABASE:`,
         };
 
+    // Build URL allowlist from context chunks
+    let urlAllowlist = "";
+    if (availableUrls.length > 0) {
+      const urlList = availableUrls.map((u) => `- ${u}`).join("\n");
+      urlAllowlist = lang === "en"
+        ? `\n\nAVAILABLE LINKS (use ONLY these, do NOT invent URLs):\n${urlList}\nIf a product has no link above, use a search URL instead.`
+        : `\n\nTILGJENGELIGE LENKER (bruk KUN disse, IKKE finn opp URL-er):\n${urlList}\nHvis et produkt ikke har en lenke over, bruk søkelenken i stedet.`;
+    }
+
     let fullSystemPrompt: string;
     if (context) {
-      fullSystemPrompt = `${systemPrompt}\n\n${guardrails.withContext}\n\n${guardrails.contextHeader}\n${context}`;
+      fullSystemPrompt = `${systemPrompt}\n\n${guardrails.withContext}\n\n${guardrails.contextHeader}\n${context}${urlAllowlist}`;
     } else if (!isSimpleMessage) {
       fullSystemPrompt = `${systemPrompt}\n\n${guardrails.noContext}`;
     } else {
