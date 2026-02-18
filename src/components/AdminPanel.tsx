@@ -23,7 +23,7 @@ const AnalyticsDashboard = dynamic(
   }
 );
 
-type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse" | "brukere" | "blogg" | "henvendelser" | "logg" | "innstillinger";
+type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse" | "brukere" | "articles" | "henvendelser" | "logg" | "innstillinger";
 
 interface AdminPanelProps {
   isSuperAdmin: boolean;
@@ -50,7 +50,7 @@ export default function AdminPanel({ isSuperAdmin, userEmail }: AdminPanelProps)
     { key: "innhold", label: "Innhold", superAdminOnly: true },
     { key: "samtaler", label: "Samtaler", superAdminOnly: true },
     { key: "analyse", label: "Analyse" },
-    { key: "blogg", label: "Blogg" },
+    { key: "articles", label: "Articles" },
     { key: "brukere", label: "Brukere", superAdminOnly: true },
     { key: "henvendelser", label: "Henvendelser" },
     { key: "logg", label: "Logg", superAdminOnly: true },
@@ -122,7 +122,7 @@ export default function AdminPanel({ isSuperAdmin, userEmail }: AdminPanelProps)
           selectedTenantName={selectedTenantName}
         />
       )}
-      {activeSection === "blogg" && <BlogManager />}
+      {activeSection === "articles" && <BlogManager />}
       {activeSection === "brukere" && isSuperAdmin && <GlobalUserManagement />}
       {activeSection === "henvendelser" && <ContactSubmissions />}
       {activeSection === "logg" && isSuperAdmin && <AuditLogBrowser />}

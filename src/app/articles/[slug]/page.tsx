@@ -87,10 +87,10 @@ export async function generateMetadata({
     return { title: "Innlegg ikke funnet | Preik" };
   }
 
-  const canonicalUrl = `${SITE_URL}/blogg/${post.slug}`;
+  const canonicalUrl = `${SITE_URL}/articles/${post.slug}`;
 
   return {
-    title: post.meta_title || `${post.title} | Preik Blogg`,
+    title: post.meta_title || `${post.title} | Preik Articles`,
     description: post.meta_description || post.excerpt || undefined,
     openGraph: {
       title: post.meta_title || post.title,
@@ -128,7 +128,7 @@ export default async function BlogPostPage({
   }
 
   const adjacentPosts = await getAdjacentPosts(post.published_at, post.slug);
-  const canonicalUrl = `${SITE_URL}/blogg/${post.slug}`;
+  const canonicalUrl = `${SITE_URL}/articles/${post.slug}`;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -168,8 +168,8 @@ export default async function BlogPostPage({
       {
         "@type": "ListItem",
         position: 2,
-        name: "Blogg",
-        item: `${SITE_URL}/blogg`,
+        name: "Articles",
+        item: `${SITE_URL}/articles`,
       },
       {
         "@type": "ListItem",
@@ -201,10 +201,10 @@ export default async function BlogPostPage({
       {/* Content */}
       <main className="max-w-3xl mx-auto px-6 py-16">
         <Link
-          href="/blogg"
+          href="/articles"
           className="text-sm text-preik-accent hover:text-preik-accent-hover transition-colors"
         >
-          &larr; Alle innlegg
+          &larr; Alle artikler
         </Link>
 
         <article className="mt-8">
@@ -281,7 +281,7 @@ export default async function BlogPostPage({
           <div className="mt-8 pt-8 border-t border-preik-border grid sm:grid-cols-2 gap-4">
             {adjacentPosts.prev ? (
               <Link
-                href={`/blogg/${adjacentPosts.prev.slug}`}
+                href={`/articles/${adjacentPosts.prev.slug}`}
                 className="group bg-preik-surface border border-preik-border rounded-xl p-4 hover:border-preik-accent/30 transition-colors"
               >
                 <span className="text-xs text-preik-text-muted">&larr; Forrige</span>
@@ -294,7 +294,7 @@ export default async function BlogPostPage({
             )}
             {adjacentPosts.next && (
               <Link
-                href={`/blogg/${adjacentPosts.next.slug}`}
+                href={`/articles/${adjacentPosts.next.slug}`}
                 className="group bg-preik-surface border border-preik-border rounded-xl p-4 hover:border-preik-accent/30 transition-colors text-right"
               >
                 <span className="text-xs text-preik-text-muted">Neste &rarr;</span>
@@ -308,10 +308,10 @@ export default async function BlogPostPage({
 
         <div className="mt-8 pt-8 border-t border-preik-border">
           <Link
-            href="/blogg"
+            href="/articles"
             className="text-preik-accent hover:text-preik-accent-hover transition-colors"
           >
-            &larr; Tilbake til bloggen
+            &larr; Alle artikler
           </Link>
         </div>
       </main>

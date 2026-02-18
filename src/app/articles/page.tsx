@@ -6,16 +6,16 @@ import type { Metadata } from "next";
 export const revalidate = 3600; // ISR: revalidate every hour
 
 export const metadata: Metadata = {
-  title: "Blogg | Preik",
+  title: "Articles | Preik",
   description: "Les artikler om AI, chatbots og norsk teknologi fra Preik.",
   openGraph: {
-    title: "Blogg | Preik",
+    title: "Articles | Preik",
     description: "Les artikler om AI, chatbots og norsk teknologi fra Preik.",
-    url: "https://preik.ai/blogg",
+    url: "https://preik.ai/articles",
     type: "website",
   },
   alternates: {
-    canonical: "https://preik.ai/blogg",
+    canonical: "https://preik.ai/articles",
   },
 };
 
@@ -37,7 +37,7 @@ function getReadingTime(text: string): number {
 
 const POSTS_PER_PAGE = 6;
 
-export default async function BloggPage({
+export default async function ArticlesPage({
   searchParams,
 }: {
   searchParams: Promise<{ side?: string }>;
@@ -67,9 +67,9 @@ export default async function BloggPage({
   const blogListLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "Blogg | Preik",
+    name: "Articles | Preik",
     description: "Les artikler om AI, chatbots og norsk teknologi fra Preik.",
-    url: "https://preik.ai/blogg",
+    url: "https://preik.ai/articles",
     publisher: {
       "@type": "Organization",
       name: "Preik",
@@ -80,7 +80,7 @@ export default async function BloggPage({
       itemListElement: blogPosts.map((post, i) => ({
         "@type": "ListItem",
         position: i + 1,
-        url: `https://preik.ai/blogg/${post.slug}`,
+        url: `https://preik.ai/articles/${post.slug}`,
         name: post.title,
       })),
     },
@@ -102,7 +102,7 @@ export default async function BloggPage({
       {/* Content */}
       <main className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-brand font-light text-preik-text mb-4">
-          Blogg
+          Articles
         </h1>
         <p className="text-lg text-preik-text-muted mb-12">
           Artikler om AI, chatbots og norsk teknologi.
@@ -119,7 +119,7 @@ export default async function BloggPage({
             {blogPosts.map((post) => (
               <Link
                 key={post.id}
-                href={`/blogg/${post.slug}`}
+                href={`/articles/${post.slug}`}
                 className="block bg-preik-surface rounded-2xl border border-preik-border overflow-hidden hover:border-preik-accent/30 transition-colors group"
               >
                 {post.cover_image_url && (
@@ -172,7 +172,7 @@ export default async function BloggPage({
           <div className="flex items-center justify-center gap-2 mt-12">
             {currentPage > 1 && (
               <Link
-                href={currentPage === 2 ? "/blogg" : `/blogg?side=${currentPage - 1}`}
+                href={currentPage === 2 ? "/articles" : `/articles?side=${currentPage - 1}`}
                 className="px-4 py-2 text-sm rounded-xl bg-preik-surface border border-preik-border text-preik-text hover:bg-preik-bg transition-colors"
               >
                 &larr; Forrige
@@ -183,7 +183,7 @@ export default async function BloggPage({
             </span>
             {currentPage < totalPages && (
               <Link
-                href={`/blogg?side=${currentPage + 1}`}
+                href={`/articles?side=${currentPage + 1}`}
                 className="px-4 py-2 text-sm rounded-xl bg-preik-surface border border-preik-border text-preik-text hover:bg-preik-bg transition-colors"
               >
                 Neste &rarr;

@@ -272,7 +272,7 @@ export default function BlogManager() {
               placeholder="artikkelens-url-slug"
             />
             <p className="mt-1 text-xs text-preik-text-muted">
-              URL: /blogg/{form.slug || "..."}
+              URL: /articles/{form.slug || "..."}
             </p>
           </div>
 
@@ -294,7 +294,7 @@ export default function BlogManager() {
               onChange={(e) => setForm((prev) => ({ ...prev, excerpt: e.target.value }))}
               rows={2}
               className="w-full px-4 py-2.5 rounded-xl bg-preik-surface border border-preik-border text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent/50 resize-none"
-              placeholder="Kort beskrivelse som vises i blogg-listen"
+              placeholder="Kort beskrivelse som vises i artikkellisten"
             />
           </div>
 
@@ -441,7 +441,7 @@ export default function BlogManager() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-preik-text">Blogginnlegg</h2>
+        <h2 className="text-xl font-semibold text-preik-text">Artikler</h2>
         <button
           onClick={openNewPost}
           className="px-5 py-2.5 bg-preik-accent text-white rounded-xl text-sm font-medium hover:bg-preik-accent-hover transition-colors"
@@ -458,7 +458,7 @@ export default function BlogManager() {
 
       {posts.length === 0 ? (
         <div className="text-center py-16 bg-preik-surface rounded-2xl border border-preik-border">
-          <p className="text-preik-text-muted mb-4">Ingen blogginnlegg ennå</p>
+          <p className="text-preik-text-muted mb-4">Ingen artikler ennå</p>
           <button
             onClick={openNewPost}
             className="px-5 py-2.5 bg-preik-accent text-white rounded-xl text-sm font-medium hover:bg-preik-accent-hover transition-colors"
@@ -487,7 +487,7 @@ export default function BlogManager() {
                   </span>
                 </div>
                 <p className="text-sm text-preik-text-muted">
-                  /blogg/{post.slug} &middot; {post.author_name} &middot;{" "}
+                  /articles/{post.slug} &middot; {post.author_name} &middot;{" "}
                   {new Date(post.created_at).toLocaleDateString("nb-NO")}
                 </p>
               </div>

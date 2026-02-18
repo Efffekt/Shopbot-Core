@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://preik.ai",
     types: {
-      "application/rss+xml": "/blogg/feed.xml",
+      "application/rss+xml": "/articles/feed.xml",
     },
   },
   other: { "theme-color": "#ffffff" },

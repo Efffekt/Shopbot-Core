@@ -10,7 +10,7 @@ export const SUPER_ADMIN_EMAILS = parseEmailList(
   process.env.SUPER_ADMIN_EMAILS
 );
 
-// Admin emails — access to Oversikt, Analyse, and Blogg only
+// Admin emails — access to Oversikt, Analyse, and Articles only
 // Configure via env: ADMIN_EMAILS=e@f.com,g@h.com
 export const ADMIN_EMAILS = parseEmailList(
   process.env.ADMIN_EMAILS

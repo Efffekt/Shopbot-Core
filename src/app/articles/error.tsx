@@ -19,7 +19,7 @@ export default function BlogError({
       <div className="text-center max-w-md">
         <h2 className="text-xl font-semibold text-preik-text mb-2">Noe gikk galt</h2>
         <p className="text-preik-text-muted mb-6 text-sm">
-          Kunne ikke laste blogginnholdet. Prøv igjen eller gå tilbake.
+          Kunne ikke laste innholdet. Prøv igjen eller gå tilbake.
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
@@ -29,10 +29,10 @@ export default function BlogError({
             Prøv igjen
           </button>
           <Link
-            href="/blogg"
+            href="/articles"
             className="px-5 py-2.5 border border-preik-border text-preik-text text-sm font-medium rounded-xl hover:bg-preik-surface transition-colors"
           >
-            Tilbake til bloggen
+            Alle artikler
           </Link>
         </div>
       </div>

@@ -257,7 +257,7 @@ export default function AccountSettings({ userEmail, showBlogSettings = false }:
       {/* Blog Settings — admin only */}
       {showBlogSettings && (
         <form onSubmit={handleBlogSettingsSave} className="space-y-4 pt-5 border-t border-preik-border">
-          <h3 className="text-sm font-semibold text-preik-text uppercase tracking-wide">Blogg-innstillinger</h3>
+          <h3 className="text-sm font-semibold text-preik-text uppercase tracking-wide">Artikkel-innstillinger</h3>
 
           {blogSettingsError && (
             <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded-xl text-sm">
@@ -273,7 +273,7 @@ export default function AccountSettings({ userEmail, showBlogSettings = false }:
               <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Blogg-innstillingene er lagret!
+              Artikkel-innstillingene er lagret!
             </div>
           )}
 
@@ -303,7 +303,7 @@ export default function AccountSettings({ userEmail, showBlogSettings = false }:
               rows={3}
               disabled={blogSettingsLoading}
               className="w-full bg-preik-bg border border-preik-border rounded-xl px-4 py-3 text-sm text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all resize-none disabled:opacity-50"
-              placeholder="Kort biografi som vises på blogginnlegg"
+              placeholder="Kort biografi som vises på artikler"
             />
           </div>
 
@@ -321,7 +321,7 @@ export default function AccountSettings({ userEmail, showBlogSettings = false }:
                 Lagrer...
               </>
             ) : (
-              "Lagre blogg-innstillinger"
+              "Lagre artikkel-innstillinger"
             )}
           </button>
         </form>

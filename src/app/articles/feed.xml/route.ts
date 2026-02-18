@@ -19,8 +19,8 @@ export async function GET() {
         : "";
       return `    <item>
       <title><![CDATA[${post.title}]]></title>
-      <link>${SITE_URL}/blogg/${post.slug}</link>
-      <guid isPermaLink="true">${SITE_URL}/blogg/${post.slug}</guid>
+      <link>${SITE_URL}/articles/${post.slug}</link>
+      <guid isPermaLink="true">${SITE_URL}/articles/${post.slug}</guid>
       <pubDate>${pubDate}</pubDate>
       <dc:creator><![CDATA[${post.author_name}]]></dc:creator>
       <description>${description}</description>
@@ -35,12 +35,12 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Preik Blogg</title>
-    <link>${SITE_URL}/blogg</link>
+    <title>Preik Articles</title>
+    <link>${SITE_URL}/articles</link>
     <description>Artikler om AI, chatbots og norsk teknologi fra Preik.</description>
     <language>nb</language>
     <lastBuildDate>${lastBuildDate}</lastBuildDate>
-    <atom:link href="${SITE_URL}/blogg/feed.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="${SITE_URL}/articles/feed.xml" rel="self" type="application/rss+xml" />
 ${items}
   </channel>
 </rss>`;
