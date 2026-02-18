@@ -1,5 +1,5 @@
-// Chat API - Gemini 2.5 Flash Lite via Vertex AI (global endpoint) with OpenAI fallback
-// IMPORTANT: The primary model MUST remain "gemini-2.5-flash-lite". Do not change it.
+// Chat API - Gemini 3 Flash Preview via Vertex AI (global endpoint) with OpenAI fallback
+// Primary model: gemini-3-flash-preview
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
@@ -523,15 +523,15 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
-      let modelUsed = "gemini-2.5-flash-lite";
+      let modelUsed = "gemini-3-flash-preview";
       let result: { text: string } | undefined;
 
       const vertex = getVertex();
-      const geminiModel = vertex("gemini-2.5-flash-lite");
+      const geminiModel = vertex("gemini-3-flash-preview");
       const openaiModel = openai("gpt-4o-mini");
 
       const models = [
-        { provider: geminiModel, name: "gemini-2.5-flash-lite" },
+        { provider: geminiModel, name: "gemini-3-flash-preview" },
         { provider: openaiModel, name: "gpt-4o-mini" },
       ];
 
@@ -608,7 +608,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - Gemini primary, OpenAI fallback
-    let modelUsed = "gemini-2.5-flash-lite";
+    let modelUsed = "gemini-3-flash-preview";
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders: Record<string, string> = {
@@ -626,11 +626,11 @@ export async function POST(request: NextRequest) {
     }
 
     const vertex = getVertex();
-    const geminiModel = vertex("gemini-2.5-flash-lite");
+    const geminiModel = vertex("gemini-3-flash-preview");
     const openaiModel = openai("gpt-4o-mini");
 
     const models = [
-      { provider: geminiModel, name: "gemini-2.5-flash-lite" },
+      { provider: geminiModel, name: "gemini-3-flash-preview" },
       { provider: openaiModel, name: "gpt-4o-mini" },
     ];
 
