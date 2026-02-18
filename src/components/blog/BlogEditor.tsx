@@ -58,6 +58,7 @@ export default function BlogEditor({
       }),
       Markdown.configure({
         html: false,
+        linkify: false,
         transformPastedText: true,
       }),
     ],
