@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import BlogEditor from "@/components/blog/BlogEditor";
 
 interface BlogPost {
   id: string;
@@ -61,7 +62,6 @@ export default function BlogManager() {
   const [form, setForm] = useState<PostForm>(emptyForm);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const contentRef = useRef<HTMLTextAreaElement>(null);
   const [defaultAuthorName, setDefaultAuthorName] = useState("");
 
   async function uploadImage(file: File): Promise<string | null> {
@@ -334,51 +334,12 @@ export default function BlogManager() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-preik-text">Innhold (Markdown) *</label>
-              <button
-                type="button"
-                disabled={uploading}
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.accept = "image/jpeg,image/png,image/gif,image/webp,image/avif";
-                  input.onchange = async () => {
-                    const file = input.files?.[0];
-                    if (!file) return;
-                    const url = await uploadImage(file);
-                    if (!url) return;
-                    const textarea = contentRef.current;
-                    const markdown = `![${file.name}](${url})`;
-                    if (textarea) {
-                      const start = textarea.selectionStart;
-                      const end = textarea.selectionEnd;
-                      const text = form.content;
-                      const newContent = text.substring(0, start) + markdown + text.substring(end);
-                      setForm((prev) => ({ ...prev, content: newContent }));
-                      requestAnimationFrame(() => {
-                        textarea.focus();
-                        const pos = start + markdown.length;
-                        textarea.setSelectionRange(pos, pos);
-                      });
-                    } else {
-                      setForm((prev) => ({ ...prev, content: prev.content + "\n" + markdown }));
-                    }
-                  };
-                  input.click();
-                }}
-                className="text-xs px-3 py-1.5 bg-preik-surface border border-preik-border text-preik-text rounded-lg hover:bg-preik-bg transition-colors disabled:opacity-50"
-              >
-                {uploading ? "Laster opp..." : "Sett inn bilde"}
-              </button>
-            </div>
-            <textarea
-              ref={contentRef}
-              value={form.content}
-              onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
-              rows={16}
-              className="w-full px-4 py-2.5 rounded-xl bg-preik-surface border border-preik-border text-preik-text focus:outline-none focus:ring-2 focus:ring-preik-accent/50 resize-y font-mono text-sm"
-              placeholder="Skriv innholdet i Markdown-format..."
+            <label className="block text-sm font-medium text-preik-text mb-1">Innhold *</label>
+            <BlogEditor
+              content={form.content}
+              onContentChange={(content) => setForm((prev) => ({ ...prev, content }))}
+              uploadImage={uploadImage}
+              uploading={uploading}
             />
           </div>
 
