@@ -116,18 +116,20 @@ export async function POST(request: NextRequest) {
                 }
 
                 const content = scrapeResult.markdown;
-                const checksum = calculateChecksum(content);
 
-                // Check if content has changed
-                const { data: existing } = await supabaseAdmin
+                // Check if content has changed (skip if checksum column doesn't exist yet)
+                const { data: existing, error: checksumErr } = await supabaseAdmin
                   .from("documents")
                   .select("checksum")
                   .eq("store_id", storeId)
                   .eq("metadata->>source", url)
                   .single();
 
-                if (existing?.checksum === checksum) {
-                  return { url, status: "skipped" as const };
+                if (!checksumErr && existing?.checksum) {
+                  const checksum = calculateChecksum(content);
+                  if (existing.checksum === checksum) {
+                    return { url, status: "skipped" as const };
+                  }
                 }
 
                 // Delete old chunks for this URL
@@ -152,12 +154,11 @@ export async function POST(request: NextRequest) {
                   },
                 });
 
-                // Insert new chunks
+                // Insert new chunks (omit checksum if column doesn't exist)
                 const documents = chunks.map((chunk, idx) => ({
                   content: chunk,
                   embedding: embeddings[idx],
                   store_id: storeId,
-                  checksum,
                   metadata: { source: url },
                 }));
 
