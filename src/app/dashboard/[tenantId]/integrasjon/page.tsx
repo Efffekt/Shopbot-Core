@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { Tooltip } from "@/components/Tooltip";
 
 interface WidgetConfig {
   accentColor: string;
@@ -379,8 +380,9 @@ export default function IntegrationPage() {
 
             {/* Accent Color */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-preik-text mb-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                 Aksentfarge
+                <Tooltip text="Hovedfargen for knapper, lenker og fremhevede elementer i chatboten." />
               </label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {presetColors.map((color) => (
@@ -416,8 +418,9 @@ export default function IntegrationPage() {
 
             {/* Theme */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-preik-text mb-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                 Tema
+                <Tooltip text="Bestemmer om chatboten bruker lyst, mørkt, eller automatisk tema basert på brukerens nettleser." />
               </label>
               <div className="flex gap-2">
                 {(["auto", "light", "dark"] as const).map((theme) => (
@@ -447,8 +450,9 @@ export default function IntegrationPage() {
 
               {/* Background Color */}
               <div>
-                <label className="block text-xs text-preik-text-muted mb-2">
+                <label className="flex items-center gap-1.5 text-xs text-preik-text-muted mb-2">
                   Bakgrunnsfarge
+                  <Tooltip text="Fargen bak meldingsområdet i chatvinduet. La stå tom for standardfarge." />
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -480,8 +484,9 @@ export default function IntegrationPage() {
 
               {/* Surface Color */}
               <div>
-                <label className="block text-xs text-preik-text-muted mb-2">
+                <label className="flex items-center gap-1.5 text-xs text-preik-text-muted mb-2">
                   Overflate/kort-farge
+                  <Tooltip text="Fargen på topplinje, inputfelt og andre paneler i chatvinduet. La stå tom for standardfarge." />
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -514,8 +519,9 @@ export default function IntegrationPage() {
 
             {/* Position */}
             <div>
-              <label className="block text-sm font-medium text-preik-text mb-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                 Posisjon
+                <Tooltip text="Hvor chat-knappen plasseres på nettsiden din." />
               </label>
               <div className="flex gap-2">
                 {(["bottom-right", "bottom-left"] as const).map((pos) => (
@@ -541,8 +547,9 @@ export default function IntegrationPage() {
 
             {/* Brand Name */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-preik-text mb-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                 Visningsnavn
+                <Tooltip text="Navnet som vises i topplinjen i chatvinduet, f.eks. bedriftsnavnet ditt." />
               </label>
               <input
                 type="text"
@@ -555,8 +562,9 @@ export default function IntegrationPage() {
 
             {/* Brand Style */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-preik-text mb-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                 Navnestil
+                <Tooltip text="Velg om visningsnavnet skal vises i normal eller kursiv skrift." />
               </label>
               <div className="flex gap-2">
                 {(["normal", "italic"] as const).map((style) => (
@@ -578,8 +586,9 @@ export default function IntegrationPage() {
 
             {/* Greeting */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-preik-text mb-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                 Velkomstmelding
+                <Tooltip text="Teksten som vises i chatvinduet før brukeren har sendt sin første melding." />
               </label>
               <textarea
                 value={config.greeting}
@@ -592,16 +601,23 @@ export default function IntegrationPage() {
 
             {/* Placeholder */}
             <div>
-              <label className="block text-sm font-medium text-preik-text mb-2">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                 Plassholdertekst
+                <Tooltip text="Teksten som vises i inputfeltet før brukeren begynner å skrive." />
               </label>
               <input
                 type="text"
                 value={config.placeholder}
-                onChange={(e) => updateConfig("placeholder", e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= 39) updateConfig("placeholder", e.target.value);
+                }}
+                maxLength={39}
                 className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-lg text-sm text-preik-text"
                 placeholder="Skriv en melding..."
               />
+              <p className="text-xs text-preik-text-muted mt-1">
+                {config.placeholder.length}/39 tegn
+              </p>
             </div>
           </div>
 
@@ -627,8 +643,9 @@ export default function IntegrationPage() {
                     }`}
                   />
                 </button>
-                <span className="text-sm font-medium text-preik-text">
+                <span className="text-sm font-medium text-preik-text flex items-center gap-1.5">
                   Vis introduksjonsskjerm
+                  <Tooltip text="Når aktivert vises en velkomstside med informasjon før chatten åpnes. Vises kun én gang per besøkende." />
                 </span>
               </label>
               <p className="text-xs text-preik-text-muted mt-1 ml-14">
@@ -640,8 +657,9 @@ export default function IntegrationPage() {
               <>
                 {/* Onboarding text */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-preik-text mb-2">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                     Introduksjonstekst
+                    <Tooltip text="Teksten som vises på introduksjonsskjermen. Bruk dobbelt linjeskift for nye avsnitt." />
                   </label>
                   <textarea
                     value={config.onboarding}
@@ -657,8 +675,9 @@ export default function IntegrationPage() {
 
                 {/* CTA button text */}
                 <div>
-                  <label className="block text-sm font-medium text-preik-text mb-2">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                     Knappetekst
+                    <Tooltip text="Teksten på knappen som lukker introduksjonsskjermen og åpner chatten." />
                   </label>
                   <input
                     type="text"
@@ -685,8 +704,9 @@ export default function IntegrationPage() {
                 Merk: Du må selv laste inn egne fonter på nettsiden din (f.eks. via Google Fonts).
               </p>
               <div>
-                <label className="block text-sm font-medium text-preik-text mb-2">
+                <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                   Brødtekst-font
+                  <Tooltip text="CSS font-family for meldingstekst. Fonten må allerede være lastet inn på nettsiden din." />
                 </label>
                 <input
                   type="text"
@@ -697,8 +717,9 @@ export default function IntegrationPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-preik-text mb-2">
+                <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                   Tittel-font
+                  <Tooltip text="CSS font-family for visningsnavnet i topplinjen. Fonten må allerede være lastet inn på nettsiden din." />
                 </label>
                 <input
                   type="text"
@@ -709,8 +730,9 @@ export default function IntegrationPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-preik-text mb-2">
+                <label className="flex items-center gap-1.5 text-sm font-medium text-preik-text mb-2">
                   Tekstfarge
+                  <Tooltip text="Fargen på all tekst i chatvinduet. La stå tom for standardfarge." />
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -762,7 +784,10 @@ export default function IntegrationPage() {
           {/* Embed code */}
           <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-preik-text">Din embed-kode</h2>
+              <h2 className="text-lg font-semibold text-preik-text flex items-center gap-1.5">
+                Din embed-kode
+                <Tooltip text="Kopier denne koden og lim den inn på nettsiden din for å aktivere chatboten. Koden oppdateres automatisk når du endrer innstillingene." />
+              </h2>
               <button
                 onClick={copyToClipboard}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-preik-accent text-white text-sm font-medium rounded-xl hover:bg-preik-accent-hover transition-colors"

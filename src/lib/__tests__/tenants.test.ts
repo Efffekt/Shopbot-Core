@@ -112,6 +112,17 @@ describe("validateOrigin", () => {
     expect(result.allowed).toBe(true);
     vi.unstubAllEnvs();
   });
+
+  it("normalizes full URLs stored in allowedDomains", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const tenantWithUrls = {
+      ...config,
+      allowedDomains: ["https://nbenergi.no/", "https://www.nbenergi.no"],
+    };
+    expect(validateOrigin(tenantWithUrls, "https://nbenergi.no", null).allowed).toBe(true);
+    expect(validateOrigin(tenantWithUrls, "https://www.nbenergi.no", null).allowed).toBe(true);
+    vi.unstubAllEnvs();
+  });
 });
 
 describe("getAllTenantsFromDB", () => {

@@ -453,7 +453,9 @@ export function validateOrigin(
     (d) => requestDomain === d || requestDomain.endsWith(`.${d}`)
   );
 
-  const isAllowed = isPlatform || tenantConfig.allowedDomains.some((allowed) => {
+  const isAllowed = isPlatform || tenantConfig.allowedDomains.some((raw) => {
+    // Normalize: entries may be stored as full URLs (e.g. "https://example.com/")
+    const allowed = extractDomain(raw) || raw.replace(/^https?:\/\//, "").replace(/\/+$/, "").toLowerCase();
     return requestDomain === allowed || requestDomain.endsWith(`.${allowed}`);
   });
 
