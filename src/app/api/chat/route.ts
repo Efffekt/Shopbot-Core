@@ -109,12 +109,23 @@ const chatSchema = z.object({
 
 // --- URL sanitization: replace hallucinated URLs with search fallbacks ---
 
-/** Check if a URL is in the allowlist (exact or with/without trailing slash) or is a search URL */
+/** Strip www. prefix from a URL for comparison */
+function normalizeUrl(url: string): string {
+  return url.replace(/^(https?:\/\/)www\./, "$1");
+}
+
+/** Check if a URL is in the allowlist (handles www/non-www, trailing slash, search URLs) */
 function isUrlAllowed(url: string, allowedUrls: Set<string>): boolean {
   if (allowedUrls.size === 0) return true; // No allowlist = no filtering
-  if (allowedUrls.has(url)) return true;
-  const alt = url.endsWith("/") ? url.slice(0, -1) : url + "/";
-  if (allowedUrls.has(alt)) return true;
+  const normalized = normalizeUrl(url);
+  for (const allowed of allowedUrls) {
+    const normalizedAllowed = normalizeUrl(allowed);
+    if (normalized === normalizedAllowed) return true;
+    // Trailing slash tolerance
+    const a = normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
+    const b = normalizedAllowed.endsWith("/") ? normalizedAllowed.slice(0, -1) : normalizedAllowed;
+    if (a === b) return true;
+  }
   // Allow search URLs (the AI's sanctioned fallback pattern)
   try {
     const parsed = new URL(url);
@@ -130,11 +141,31 @@ function buildSearchFallback(url: string, baseDomain: string): string {
   return `${baseDomain}/search?q=${encodeURIComponent(lastSegment)}`;
 }
 
+/** Extract the base domain (without www.) from the allowlist, plus both www/non-www variants */
+function extractDomainVariants(allowedUrls: Set<string>): { baseDomain: string; patterns: string[] } | null {
+  const first = [...allowedUrls][0];
+  if (!first) return null;
+  const match = first.match(/^https?:\/\/[^/]+/);
+  if (!match) return null;
+  const baseDomain = normalizeUrl(match[0]); // without www.
+  const host = baseDomain.replace(/^https?:\/\//, "");
+  return {
+    baseDomain,
+    patterns: [
+      `https://${host}`,
+      `https://www.${host}`,
+      `http://${host}`,
+      `http://www.${host}`,
+    ],
+  };
+}
+
 /** Replace hallucinated URLs in text — both markdown links and bare URLs */
 function sanitizeResponseUrls(text: string, allowedUrls: Set<string>): string {
   if (allowedUrls.size === 0) return text;
-  const baseDomain = [...allowedUrls][0]?.match(/^https?:\/\/[^/]+/)?.[0];
-  if (!baseDomain) return text;
+  const domainInfo = extractDomainVariants(allowedUrls);
+  if (!domainInfo) return text;
+  const { baseDomain } = domainInfo;
 
   // Pass 1: Sanitize markdown links [text](url)
   let result = text.replace(/\]\((https?:\/\/[^)]+)\)/g, (match, url: string) => {
@@ -142,10 +173,12 @@ function sanitizeResponseUrls(text: string, allowedUrls: Set<string>): string {
     return `](${buildSearchFallback(url, baseDomain)})`;
   });
 
-  // Pass 2: Sanitize bare URLs on the same domain (not already inside markdown links)
-  const escapedDomain = baseDomain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Pass 2: Sanitize bare URLs on any variant of the domain (www/non-www)
+  const escapedPatterns = domainInfo.patterns
+    .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
   const bareUrlRegex = new RegExp(
-    `(?<!\\]\\()(?<!\\()(${escapedDomain}\\/[^\\s)\\]>]*)`,
+    `(?<!\\]\\()(?<!\\()(?:${escapedPatterns})\\/[^\\s)\\]>]*`,
     "g"
   );
   result = result.replace(bareUrlRegex, (match) => {
