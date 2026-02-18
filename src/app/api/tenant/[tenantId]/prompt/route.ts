@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
-import { TENANT_CONFIGS } from "@/lib/tenants";
+import { getTenantConfigFromDB } from "@/lib/tenants";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-content-type";
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .eq("tenant_id", tenantId)
       .single();
 
-    const config = TENANT_CONFIGS[tenantId];
+    const config = await getTenantConfigFromDB(tenantId);
     const fallbackPrompt = config?.systemPrompt || "";
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
-import { TENANT_CONFIGS } from "@/lib/tenants";
+import { getTenantConfigFromDB } from "@/lib/tenants";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/user/tenants");
@@ -28,15 +28,17 @@ export async function GET() {
       );
     }
 
-    const tenants = (tenantAccess || []).map((access) => {
-      const config = TENANT_CONFIGS[access.tenant_id];
-      return {
-        id: access.tenant_id,
-        name: config?.name || access.tenant_id,
-        role: access.role,
-        persona: config?.persona || null,
-      };
-    });
+    const tenants = await Promise.all(
+      (tenantAccess || []).map(async (access) => {
+        const config = await getTenantConfigFromDB(access.tenant_id);
+        return {
+          id: access.tenant_id,
+          name: config?.name || access.tenant_id,
+          role: access.role,
+          persona: config?.persona || null,
+        };
+      })
+    );
 
     return NextResponse.json({ tenants }, {
       headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=30" },

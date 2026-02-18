@@ -1,13 +1,32 @@
 import { describe, it, expect, vi } from "vitest";
 
+const { mockFrom } = vi.hoisted(() => ({
+  mockFrom: vi.fn(),
+}));
+
 // Mock supabase before importing tenants
 vi.mock("@/lib/supabase", () => ({
   supabaseAdmin: {
-    from: () => ({ select: () => ({ eq: () => ({ single: () => ({}) }) }) }),
+    from: mockFrom,
   },
 }));
 
-import { getTenantConfig, validateOrigin, TENANT_CONFIGS, DEFAULT_TENANT } from "../tenants";
+vi.mock("@/lib/logger", () => ({
+  createLogger: () => ({
+    info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
+  }),
+}));
+
+// Default: from() returns a chain that resolves to empty/no-op
+mockFrom.mockReturnValue({
+  select: vi.fn().mockReturnValue({
+    eq: vi.fn().mockReturnValue({
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    }),
+  }),
+});
+
+import { getTenantConfig, validateOrigin, TENANT_CONFIGS, DEFAULT_TENANT, getAllTenantsFromDB } from "../tenants";
 
 describe("getTenantConfig", () => {
   it("returns config for known tenant", () => {
@@ -92,5 +111,53 @@ describe("validateOrigin", () => {
     const result = validateOrigin(config, null, "https://baatpleiebutikken.no/page");
     expect(result.allowed).toBe(true);
     vi.unstubAllEnvs();
+  });
+});
+
+describe("getAllTenantsFromDB", () => {
+  it("returns hardcoded tenants when DB query fails", async () => {
+    mockFrom.mockReturnValue({
+      select: vi.fn().mockResolvedValue({ data: null, error: { message: "DB down" } }),
+    });
+
+    const tenants = await getAllTenantsFromDB();
+
+    // Should still return hardcoded tenants
+    expect(tenants.length).toBeGreaterThan(0);
+    const ids = tenants.map((t) => t.id);
+    expect(ids).toContain("baatpleiebutikken");
+  });
+
+  it("merges DB tenants with hardcoded tenants", async () => {
+    mockFrom.mockReturnValue({
+      select: vi.fn().mockResolvedValue({
+        data: [
+          { id: "nbenergi", name: "NB Energi" },
+          { id: "baatpleiebutikken", name: "Båtpleiebutikken DB" },
+        ],
+        error: null,
+      }),
+    });
+
+    const tenants = await getAllTenantsFromDB();
+
+    const ids = tenants.map((t) => t.id);
+    expect(ids).toContain("nbenergi");
+    expect(ids).toContain("baatpleiebutikken");
+    // DB name should override hardcoded name
+    const baat = tenants.find((t) => t.id === "baatpleiebutikken");
+    expect(baat?.name).toBe("Båtpleiebutikken DB");
+  });
+
+  it("returns only hardcoded tenants when DB returns empty", async () => {
+    mockFrom.mockReturnValue({
+      select: vi.fn().mockResolvedValue({ data: [], error: null }),
+    });
+
+    const tenants = await getAllTenantsFromDB();
+
+    const ids = tenants.map((t) => t.id);
+    expect(ids).toContain("baatpleiebutikken");
+    expect(ids).toContain("preik-demo");
   });
 });

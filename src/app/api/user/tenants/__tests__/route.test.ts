@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock dependencies
-const mockGetUser = vi.fn();
-const mockSelect = vi.fn();
-const mockEq = vi.fn();
+const { mockGetUser, mockSelect, mockEq, mockGetTenantConfigFromDB } = vi.hoisted(() => ({
+  mockGetUser: vi.fn(),
+  mockSelect: vi.fn(),
+  mockEq: vi.fn(),
+  mockGetTenantConfigFromDB: vi.fn(),
+}));
 
 vi.mock("@/lib/supabase-server", () => ({
   getUser: () => mockGetUser(),
@@ -15,9 +18,7 @@ vi.mock("@/lib/supabase-server", () => ({
 }));
 
 vi.mock("@/lib/tenants", () => ({
-  TENANT_CONFIGS: {
-    "test-tenant": { name: "Test Tenant", persona: "A helpful bot" },
-  },
+  getTenantConfigFromDB: mockGetTenantConfigFromDB,
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -35,6 +36,13 @@ describe("GET /api/user/tenants", () => {
     vi.clearAllMocks();
     mockSelect.mockReturnValue({
       eq: mockEq,
+    });
+    // Default: return config for known tenants, null for unknown
+    mockGetTenantConfigFromDB.mockImplementation(async (id: string) => {
+      if (id === "test-tenant") {
+        return { id: "test-tenant", name: "Test Tenant", persona: "A helpful bot" };
+      }
+      return null;
     });
   });
 

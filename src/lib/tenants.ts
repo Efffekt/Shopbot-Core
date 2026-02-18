@@ -401,6 +401,37 @@ export function getAllTenants(): TenantConfig[] {
   return Object.values(TENANT_CONFIGS);
 }
 
+/**
+ * Fetches all tenants from the database, merged with hardcoded configs.
+ * Returns { id, name } for each tenant.
+ */
+export async function getAllTenantsFromDB(): Promise<{ id: string; name: string }[]> {
+  // Start with hardcoded tenants
+  const tenantMap = new Map<string, string>();
+  for (const config of Object.values(TENANT_CONFIGS)) {
+    tenantMap.set(config.id, config.name);
+  }
+
+  // Merge in DB tenants (overrides hardcoded names if present in DB)
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("tenants")
+      .select("id, name");
+
+    if (!error && data) {
+      for (const tenant of data) {
+        tenantMap.set(tenant.id, tenant.name);
+      }
+    } else if (error) {
+      log.warn("Failed to fetch tenants from DB, using hardcoded only", { error: error.message });
+    }
+  } catch (err) {
+    log.error("Error fetching all tenants from DB", { error: err as Error });
+  }
+
+  return Array.from(tenantMap.entries()).map(([id, name]) => ({ id, name }));
+}
+
 export function validateOrigin(
   tenantConfig: TenantConfig,
   origin: string | null,
@@ -453,7 +484,7 @@ function extractDomain(url: string | null): string | null {
  * First checks the database for a custom prompt, falls back to hardcoded config.
  */
 export async function getTenantSystemPrompt(storeId: string): Promise<string> {
-  const config = getTenantConfig(storeId);
+  const config = await getTenantConfigFromDB(storeId);
   const fallbackPrompt = config?.systemPrompt || "";
 
   try {

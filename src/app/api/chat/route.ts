@@ -81,7 +81,7 @@ function isRateLimitError(error: unknown): boolean {
   }
   return false;
 }
-import { getTenantConfig, getTenantSystemPrompt, validateOrigin } from "@/lib/tenants";
+import { getTenantConfigFromDB, getTenantSystemPrompt, validateOrigin } from "@/lib/tenants";
 import { checkRateLimit, getClientIdentifier, getClientIp, RATE_LIMITS } from "@/lib/ratelimit";
 import { checkAndIncrementCredits, shouldSendWarningEmail } from "@/lib/credits";
 import { sendCreditWarningIfNeeded } from "@/lib/email";
@@ -367,7 +367,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get tenant-specific configuration — reject unknown tenants
-    const tenantConfig = getTenantConfig(storeId);
+    const tenantConfig = await getTenantConfigFromDB(storeId);
 
     if (!tenantConfig) {
       return new Response(

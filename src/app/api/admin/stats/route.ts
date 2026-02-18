@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getTenantConfig, getAllTenants, DEFAULT_TENANT } from "@/lib/tenants";
+import { getTenantConfigFromDB, getAllTenantsFromDB, DEFAULT_TENANT } from "@/lib/tenants";
 import { verifyAdmin } from "@/lib/admin-auth";
 import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const days = safeParseInt(searchParams.get("days"), 30, 365);
 
     // Get tenant config for display name
-    const tenantConfig = getTenantConfig(storeId);
+    const tenantConfig = await getTenantConfigFromDB(storeId);
 
     if (!tenantConfig) {
       return NextResponse.json({ error: "Unknown tenant" }, { status: 400 });
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
       })),
       dailyVolume,
       documentCount: documentCount || 0,
-      availableTenants: getAllTenants().map((t) => ({ id: t.id, name: t.name })),
+      availableTenants: await getAllTenantsFromDB(),
     }, {
       headers: {
         "Cache-Control": "private, max-age=300, stale-while-revalidate=60",

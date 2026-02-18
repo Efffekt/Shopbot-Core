@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getTenantConfig } from "@/lib/tenants";
+import { getTenantConfigFromDB } from "@/lib/tenants";
 import { getCreditStatus } from "@/lib/credits";
 import { safeParseInt } from "@/lib/params";
 import { createLogger } from "@/lib/logger";
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { searchParams } = new URL(request.url);
     const days = safeParseInt(searchParams.get("days"), 30, 365);
 
-    const tenantConfig = getTenantConfig(tenantId);
+    const tenantConfig = await getTenantConfigFromDB(tenantId);
 
     if (!tenantConfig) {
       return NextResponse.json({ error: "Unknown tenant" }, { status: 400 });

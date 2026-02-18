@@ -10,7 +10,7 @@ const {
   mockCheckAndIncrementCredits,
   mockShouldSendWarningEmail,
   mockSendCreditWarningIfNeeded,
-  mockGetTenantConfig,
+  mockGetTenantConfigFromDB,
   mockGetTenantSystemPrompt,
   mockValidateOrigin,
   mockValidateJsonContentType,
@@ -26,7 +26,7 @@ const {
   mockCheckAndIncrementCredits: vi.fn(),
   mockShouldSendWarningEmail: vi.fn(),
   mockSendCreditWarningIfNeeded: vi.fn(),
-  mockGetTenantConfig: vi.fn(),
+  mockGetTenantConfigFromDB: vi.fn(),
   mockGetTenantSystemPrompt: vi.fn(),
   mockValidateOrigin: vi.fn(),
   mockValidateJsonContentType: vi.fn(),
@@ -60,7 +60,7 @@ vi.mock("@/lib/email", () => ({
 }));
 
 vi.mock("@/lib/tenants", () => ({
-  getTenantConfig: mockGetTenantConfig,
+  getTenantConfigFromDB: mockGetTenantConfigFromDB,
   getTenantSystemPrompt: mockGetTenantSystemPrompt,
   validateOrigin: mockValidateOrigin,
 }));
@@ -144,7 +144,7 @@ const MOCK_TENANT_CONFIG = {
 
 function setupDefaultMocks() {
   mockValidateJsonContentType.mockReturnValue(null);
-  mockGetTenantConfig.mockReturnValue(MOCK_TENANT_CONFIG);
+  mockGetTenantConfigFromDB.mockResolvedValue(MOCK_TENANT_CONFIG);
   mockValidateOrigin.mockReturnValue({ allowed: true });
   mockCheckRateLimit.mockResolvedValue({ allowed: true, remaining: 29, resetAt: Date.now() + 60000 });
   mockGetClientIdentifier.mockReturnValue("session:test-session-123");
@@ -230,7 +230,7 @@ describe("POST /api/chat", () => {
     });
 
     it("rejects unknown storeId", async () => {
-      mockGetTenantConfig.mockReturnValue(null);
+      mockGetTenantConfigFromDB.mockResolvedValue(null);
 
       const req = makeRequest(validBody({ storeId: "nonexistent-store" }));
       const res = await POST(req);
