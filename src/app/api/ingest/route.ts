@@ -22,6 +22,9 @@ const ingestSchema = z.object({
 
 const EMBEDDING_BATCH_SIZE = 100;
 
+// Allow up to 5 minutes for crawl + embed + insert
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest) {
   try {
     const { authorized, email, error: authError } = await verifySuperAdmin();
@@ -57,20 +60,8 @@ export async function POST(request: NextRequest) {
 
     const { url, storeId } = parsed.data;
 
-    const { error: deleteError } = await supabaseAdmin
-      .from("documents")
-      .delete()
-      .eq("store_id", storeId);
-
-    if (deleteError) {
-      log.error("Error deleting existing documents:", deleteError);
-      return NextResponse.json(
-        { error: "Failed to clear existing documents" },
-        { status: 500 }
-      );
-    }
-
-    log.info("Starting crawl", { url });
+    // Crawl FIRST — old documents are preserved until crawl+embed succeeds
+    log.info("Starting crawl", { url, storeId });
 
     const crawlResult = await firecrawl!.crawl(url, {
       scrapeOptions: {
@@ -84,9 +75,15 @@ export async function POST(request: NextRequest) {
       limit: 500,
     });
 
-    if (crawlResult.status === "failed") {
+    log.info("Crawl result", {
+      status: crawlResult.status,
+      pages: crawlResult.data?.length ?? 0,
+      hasData: !!crawlResult.data,
+    });
+
+    if (crawlResult.status === "failed" || crawlResult.status === "cancelled") {
       return NextResponse.json(
-        { error: "Crawl failed" },
+        { error: `Crawl ${crawlResult.status}` },
         { status: 500 }
       );
     }
@@ -98,9 +95,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    log.info("Crawl complete", { pages: crawlResult.data.length });
-
     const allChunks: { content: string; source: string }[] = [];
+    let emptyPages = 0;
 
     for (const page of crawlResult.data) {
       if (page.markdown) {
@@ -109,12 +105,22 @@ export async function POST(request: NextRequest) {
         for (const chunk of pageChunks) {
           allChunks.push({ content: chunk, source: sourceUrl });
         }
+      } else {
+        emptyPages++;
       }
     }
 
+    log.info("Crawl content", {
+      totalPages: crawlResult.data.length,
+      emptyPages,
+      chunks: allChunks.length,
+    });
+
     if (allChunks.length === 0) {
       return NextResponse.json(
-        { error: "No content found on website" },
+        {
+          error: `No content found on website. ${crawlResult.data.length} pages crawled but ${emptyPages} returned empty markdown. The site may block scrapers or require JavaScript rendering.`,
+        },
         { status: 400 }
       );
     }
@@ -143,6 +149,20 @@ export async function POST(request: NextRequest) {
       metadata: { source: chunk.source },
     }));
 
+    // Delete old documents only AFTER crawl+embed succeeded
+    const { error: deleteError } = await supabaseAdmin
+      .from("documents")
+      .delete()
+      .eq("store_id", storeId);
+
+    if (deleteError) {
+      log.error("Error deleting existing documents:", deleteError);
+      return NextResponse.json(
+        { error: "Failed to clear existing documents" },
+        { status: 500 }
+      );
+    }
+
     const DB_BATCH_SIZE = 500;
     for (let i = 0; i < documents.length; i += DB_BATCH_SIZE) {
       const batch = documents.slice(i, i + DB_BATCH_SIZE);
@@ -159,11 +179,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    log.info("Ingest complete", { storeId, pages: crawlResult.data.length, chunks: allChunks.length, emptyPages });
+
     return NextResponse.json({
       success: true,
-      message: `Successfully crawled ${crawlResult.data.length} pages and ingested ${allChunks.length} chunks`,
+      message: `Successfully crawled ${crawlResult.data.length} pages and ingested ${allChunks.length} chunks${emptyPages > 0 ? ` (${emptyPages} empty pages skipped)` : ""}`,
       pagesCount: crawlResult.data.length,
       chunksCount: allChunks.length,
+      emptyPages,
     });
   } catch (error) {
     log.error("Ingest error:", error);

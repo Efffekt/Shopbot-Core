@@ -23,6 +23,9 @@ const executeSchema = z.object({
   storeId: z.string().min(1),
 });
 
+// Allow up to 5 minutes for batch scraping
+export const maxDuration = 300;
+
 export async function POST(request: NextRequest) {
   try {
     const { authorized, email, error: authError } = await verifySuperAdmin();
@@ -80,6 +83,7 @@ export async function POST(request: NextRequest) {
         let newPages = 0;
         let updatedPages = 0;
         let skippedPages = 0;
+        let emptyPages = 0;
 
         // Process in batches
         for (let i = 0; i < urls.length; i += BATCH_SIZE) {
@@ -99,6 +103,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 if (!scrapeResult.markdown) {
+                  log.warn("Empty markdown from Firecrawl", { url });
                   return { url, status: "empty" as const };
                 }
 
@@ -148,7 +153,11 @@ export async function POST(request: NextRequest) {
                   metadata: { source: url },
                 }));
 
-                await supabaseAdmin.from("documents").insert(documents);
+                const { error: insertError } = await supabaseAdmin.from("documents").insert(documents);
+                if (insertError) {
+                  log.error("DB insert failed", { url, error: insertError });
+                  return { url, status: "error" as const, error: insertError.message };
+                }
 
                 return {
                   url,
@@ -171,6 +180,8 @@ export async function POST(request: NextRequest) {
 
               if (r.status === "error") {
                 errors++;
+              } else if (r.status === "empty") {
+                emptyPages++;
               } else if (r.status === "new") {
                 newPages++;
               } else if (r.status === "updated") {
@@ -186,7 +197,7 @@ export async function POST(request: NextRequest) {
                 url: r.url,
                 status: r.status,
                 chunks: "chunks" in r ? r.chunks : 0,
-                stats: { errors, newPages, updatedPages, skippedPages },
+                stats: { errors, newPages, updatedPages, skippedPages, emptyPages },
               });
             } else {
               errors++;
@@ -197,7 +208,7 @@ export async function POST(request: NextRequest) {
                 url: "unknown",
                 status: "error",
                 error: result.reason,
-                stats: { errors, newPages, updatedPages, skippedPages },
+                stats: { errors, newPages, updatedPages, skippedPages, emptyPages },
               });
             }
           }
@@ -207,7 +218,7 @@ export async function POST(request: NextRequest) {
         send({
           type: "complete",
           total: processed,
-          stats: { errors, newPages, updatedPages, skippedPages },
+          stats: { errors, newPages, updatedPages, skippedPages, emptyPages },
         });
 
         controller.close();

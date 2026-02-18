@@ -9,6 +9,7 @@ interface Stats {
   newPages: number;
   updatedPages: number;
   skippedPages: number;
+  emptyPages: number;
 }
 
 interface LogEntry {
@@ -38,6 +39,7 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
     newPages: 0,
     updatedPages: 0,
     skippedPages: 0,
+    emptyPages: 0,
   });
   const [recentLogs, setRecentLogs] = useState<LogEntry[]>([]);
 
@@ -108,7 +110,7 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
     setPhase("progress");
     setCurrent(0);
     setTotal(discoveredUrls.length);
-    setStats({ errors: 0, newPages: 0, updatedPages: 0, skippedPages: 0 });
+    setStats({ errors: 0, newPages: 0, updatedPages: 0, skippedPages: 0, emptyPages: 0 });
     setRecentLogs([]);
 
     abortRef.current = new AbortController();
@@ -180,7 +182,7 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
     setDiscoveredUrls([]);
     setCurrent(0);
     setTotal(0);
-    setStats({ errors: 0, newPages: 0, updatedPages: 0, skippedPages: 0 });
+    setStats({ errors: 0, newPages: 0, updatedPages: 0, skippedPages: 0, emptyPages: 0 });
     setRecentLogs([]);
     setError("");
     setManualUrls("");
@@ -399,7 +401,7 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 text-center text-sm">
+          <div className="grid grid-cols-5 gap-2 text-center text-sm">
             <div className="bg-green-500/10 p-2 rounded-xl">
               <div className="font-bold text-green-600">{stats.newPages}</div>
               <div className="text-green-600 text-xs">Nye</div>
@@ -410,7 +412,11 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
             </div>
             <div className="bg-preik-bg p-2 rounded-xl">
               <div className="font-bold text-preik-text-muted">{stats.skippedPages}</div>
-              <div className="text-preik-text-muted text-xs">Hoppet over</div>
+              <div className="text-preik-text-muted text-xs">Uendret</div>
+            </div>
+            <div className="bg-yellow-500/10 p-2 rounded-xl">
+              <div className="font-bold text-yellow-600">{stats.emptyPages}</div>
+              <div className="text-yellow-600 text-xs">Tomme</div>
             </div>
             <div className="bg-red-500/10 p-2 rounded-xl">
               <div className="font-bold text-red-600">{stats.errors}</div>
@@ -452,14 +458,33 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
       {/* Phase 4: Complete */}
       {phase === "complete" && (
         <div className="space-y-4">
-          <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-center">
-            <svg className="h-12 w-12 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-green-600 font-medium text-lg">Skraping fullført!</p>
-          </div>
+          {stats.newPages === 0 && stats.updatedPages === 0 ? (
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-center">
+              <svg className="h-12 w-12 text-yellow-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <p className="text-yellow-600 font-medium text-lg">Ingen innhold ble lagt til</p>
+              <p className="text-yellow-600/80 text-sm mt-1">
+                {stats.emptyPages > 0
+                  ? `${stats.emptyPages} sider returnerte tomt innhold. Nettsiden kan blokkere skraperen eller kreve JavaScript-rendering.`
+                  : "Ingen nye eller oppdaterte sider funnet."}
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-center">
+              <svg className="h-12 w-12 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-green-600 font-medium text-lg">Skraping fullført!</p>
+              {stats.emptyPages > 0 && (
+                <p className="text-yellow-600 text-sm mt-1">
+                  {stats.emptyPages} sider returnerte tomt innhold og ble hoppet over.
+                </p>
+              )}
+            </div>
+          )}
 
-          <div className="grid grid-cols-4 gap-2 text-center text-sm">
+          <div className="grid grid-cols-5 gap-2 text-center text-sm">
             <div className="bg-green-500/10 p-2 rounded-xl">
               <div className="font-bold text-green-600">{stats.newPages}</div>
               <div className="text-green-600 text-xs">Nye</div>
@@ -470,7 +495,11 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
             </div>
             <div className="bg-preik-bg p-2 rounded-xl">
               <div className="font-bold text-preik-text-muted">{stats.skippedPages}</div>
-              <div className="text-preik-text-muted text-xs">Hoppet over</div>
+              <div className="text-preik-text-muted text-xs">Uendret</div>
+            </div>
+            <div className="bg-yellow-500/10 p-2 rounded-xl">
+              <div className="font-bold text-yellow-600">{stats.emptyPages}</div>
+              <div className="text-yellow-600 text-xs">Tomme</div>
             </div>
             <div className="bg-red-500/10 p-2 rounded-xl">
               <div className="font-bold text-red-600">{stats.errors}</div>
