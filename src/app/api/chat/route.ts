@@ -475,32 +475,33 @@ export async function POST(request: NextRequest) {
     timings.preAI = Date.now() - start;
 
     const aiStart = Date.now();
-    // Build context-aware system prompt with anti-hallucination guardrails
-    // Language-aware and content-generic — works for any tenant type (store, docs, support)
+    // Build system prompt: tenant instructions are PRIMARY, guardrails are supplementary
     const lang = tenantConfig.language;
     const guardrails = lang === "en"
       ? {
           withContext:
-            `IMPORTANT RESTRICTION: Below is ALL the information you have access to. ` +
-            `You must ONLY reference facts, names, details, and URLs that are explicitly present in the context below. ` +
-            `NEVER invent or assume information that is not in the context. ` +
-            `If the context does not contain enough information to answer fully, say so honestly.`,
+            `ADDITIONAL CONTEXT: Below are relevant documents from the database. ` +
+            `Use this context to support your answers when relevant. ` +
+            `For product details, prices, and URLs, prefer information from the context below. ` +
+            `Do not invent product names, prices, or URLs that are not in the context.`,
           noContext:
             `CONTEXT FROM DATABASE:\n` +
-            `NO RELEVANT DOCUMENTS FOUND. You have NO data available for this query. ` +
-            `Do NOT make up information. Be honest that you could not find relevant information.`,
+            `No relevant documents were found for this query. ` +
+            `Answer based on your system prompt instructions above. ` +
+            `Do not invent specific product names, prices, or URLs.`,
           contextHeader: `CONTEXT FROM DATABASE:`,
         }
       : {
           withContext:
-            `VIKTIG RESTRIKSJON: Nedenfor er ALL informasjon du har tilgang til. ` +
-            `Du skal KUN referere til fakta, navn, detaljer og URL-er som er eksplisitt nevnt i konteksten nedenfor. ` +
-            `ALDRI finn opp eller anta informasjon som ikke finnes i konteksten. ` +
-            `Hvis konteksten ikke inneholder nok informasjon til å svare fullstendig, si det ærlig.`,
+            `TILLEGGSKONTEKST: Nedenfor er relevante dokumenter fra databasen. ` +
+            `Bruk denne konteksten til å støtte svarene dine når det er relevant. ` +
+            `For produktdetaljer, priser og URL-er, foretrekk informasjon fra konteksten nedenfor. ` +
+            `Ikke finn opp produktnavn, priser eller URL-er som ikke finnes i konteksten.`,
           noContext:
             `KONTEKST FRA DATABASE:\n` +
-            `INGEN RELEVANTE DOKUMENTER FUNNET. Du har INGEN data tilgjengelig for dette spørsmålet. ` +
-            `IKKE finn opp informasjon. Si ærlig at du ikke fant relevant informasjon i databasen.`,
+            `Ingen relevante dokumenter ble funnet for dette spørsmålet. ` +
+            `Svar basert på systemprompt-instruksjonene dine ovenfor. ` +
+            `Ikke finn opp spesifikke produktnavn, priser eller URL-er.`,
           contextHeader: `KONTEKST FRA DATABASE:`,
         };
 
