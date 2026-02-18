@@ -58,6 +58,55 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { searchParams } = new URL(request.url);
     const grouped = searchParams.get("grouped") === "true";
     const source = searchParams.get("source");
+    const exportMd = searchParams.get("export") === "md";
+
+    // Export mode: return all content as a single .md file
+    if (exportMd) {
+      const { data: docs, error } = await supabaseAdmin
+        .from("documents")
+        .select("content, metadata, created_at")
+        .eq("store_id", tenantId)
+        .order("metadata->>source")
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      // Group chunks by source, preserving order
+      const groups = new Map<string, { title: string; chunks: string[] }>();
+      for (const doc of docs || []) {
+        const src = doc.metadata?.source || "unknown";
+        const existing = groups.get(src);
+        if (existing) {
+          existing.chunks.push(doc.content);
+        } else {
+          groups.set(src, {
+            title: doc.metadata?.title || src,
+            chunks: [doc.content],
+          });
+        }
+      }
+
+      const parts: string[] = [];
+      for (const [src, { title, chunks }] of groups) {
+        parts.push(`# ${title}`);
+        if (src !== "manual" && src !== title) {
+          parts.push(`> Kilde: ${src}`);
+        }
+        parts.push("");
+        parts.push(chunks.join("\n\n"));
+        parts.push("");
+      }
+
+      const markdown = parts.join("\n");
+      const filename = `kunnskapsbase-${tenantId}-${new Date().toISOString().slice(0, 10)}.md`;
+
+      return new Response(markdown, {
+        headers: {
+          "Content-Type": "text/markdown; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+        },
+      });
+    }
 
     // Single source mode: return all chunks for a source, joined as fullText
     if (source) {

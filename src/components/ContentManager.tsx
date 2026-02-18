@@ -48,6 +48,9 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
   const [editLoading, setEditLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Export state
+  const [exporting, setExporting] = useState(false);
+
   // Delete state
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -236,6 +239,34 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
     }
   }
 
+  async function handleExport() {
+    setExporting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/tenant/${tenantId}/content?export=md`);
+      if (!response.ok) throw new Error("Kunne ikke eksportere innhold");
+
+      const blob = await response.blob();
+      const disposition = response.headers.get("Content-Disposition") || "";
+      const filenameMatch = disposition.match(/filename="(.+)"/);
+      const filename = filenameMatch?.[1] || `kunnskapsbase-${tenantId}.md`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunne ikke eksportere");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (loading && sources.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -273,6 +304,15 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
             placeholder="Søk i innhold..."
             className="flex-1 max-w-xs px-3 py-2 text-sm border border-preik-border rounded-xl bg-preik-bg text-preik-text placeholder:text-preik-text-muted"
           />
+        )}
+        {sources.length > 0 && (
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-preik-text bg-preik-surface border border-preik-border hover:bg-preik-bg disabled:opacity-50 transition-colors shrink-0"
+          >
+            {exporting ? "Eksporterer..." : "Eksporter .md"}
+          </button>
         )}
         {isAdmin && (
           <button
