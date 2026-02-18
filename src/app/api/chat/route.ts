@@ -487,8 +487,8 @@ export async function POST(request: NextRequest) {
           noContext:
             `CONTEXT FROM DATABASE:\n` +
             `No relevant documents were found for this query. ` +
-            `Answer based on your system prompt instructions above. ` +
-            `Do not invent specific product names, prices, or URLs.`,
+            `You have NO information about this topic. Do NOT answer with product names, prices, URLs, or details you do not have from the context. ` +
+            `Tell the user honestly that you could not find relevant information and suggest they contact the business directly or browse the website.`,
           contextHeader: `CONTEXT FROM DATABASE:`,
         }
       : {
@@ -500,8 +500,8 @@ export async function POST(request: NextRequest) {
           noContext:
             `KONTEKST FRA DATABASE:\n` +
             `Ingen relevante dokumenter ble funnet for dette spørsmålet. ` +
-            `Svar basert på systemprompt-instruksjonene dine ovenfor. ` +
-            `Ikke finn opp spesifikke produktnavn, priser eller URL-er.`,
+            `Du har INGEN informasjon om dette emnet. IKKE svar med produktnavn, priser, URL-er eller detaljer du ikke har fått fra konteksten. ` +
+            `Si ærlig at du ikke fant relevant informasjon, og foreslå at kunden tar kontakt eller sjekker nettsiden direkte.`,
           contextHeader: `KONTEKST FRA DATABASE:`,
         };
 
