@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 interface SourceGroup {
   source: string;
@@ -21,6 +21,18 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filteredSources = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return sources;
+    return sources.filter(
+      (src) =>
+        src.title.toLowerCase().includes(q) ||
+        src.source.toLowerCase().includes(q) ||
+        src.preview.toLowerCase().includes(q)
+    );
+  }, [sources, search]);
 
   // Add content form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -247,14 +259,25 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-preik-text-muted">
-          {sources.length} {sources.length === 1 ? "kilde" : "kilder"} indeksert
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-preik-text-muted shrink-0">
+          {search
+            ? `${filteredSources.length} av ${sources.length} kilder`
+            : `${sources.length} ${sources.length === 1 ? "kilde" : "kilder"} indeksert`}
         </p>
+        {sources.length > 0 && (
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Søk i innhold..."
+            className="flex-1 max-w-xs px-3 py-2 text-sm border border-preik-border rounded-xl bg-preik-bg text-preik-text placeholder:text-preik-text-muted"
+          />
+        )}
         {isAdmin && (
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-preik-accent hover:opacity-90 transition-opacity"
+            className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-preik-accent hover:opacity-90 transition-opacity shrink-0"
           >
             {showAddForm ? "Avbryt" : "Legg til innhold"}
           </button>
@@ -324,7 +347,7 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
 
       {/* Source list */}
       <div className="space-y-3">
-        {sources.map((src) => (
+        {filteredSources.map((src) => (
           <div key={src.source} className="bg-preik-surface border border-preik-border rounded-2xl p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -400,6 +423,12 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
         {sources.length === 0 && (
           <div className="text-center py-12 text-preik-text-muted">
             Ingen innhold indeksert ennå
+          </div>
+        )}
+
+        {sources.length > 0 && filteredSources.length === 0 && (
+          <div className="text-center py-12 text-preik-text-muted">
+            Ingen treff for &laquo;{search}&raquo;
           </div>
         )}
       </div>
