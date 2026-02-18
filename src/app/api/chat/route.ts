@@ -123,56 +123,86 @@ function isUrlAllowed(url: string, allowedUrls: Set<string>): boolean {
   return false;
 }
 
-/** Replace markdown link URLs not in the allowlist with search URLs */
+/** Build a search fallback URL from a hallucinated URL */
+function buildSearchFallback(url: string, baseDomain: string): string {
+  const segments = url.replace(/[.,;:!?)]+$/, "").split("/").filter(Boolean);
+  const lastSegment = segments[segments.length - 1]?.replace(/-/g, " ") || "";
+  return `${baseDomain}/search?q=${encodeURIComponent(lastSegment)}`;
+}
+
+/** Replace hallucinated URLs in text — both markdown links and bare URLs */
 function sanitizeResponseUrls(text: string, allowedUrls: Set<string>): string {
   if (allowedUrls.size === 0) return text;
   const baseDomain = [...allowedUrls][0]?.match(/^https?:\/\/[^/]+/)?.[0];
   if (!baseDomain) return text;
 
-  return text.replace(/\]\((https?:\/\/[^)]+)\)/g, (match, url: string) => {
+  // Pass 1: Sanitize markdown links [text](url)
+  let result = text.replace(/\]\((https?:\/\/[^)]+)\)/g, (match, url: string) => {
     if (isUrlAllowed(url, allowedUrls)) return match;
-    // Extract last path segment as product name for search
-    const segments = url.split("/").filter(Boolean);
-    const lastSegment = segments[segments.length - 1]?.replace(/-/g, " ") || "";
-    return `](${baseDomain}/search?q=${encodeURIComponent(lastSegment)})`;
+    return `](${buildSearchFallback(url, baseDomain)})`;
   });
+
+  // Pass 2: Sanitize bare URLs on the same domain (not already inside markdown links)
+  const escapedDomain = baseDomain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const bareUrlRegex = new RegExp(
+    `(?<!\\]\\()(?<!\\()(${escapedDomain}\\/[^\\s)\\]>]*)`,
+    "g"
+  );
+  result = result.replace(bareUrlRegex, (match) => {
+    const cleaned = match.replace(/[.,;:!?]+$/, "");
+    if (isUrlAllowed(cleaned, allowedUrls)) return match;
+    return buildSearchFallback(cleaned, baseDomain);
+  });
+
+  return result;
 }
 
-/** TransformStream that sanitizes URLs in streamed text, buffering only around markdown links */
+/** TransformStream that sanitizes URLs in streamed text, buffering around links and bare URLs */
 function createUrlSanitizerTransform(allowedUrls: Set<string>): TransformStream<string, string> {
   if (allowedUrls.size === 0) return new TransformStream();
 
   let buffer = "";
 
+  /** Find the earliest incomplete URL or markdown link at the tail of the buffer.
+   *  Returns the index to split at, or -1 if everything is safe to flush. */
+  function findBufferSplitPoint(buf: string): number {
+    // Check for incomplete markdown link: last `[` without a closing `)`
+    const lastBracket = buf.lastIndexOf("[");
+    if (lastBracket !== -1) {
+      const afterBracket = buf.substring(lastBracket);
+      if (!afterBracket.match(/^\[[^\]]*\]\([^)]*\)/)) {
+        return lastBracket;
+      }
+    }
+
+    // Check for incomplete bare URL: "http" at the tail without trailing whitespace
+    const lastHttp = buf.lastIndexOf("http");
+    if (lastHttp !== -1) {
+      const afterHttp = buf.substring(lastHttp);
+      if (!/\s/.test(afterHttp)) {
+        return lastHttp;
+      }
+    }
+
+    return -1; // everything is complete
+  }
+
   return new TransformStream({
     transform(chunk, controller) {
       buffer += chunk;
 
-      // Find the last `[` that could be the start of an incomplete markdown link
-      const lastBracket = buffer.lastIndexOf("[");
-      if (lastBracket === -1) {
-        // No potential links — flush entire buffer
+      const splitAt = findBufferSplitPoint(buffer);
+
+      if (splitAt === -1) {
+        // No potential incomplete URLs — flush entire buffer
         controller.enqueue(sanitizeResponseUrls(buffer, allowedUrls));
         buffer = "";
-        return;
+      } else if (splitAt > 0) {
+        // Flush the safe prefix, keep the rest buffered
+        controller.enqueue(sanitizeResponseUrls(buffer.substring(0, splitAt), allowedUrls));
+        buffer = buffer.substring(splitAt);
       }
-
-      // Check if the link starting at lastBracket is complete (has closing `)`)
-      const afterBracket = buffer.substring(lastBracket);
-      const completeLinkMatch = afterBracket.match(/^\[[^\]]*\]\([^)]*\)/);
-
-      if (completeLinkMatch) {
-        // Link is complete — process the whole buffer
-        controller.enqueue(sanitizeResponseUrls(buffer, allowedUrls));
-        buffer = "";
-      } else {
-        // Potentially incomplete link — flush everything before it, keep the rest buffered
-        if (lastBracket > 0) {
-          controller.enqueue(sanitizeResponseUrls(buffer.substring(0, lastBracket), allowedUrls));
-          buffer = buffer.substring(lastBracket);
-        }
-        // else: entire buffer is a potential incomplete link, keep buffering
-      }
+      // else: entire buffer is a potential incomplete URL, keep buffering
     },
     flush(controller) {
       if (buffer) {
