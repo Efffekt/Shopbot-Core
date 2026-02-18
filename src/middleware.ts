@@ -8,9 +8,6 @@ const log = createLogger("middleware");
 // Paths that require Supabase Auth (tenant dashboard + admin panel)
 const SUPABASE_AUTH_PATHS = ["/dashboard", "/admin"];
 
-// Paths that should remain public (no auth)
-// Only the chat endpoint is public - it has its own domain/rate limiting protection
-const PUBLIC_API_PATHS = ["/api/chat", "/api/user/tenants", "/api/tenant"];
 
 function requiresSupabaseAuth(pathname: string): boolean {
   return SUPABASE_AUTH_PATHS.some((path) => pathname.startsWith(path));

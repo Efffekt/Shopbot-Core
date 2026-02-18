@@ -106,10 +106,11 @@ export default function PromptEditorWithTest({
     // Add script to the container div so widget renders inside it
     widgetContainerRef.current.appendChild(script);
 
+    const container = widgetContainerRef.current;
     return () => {
       // Cleanup on unmount or when toggled off
-      if (widgetContainerRef.current) {
-        const widget = widgetContainerRef.current.querySelector("preik-chat-widget");
+      if (container) {
+        const widget = container.querySelector("preik-chat-widget");
         if (widget) {
           widget.remove();
         }

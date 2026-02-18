@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import { ScrollReveal } from "./ScrollReveal";
 
@@ -30,11 +31,11 @@ export function Footer() {
               <div className="md:col-span-3 md:col-start-8">
                 <p className="text-sm font-medium text-preik-text uppercase tracking-wide mb-5">Navigasjon</p>
                 <ul className="space-y-3 text-preik-text-muted">
-                  <li><a href="/#losninger" className="hover:text-preik-text transition-colors">Slik fungerer det</a></li>
-                  <li><a href="/#hvordan" className="hover:text-preik-text transition-colors">Demo</a></li>
-                  <li><a href="/#priser" className="hover:text-preik-text transition-colors">Priser</a></li>
-                  <li><a href="/#faq" className="hover:text-preik-text transition-colors">FAQ</a></li>
-                  <li><a href="/#kontakt" className="hover:text-preik-text transition-colors">Kontakt</a></li>
+                  <li><Link href="/#losninger" className="hover:text-preik-text transition-colors">Slik fungerer det</Link></li>
+                  <li><Link href="/#hvordan" className="hover:text-preik-text transition-colors">Demo</Link></li>
+                  <li><Link href="/#priser" className="hover:text-preik-text transition-colors">Priser</Link></li>
+                  <li><Link href="/#faq" className="hover:text-preik-text transition-colors">FAQ</Link></li>
+                  <li><Link href="/#kontakt" className="hover:text-preik-text transition-colors">Kontakt</Link></li>
                 </ul>
               </div>
 
@@ -42,11 +43,11 @@ export function Footer() {
               <div className="md:col-span-2">
                 <p className="text-sm font-medium text-preik-text uppercase tracking-wide mb-5">Ressurser</p>
                 <ul className="space-y-3 text-preik-text-muted">
-                  <li><a href="/articles" className="hover:text-preik-text transition-colors">Articles</a></li>
-                  <li><a href="/docs" className="hover:text-preik-text transition-colors">Dokumentasjon</a></li>
-                  <li><a href="/personvern" className="hover:text-preik-text transition-colors">Personvern</a></li>
-                  <li><a href="/cookies" className="hover:text-preik-text transition-colors">Cookies</a></li>
-                  <li><a href="/vilkar" className="hover:text-preik-text transition-colors">Vilkår</a></li>
+                  <li><Link href="/articles" className="hover:text-preik-text transition-colors">Articles</Link></li>
+                  <li><Link href="/docs" className="hover:text-preik-text transition-colors">Dokumentasjon</Link></li>
+                  <li><Link href="/personvern" className="hover:text-preik-text transition-colors">Personvern</Link></li>
+                  <li><Link href="/cookies" className="hover:text-preik-text transition-colors">Cookies</Link></li>
+                  <li><Link href="/vilkar" className="hover:text-preik-text transition-colors">Vilkår</Link></li>
                 </ul>
               </div>
             </div>

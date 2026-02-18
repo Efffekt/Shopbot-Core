@@ -1,27 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
+// Theme store — reads from DOM attribute set by inline script in layout
+let themeListeners: (() => void)[] = [];
 
-  useEffect(() => {
-    setMounted(true);
-    // Read the actual theme from the DOM (set by inline script in layout)
-    const currentTheme = document.documentElement.getAttribute("data-mode") as Theme;
-    if (currentTheme) {
-      setTheme(currentTheme);
-    }
-  }, []);
+function subscribeTheme(callback: () => void) {
+  themeListeners = [...themeListeners, callback];
+  return () => {
+    themeListeners = themeListeners.filter((l) => l !== callback);
+  };
+}
+
+function getThemeSnapshot(): Theme {
+  return (document.documentElement.getAttribute("data-mode") as Theme) || "light";
+}
+
+function getServerSnapshot(): Theme {
+  return "light";
+}
+
+const emptySubscribe = () => () => {};
+
+export function ThemeToggle() {
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const theme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getServerSnapshot);
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
     localStorage.setItem("preik-theme", newTheme);
     document.documentElement.setAttribute("data-mode", newTheme);
+    for (const listener of themeListeners) {
+      listener();
+    }
   };
 
   // Prevent hydration mismatch
