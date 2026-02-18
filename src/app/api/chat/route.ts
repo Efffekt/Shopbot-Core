@@ -107,6 +107,82 @@ const chatSchema = z.object({
   noStream: z.boolean().optional(),
 });
 
+// --- URL sanitization: replace hallucinated URLs with search fallbacks ---
+
+/** Check if a URL is in the allowlist (exact or with/without trailing slash) or is a search URL */
+function isUrlAllowed(url: string, allowedUrls: Set<string>): boolean {
+  if (allowedUrls.size === 0) return true; // No allowlist = no filtering
+  if (allowedUrls.has(url)) return true;
+  const alt = url.endsWith("/") ? url.slice(0, -1) : url + "/";
+  if (allowedUrls.has(alt)) return true;
+  // Allow search URLs (the AI's sanctioned fallback pattern)
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/search" && parsed.searchParams.has("q")) return true;
+  } catch { /* invalid URL — not allowed */ }
+  return false;
+}
+
+/** Replace markdown link URLs not in the allowlist with search URLs */
+function sanitizeResponseUrls(text: string, allowedUrls: Set<string>): string {
+  if (allowedUrls.size === 0) return text;
+  const baseDomain = [...allowedUrls][0]?.match(/^https?:\/\/[^/]+/)?.[0];
+  if (!baseDomain) return text;
+
+  return text.replace(/\]\((https?:\/\/[^)]+)\)/g, (match, url: string) => {
+    if (isUrlAllowed(url, allowedUrls)) return match;
+    // Extract last path segment as product name for search
+    const segments = url.split("/").filter(Boolean);
+    const lastSegment = segments[segments.length - 1]?.replace(/-/g, " ") || "";
+    return `](${baseDomain}/search?q=${encodeURIComponent(lastSegment)})`;
+  });
+}
+
+/** TransformStream that sanitizes URLs in streamed text, buffering only around markdown links */
+function createUrlSanitizerTransform(allowedUrls: Set<string>): TransformStream<string, string> {
+  if (allowedUrls.size === 0) return new TransformStream();
+
+  let buffer = "";
+
+  return new TransformStream({
+    transform(chunk, controller) {
+      buffer += chunk;
+
+      // Find the last `[` that could be the start of an incomplete markdown link
+      const lastBracket = buffer.lastIndexOf("[");
+      if (lastBracket === -1) {
+        // No potential links — flush entire buffer
+        controller.enqueue(sanitizeResponseUrls(buffer, allowedUrls));
+        buffer = "";
+        return;
+      }
+
+      // Check if the link starting at lastBracket is complete (has closing `)`)
+      const afterBracket = buffer.substring(lastBracket);
+      const completeLinkMatch = afterBracket.match(/^\[[^\]]*\]\([^)]*\)/);
+
+      if (completeLinkMatch) {
+        // Link is complete — process the whole buffer
+        controller.enqueue(sanitizeResponseUrls(buffer, allowedUrls));
+        buffer = "";
+      } else {
+        // Potentially incomplete link — flush everything before it, keep the rest buffered
+        if (lastBracket > 0) {
+          controller.enqueue(sanitizeResponseUrls(buffer.substring(0, lastBracket), allowedUrls));
+          buffer = buffer.substring(lastBracket);
+        }
+        // else: entire buffer is a potential incomplete link, keep buffering
+      }
+    },
+    flush(controller) {
+      if (buffer) {
+        controller.enqueue(sanitizeResponseUrls(buffer, allowedUrls));
+        buffer = "";
+      }
+    },
+  });
+}
+
 // Detect WebView/in-app browsers that don't support streaming
 function isWebView(userAgent: string | null): boolean {
   if (!userAgent) return false;
@@ -541,6 +617,9 @@ export async function POST(request: NextRequest) {
 
     fullSystemPrompt += securityFooter;
 
+    // Build URL allowlist Set for response sanitization
+    const allowedUrlSet = new Set(availableUrls);
+
     // Non-streaming mode for WebViews/in-app browsers
     if (useNonStreaming) {
       let modelUsed = "gemini-2.5-flash-lite";
@@ -608,11 +687,14 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Sanitize hallucinated URLs before sending
+      const sanitizedText = sanitizeResponseUrls(result!.text, allowedUrlSet);
+
       // Return JSON response for non-streaming clients
       return new Response(
         JSON.stringify({
           role: "assistant",
-          content: result!.text,
+          content: sanitizedText,
         }),
         {
           status: 200,
@@ -697,7 +779,12 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        return result.toTextStreamResponse({
+        // Pipe through URL sanitizer to replace hallucinated links with search URLs
+        const sanitizedStream = result.textStream
+          .pipeThrough(createUrlSanitizerTransform(allowedUrlSet))
+          .pipeThrough(new TextEncoderStream());
+
+        return new Response(sanitizedStream, {
           headers: streamHeaders,
         });
       } catch (error) {

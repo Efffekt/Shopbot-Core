@@ -459,17 +459,13 @@ describe("POST /api/chat", () => {
 
   describe("streaming mode", () => {
     it("returns a streaming response by default", async () => {
-      const mockTextStream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode("Hei!"));
-          controller.close();
-        },
-      });
-
       mockStreamText.mockReturnValue({
-        toTextStreamResponse: vi.fn(({ headers }) =>
-          new Response(mockTextStream, { status: 200, headers })
-        ),
+        textStream: new ReadableStream<string>({
+          start(controller) {
+            controller.enqueue("Hei!");
+            controller.close();
+          },
+        }),
       });
 
       const req = makeRequest(validBody());
@@ -480,19 +476,15 @@ describe("POST /api/chat", () => {
     });
 
     it("falls back to GPT-4o-mini on Gemini rate limit in streaming mode", async () => {
-      const mockTextStream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode("Fallback"));
-          controller.close();
-        },
-      });
-
       mockStreamText
         .mockImplementationOnce(() => { throw new Error("429 Resource exhausted"); })
         .mockReturnValueOnce({
-          toTextStreamResponse: vi.fn(({ headers }) =>
-            new Response(mockTextStream, { status: 200, headers })
-          ),
+          textStream: new ReadableStream<string>({
+            start(controller) {
+              controller.enqueue("Fallback");
+              controller.close();
+            },
+          }),
         });
 
       const req = makeRequest(validBody());
@@ -675,9 +667,12 @@ describe("POST /api/chat", () => {
 
     it("uses streaming for regular desktop browsers", async () => {
       mockStreamText.mockReturnValue({
-        toTextStreamResponse: vi.fn(({ headers }) =>
-          new Response("stream", { status: 200, headers })
-        ),
+        textStream: new ReadableStream<string>({
+          start(controller) {
+            controller.enqueue("stream");
+            controller.close();
+          },
+        }),
       });
 
       const req = makeRequest(validBody(), {
