@@ -53,7 +53,7 @@ export default async function TenantPage({ params }: PageProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-5" : "lg:grid-cols-3"} gap-4 mb-8`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-6" : "lg:grid-cols-4"} gap-4 mb-8`}>
         <Link
           href={`/dashboard/${tenantId}/integrasjon`}
           className="flex flex-col items-center p-6 bg-preik-surface rounded-2xl border border-preik-border hover:border-preik-accent transition-colors"
@@ -78,6 +78,19 @@ export default async function TenantPage({ params }: PageProps) {
           </div>
           <span className="font-medium text-preik-text">Analyse</span>
           <span className="text-sm text-preik-text-muted">Se chat-statistikk</span>
+        </Link>
+
+        <Link
+          href={`/dashboard/${tenantId}/samtaler`}
+          className="flex flex-col items-center p-6 bg-preik-surface rounded-2xl border border-preik-border hover:border-preik-accent transition-colors"
+        >
+          <div className="w-12 h-12 rounded-xl bg-preik-accent/10 flex items-center justify-center mb-3">
+            <svg className="w-6 h-6 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <span className="font-medium text-preik-text">Samtaler</span>
+          <span className="text-sm text-preik-text-muted">Se chatloggen</span>
         </Link>
 
         {isAdmin && (

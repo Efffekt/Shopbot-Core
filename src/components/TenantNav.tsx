@@ -13,6 +13,7 @@ const tabs = [
   { href: "", label: "Oversikt" },
   { href: "/integrasjon", label: "Integrasjon" },
   { href: "/analytics", label: "Analyse" },
+  { href: "/samtaler", label: "Samtaler" },
   { href: "/prompt", label: "Systemprompt", adminOnly: true },
   { href: "/content", label: "Innhold", adminOnly: true },
   { href: "/innstillinger", label: "Innstillinger" },
