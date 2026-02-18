@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -75,6 +76,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="no" data-mode="light">
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-17961627655"
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-17961627655');
+          `}
+        </Script>
+      </head>
       <body
         className={`${fraunces.variable} ${jakarta.variable} antialiased`}
       >
