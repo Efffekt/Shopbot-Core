@@ -92,15 +92,23 @@ export async function POST(request: NextRequest) {
           const batchResults = await Promise.allSettled(
             batch.map(async (url) => {
               try {
-                // Scrape the page with SPA/React support
-                const scrapeResult = await firecrawl!.scrape(url, {
+                // Fast mode first (no actions — works for server-rendered sites like Shopify)
+                let scrapeResult = await firecrawl!.scrape(url, {
                   formats: ["markdown"],
-                  waitFor: 5000, // Wait 5s for React/Vite to hydrate
-                  timeout: 60000, // 60s max timeout for slow SPAs
-                  actions: [
-                    { type: "wait", milliseconds: 3000 }, // Extra wait for JS rendering
-                  ],
+                  timeout: 30000,
                 });
+
+                // If empty, retry with browser actions for JS-heavy SPAs
+                if (!scrapeResult.markdown) {
+                  scrapeResult = await firecrawl!.scrape(url, {
+                    formats: ["markdown"],
+                    waitFor: 5000,
+                    timeout: 60000,
+                    actions: [
+                      { type: "wait", milliseconds: 3000 },
+                    ],
+                  });
+                }
 
                 if (!scrapeResult.markdown) {
                   log.warn("Empty markdown from Firecrawl", { url });
@@ -196,6 +204,7 @@ export async function POST(request: NextRequest) {
                 total,
                 url: r.url,
                 status: r.status,
+                error: "error" in r ? r.error : undefined,
                 chunks: "chunks" in r ? r.chunks : 0,
                 stats: { errors, newPages, updatedPages, skippedPages, emptyPages },
               });

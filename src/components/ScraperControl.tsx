@@ -16,6 +16,7 @@ interface LogEntry {
   url: string;
   status: string;
   chunks?: number;
+  error?: string;
 }
 
 interface ScraperControlProps {
@@ -146,10 +147,11 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
                 setCurrent(data.current);
                 setStats(data.stats);
                 setRecentLogs((prev) => {
-                  const newLog = {
+                  const newLog: LogEntry = {
                     url: data.url,
                     status: data.status,
                     chunks: data.chunks,
+                    error: data.error,
                   };
                   return [newLog, ...prev].slice(0, 5);
                 });
@@ -442,6 +444,9 @@ export default function ScraperControl({ storeId: externalStoreId }: ScraperCont
                 </span>{" "}
                 {log.url}
                 {log.chunks ? ` (${log.chunks} chunks)` : ""}
+                {log.status === "error" && log.error && (
+                  <span className="block text-red-400/80 text-xs truncate">{log.error}</span>
+                )}
               </div>
             ))}
           </div>
