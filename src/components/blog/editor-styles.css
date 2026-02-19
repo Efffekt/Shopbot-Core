@@ -12,6 +12,14 @@
 }
 
 /* Headings */
+.blog-editor .ProseMirror h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-top: 1.75em;
+  color: var(--preik-text);
+}
+
 .blog-editor .ProseMirror h2 {
   font-size: 1.5rem;
   font-weight: 700;
@@ -25,6 +33,14 @@
   font-weight: 600;
   line-height: 1.4;
   margin-top: 1.25em;
+  color: var(--preik-text);
+}
+
+.blog-editor .ProseMirror h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1em;
   color: var(--preik-text);
 }
 

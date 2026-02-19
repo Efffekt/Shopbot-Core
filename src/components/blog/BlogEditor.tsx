@@ -11,8 +11,10 @@ import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import {
   Bold,
   Italic,
+  Heading1,
   Heading2,
   Heading3,
+  Heading4,
   List,
   ListOrdered,
   Quote,
@@ -46,7 +48,7 @@ export default function BlogEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [2, 3] },
+        heading: { levels: [1, 2, 3, 4] },
       }),
       Image.configure({ inline: false }),
       Link.configure({
@@ -180,6 +182,13 @@ export default function BlogEditor({
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-preik-border bg-preik-bg/50">
           <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            active={editor.isActive("heading", { level: 1 })}
+            title="Overskrift 1"
+          >
+            <Heading1 className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             active={editor.isActive("heading", { level: 2 })}
             title="Overskrift 2"
@@ -192,6 +201,13 @@ export default function BlogEditor({
             title="Overskrift 3"
           >
             <Heading3 className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+            active={editor.isActive("heading", { level: 4 })}
+            title="Overskrift 4"
+          >
+            <Heading4 className="w-4 h-4" />
           </ToolbarButton>
 
           <ToolbarDivider />
