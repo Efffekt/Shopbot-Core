@@ -261,7 +261,7 @@ describe("POST /api/chat", () => {
     it("accepts valid testModel values", async () => {
       mockGenerateText.mockResolvedValue({ text: "Response" });
 
-      const req = makeRequest(validBody({ noStream: true, testModel: "gemini-3.0-flash-preview" }));
+      const req = makeRequest(validBody({ noStream: true, testModel: "gemini-3-flash-preview" }));
       const res = await POST(req);
 
       expect(res.status).toBe(200);

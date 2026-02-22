@@ -251,7 +251,7 @@ export default function PromptEditorWithTest({
             className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-preik-text text-sm focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all"
           >
             <option value="">Standard (Gemini 2.5 Flash Lite)</option>
-            <option value="gemini-3.0-flash-preview">Gemini 3.0 Flash (Preview)</option>
+            <option value="gemini-3-flash-preview">Gemini 3 Flash (Preview)</option>
           </select>
         </div>
 

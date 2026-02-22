@@ -102,7 +102,7 @@ const messageSchema = z.object({
 
 const ALLOWED_TEST_MODELS = [
   "gemini-2.5-flash-lite",
-  "gemini-3.0-flash-preview",
+  "gemini-3-flash-preview",
 ] as const;
 
 const chatSchema = z.object({
