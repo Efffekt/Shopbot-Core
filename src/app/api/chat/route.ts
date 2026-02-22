@@ -100,11 +100,18 @@ const messageSchema = z.object({
   createdAt: z.union([z.string(), z.date()]).optional(),
 });
 
+const ALLOWED_TEST_MODELS = [
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-pro-lite",
+  "gemini-3.0-flash-preview",
+] as const;
+
 const chatSchema = z.object({
   messages: z.array(messageSchema).min(1).max(MAX_MESSAGES),
   storeId: z.string().max(100).regex(/^[a-z0-9-]+$/).optional(),
   sessionId: z.string().max(100).optional(),
   noStream: z.boolean().optional(),
+  testModel: z.enum(ALLOWED_TEST_MODELS).optional(),
 });
 
 // --- URL sanitization: replace hallucinated URLs with search fallbacks ---
@@ -418,7 +425,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { messages, sessionId, noStream } = parsed.data;
+    const { messages, sessionId, noStream, testModel } = parsed.data;
 
     const storeId = parsed.data.storeId;
 
@@ -695,16 +702,18 @@ export async function POST(request: NextRequest) {
     const allowedUrlSet = new Set(availableUrls);
 
     // Non-streaming mode for WebViews/in-app browsers
+    const primaryModelId = testModel || "gemini-2.5-flash-lite";
+
     if (useNonStreaming) {
-      let modelUsed = "gemini-2.5-flash-lite";
+      let modelUsed = primaryModelId;
       let result: { text: string } | undefined;
 
       const vertex = getVertex();
-      const geminiModel = vertex("gemini-2.5-flash-lite");
+      const geminiModel = vertex(primaryModelId);
       const openaiModel = openai("gpt-4o-mini");
 
       const models = [
-        { provider: geminiModel, name: "gemini-2.5-flash-lite" },
+        { provider: geminiModel, name: primaryModelId },
         { provider: openaiModel, name: "gpt-4o-mini" },
       ];
 
@@ -784,7 +793,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - Gemini primary, OpenAI fallback
-    let modelUsed = "gemini-2.5-flash-lite";
+    let modelUsed = primaryModelId;
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders: Record<string, string> = {
@@ -802,11 +811,11 @@ export async function POST(request: NextRequest) {
     }
 
     const vertex = getVertex();
-    const geminiModel = vertex("gemini-2.5-flash-lite");
+    const geminiModel = vertex(primaryModelId);
     const openaiModel = openai("gpt-4o-mini");
 
     const models = [
-      { provider: geminiModel, name: "gemini-2.5-flash-lite" },
+      { provider: geminiModel, name: primaryModelId },
       { provider: openaiModel, name: "gpt-4o-mini" },
     ];
 

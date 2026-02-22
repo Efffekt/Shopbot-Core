@@ -25,6 +25,7 @@ export default function PromptEditorWithTest({
 
   // Widget state
   const [widgetKey, setWidgetKey] = useState(0);
+  const [selectedModel, setSelectedModel] = useState("");
   const widgetContainerRef = useRef<HTMLDivElement>(null);
 
   const savePrompt = useCallback(
@@ -102,6 +103,9 @@ export default function PromptEditorWithTest({
     script.setAttribute("data-contained", "true"); // Render inside container
     script.setAttribute("data-theme", "light"); // Force light theme for dashboard
     script.setAttribute("data-preik-widget", "true");
+    if (selectedModel) {
+      script.setAttribute("data-test-model", selectedModel);
+    }
 
     // Add script to the container div so widget renders inside it
     widgetContainerRef.current.appendChild(script);
@@ -117,7 +121,7 @@ export default function PromptEditorWithTest({
       }
       script.remove();
     };
-  }, [tenantId, storeName, widgetKey]);
+  }, [tenantId, storeName, widgetKey, selectedModel]);
 
   // Function to reload widget (e.g., after saving prompt)
   const reloadWidget = () => {
@@ -231,6 +235,25 @@ export default function PromptEditorWithTest({
             </svg>
             Last på nytt
           </button>
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="test-model"
+            className="block text-xs font-medium text-preik-text-muted mb-1"
+          >
+            Testmodell
+          </label>
+          <select
+            id="test-model"
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-preik-text text-sm focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all"
+          >
+            <option value="">Standard (Gemini 2.5 Flash Lite)</option>
+            <option value="gemini-2.5-pro-lite">Gemini 2.5 Pro Lite</option>
+            <option value="gemini-3.0-flash-preview">Gemini 3.0 Flash (Preview)</option>
+          </select>
         </div>
 
         <div

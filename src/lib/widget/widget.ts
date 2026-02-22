@@ -242,6 +242,7 @@ class PreikChatWidget extends HTMLElement {
   private state: ChatState;
   private baseUrl: string;
   private apiUrl: string;
+  private testModel: string | undefined;
   private abortController: AbortController | null = null;
   private boundEscapeHandler: ((e: KeyboardEvent) => void) | null = null;
   private mediaQuery: MediaQueryList | null = null;
@@ -261,6 +262,15 @@ class PreikChatWidget extends HTMLElement {
     this.config = buildConfig(null, this.scriptOverrides);
     this.baseUrl = getBaseUrl();
     this.apiUrl = `${this.baseUrl}/api/chat`;
+
+    // Read test model override (admin dashboard only, not a config option)
+    const script =
+      (document.currentScript as HTMLScriptElement) ||
+      document.querySelector("script[data-store-id]");
+    if (script?.dataset.testModel) {
+      this.testModel = script.dataset.testModel;
+    }
+
     this.state = {
       isOpen: false,
       messages: [],
@@ -652,6 +662,7 @@ class PreikChatWidget extends HTMLElement {
           storeId: this.config.storeId,
           sessionId: this.state.sessionId,
           noStream: useNonStreaming,
+          ...(this.testModel && { testModel: this.testModel }),
         }),
         signal: this.abortController.signal,
       });

@@ -257,6 +257,31 @@ describe("POST /api/chat", () => {
 
       expect(res.status).toBe(400);
     });
+
+    it("accepts valid testModel values", async () => {
+      mockGenerateText.mockResolvedValue({ text: "Response" });
+
+      const req = makeRequest(validBody({ noStream: true, testModel: "gemini-2.5-pro-lite" }));
+      const res = await POST(req);
+
+      expect(res.status).toBe(200);
+    });
+
+    it("rejects invalid testModel values", async () => {
+      const req = makeRequest(validBody({ testModel: "gpt-5-turbo" }));
+      const res = await POST(req);
+
+      expect(res.status).toBe(400);
+    });
+
+    it("accepts request without testModel (default behavior)", async () => {
+      mockGenerateText.mockResolvedValue({ text: "Response" });
+
+      const req = makeRequest(validBody({ noStream: true }));
+      const res = await POST(req);
+
+      expect(res.status).toBe(200);
+    });
   });
 
   // --- Origin validation ---
