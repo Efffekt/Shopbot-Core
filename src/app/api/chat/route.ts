@@ -659,9 +659,20 @@ export async function POST(request: NextRequest) {
     let urlAllowlist = "";
     if (availableUrls.length > 0) {
       const urlList = availableUrls.map((u) => `- ${u}`).join("\n");
+
+      // Extract base domain for search URL fallback (e.g. "https://baatpleiebutikken.no")
+      let searchUrlHint = "";
+      try {
+        const firstUrl = new URL(availableUrls[0]);
+        const baseDomain = `${firstUrl.protocol}//${firstUrl.host}`;
+        searchUrlHint = lang === "en"
+          ? `\nIf the product you are recommending does NOT have a matching URL above, use a search URL instead: ${baseDomain}/search?q=PRODUCT+NAME (replace PRODUCT+NAME with the actual product name). NEVER link to a wrong product — a search link is always better than a wrong product link.`
+          : `\nHvis produktet du anbefaler IKKE har en matchende URL over, bruk en søkelenke i stedet: ${baseDomain}/search?q=PRODUKTNAVN (erstatt PRODUKTNAVN med det faktiske produktnavnet). ALDRI lenk til feil produkt — en søkelenke er alltid bedre enn en feil produktlenke.`;
+      } catch { /* invalid URL, skip hint */ }
+
       urlAllowlist = lang === "en"
-        ? `\n\nAVAILABLE LINKS (use ONLY these, do NOT invent URLs):\n${urlList}\nIf a product has no link above, use a search URL instead.`
-        : `\n\nTILGJENGELIGE LENKER (bruk KUN disse, IKKE finn opp URL-er):\n${urlList}\nHvis et produkt ikke har en lenke over, bruk søkelenken i stedet.`;
+        ? `\n\nAVAILABLE LINKS (use ONLY these, do NOT invent URLs):\n${urlList}${searchUrlHint}`
+        : `\n\nTILGJENGELIGE LENKER (bruk KUN disse, IKKE finn opp URL-er):\n${urlList}${searchUrlHint}`;
     }
 
     let fullSystemPrompt: string;
