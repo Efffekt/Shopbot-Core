@@ -536,8 +536,8 @@ describe("POST /api/chat", () => {
         })
       );
       expect(mockRpc).toHaveBeenCalledWith("match_site_content", expect.objectContaining({
-        match_threshold: 0.5,
-        match_count: 12,
+        match_threshold: 0.3,
+        match_count: 15,
         filter_store_id: "baatpleiebutikken",
       }));
     });

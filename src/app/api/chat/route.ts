@@ -589,8 +589,8 @@ export async function POST(request: NextRequest) {
         "match_site_content",
         {
           query_embedding: embedding,
-          match_threshold: 0.5,
-          match_count: 12,
+          match_threshold: 0.3,
+          match_count: 15,
           filter_store_id: storeId,
         }
       );
@@ -636,9 +636,9 @@ export async function POST(request: NextRequest) {
             `Do not invent product names, prices, or URLs that are not in the context.`,
           noContext:
             `CONTEXT FROM DATABASE:\n` +
-            `No relevant documents were found for this query. ` +
-            `You have NO information about this topic. Do NOT answer with product names, prices, URLs, or details you do not have from the context. ` +
-            `Tell the user honestly that you could not find relevant information and suggest they contact the business directly or browse the website.`,
+            `No specific documents were found for this query. ` +
+            `If the question is within your area of expertise (as described in your instructions above), answer helpfully using your general knowledge from the system prompt — but do NOT invent specific product names, prices, or URLs. ` +
+            `If the question is truly outside your domain, tell the user and suggest they contact the business directly.`,
           contextHeader: `CONTEXT FROM DATABASE:`,
         }
       : {
@@ -649,9 +649,9 @@ export async function POST(request: NextRequest) {
             `Ikke finn opp produktnavn, priser eller URL-er som ikke finnes i konteksten.`,
           noContext:
             `KONTEKST FRA DATABASE:\n` +
-            `Ingen relevante dokumenter ble funnet for dette spørsmålet. ` +
-            `Du har INGEN informasjon om dette emnet. IKKE svar med produktnavn, priser, URL-er eller detaljer du ikke har fått fra konteksten. ` +
-            `Si ærlig at du ikke fant relevant informasjon, og foreslå at kunden tar kontakt eller sjekker nettsiden direkte.`,
+            `Ingen spesifikke dokumenter ble funnet for dette spørsmålet. ` +
+            `Hvis spørsmålet er innenfor ditt fagområde (som beskrevet i instruksjonene dine over), svar hjelpsomt med din generelle kunnskap fra systeminstruksjonene — men IKKE finn opp spesifikke produktnavn, priser eller URL-er. ` +
+            `Hvis spørsmålet er helt utenfor ditt domene, si det og foreslå at kunden tar kontakt direkte.`,
           contextHeader: `KONTEKST FRA DATABASE:`,
         };
 
