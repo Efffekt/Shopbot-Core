@@ -102,7 +102,6 @@ const messageSchema = z.object({
 
 const ALLOWED_TEST_MODELS = [
   "gemini-2.5-flash-lite",
-  "gemini-2.5-pro-lite",
   "gemini-3.0-flash-preview",
 ] as const;
 
