@@ -702,6 +702,7 @@ export async function POST(request: NextRequest) {
 
     // Non-streaming mode for WebViews/in-app browsers
     const primaryModelId = testModel || "gemini-2.5-flash-lite";
+    console.log(`[CHAT DEBUG] reqId=${reqId} storeId=${storeId} primaryModelId=${primaryModelId} testModel=${testModel} nonStreaming=${useNonStreaming}`);
 
     if (useNonStreaming) {
       let modelUsed: string = primaryModelId;
@@ -823,6 +824,7 @@ export async function POST(request: NextRequest) {
       modelUsed = name;
 
       try {
+        console.log(`[CHAT DEBUG] reqId=${reqId} streaming attempt #${i} model=${name}`);
         const result = streamText({
           model: provider,
           system: fullSystemPrompt,
@@ -831,6 +833,8 @@ export async function POST(request: NextRequest) {
           onFinish: async ({ text, finishReason, usage }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
+
+            console.log(`[CHAT DEBUG] reqId=${reqId} onFinish model=${modelUsed} finishReason=${finishReason} textLength=${text.length} text="${text.slice(0, 200)}"`);
 
             log.info("Request complete", {
               reqId, storeId, model: modelUsed, mode: "streaming",
@@ -862,7 +866,25 @@ export async function POST(request: NextRequest) {
         });
 
         // Pipe through URL sanitizer to replace hallucinated links with search URLs
+        // DEBUG: intercept stream to log chunks
+        let debugChunkCount = 0;
+        let debugTotalLength = 0;
+        const debugTransform = new TransformStream<string, string>({
+          transform(chunk, controller) {
+            debugChunkCount++;
+            debugTotalLength += chunk.length;
+            if (debugChunkCount <= 5) {
+              console.log(`[CHAT DEBUG] reqId=${reqId} stream chunk #${debugChunkCount} length=${chunk.length} content="${chunk.slice(0, 100)}"`);
+            }
+            controller.enqueue(chunk);
+          },
+          flush() {
+            console.log(`[CHAT DEBUG] reqId=${reqId} stream DONE totalChunks=${debugChunkCount} totalLength=${debugTotalLength}`);
+          },
+        });
+
         const sanitizedStream = result.textStream
+          .pipeThrough(debugTransform)
           .pipeThrough(createUrlSanitizerTransform(allowedUrlSet))
           .pipeThrough(new TextEncoderStream());
 

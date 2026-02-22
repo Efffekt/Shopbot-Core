@@ -649,6 +649,8 @@ class PreikChatWidget extends HTMLElement {
     try {
       const useNonStreaming = isWebView();
 
+      console.log(`[WIDGET DEBUG] sending chat request storeId=${this.config.storeId} testModel=${this.testModel} noStream=${useNonStreaming}`);
+
       const response = await fetch(this.apiUrl, {
         method: "POST",
         headers: {
@@ -669,6 +671,7 @@ class PreikChatWidget extends HTMLElement {
 
       clearTimeout(timeoutId);
       const contentType = response.headers.get("content-type") || "";
+      console.log(`[WIDGET DEBUG] response status=${response.status} contentType="${contentType}" ok=${response.ok}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -693,8 +696,10 @@ class PreikChatWidget extends HTMLElement {
       }
 
       // Streaming response
+      console.log(`[WIDGET DEBUG] starting stream read`);
       const reader = response.body?.getReader();
       if (!reader) {
+        console.log(`[WIDGET DEBUG] NO response body!`);
         throw new Error("No response body");
       }
 
@@ -749,19 +754,26 @@ class PreikChatWidget extends HTMLElement {
       // Start the reveal loop
       setTimeout(revealWords, TICK_MS);
 
+      let debugWidgetChunks = 0;
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
           streamDone = true;
+          console.log(`[WIDGET DEBUG] stream done after ${debugWidgetChunks} chunks, fullContent length=${fullContent.length}, content="${fullContent.slice(0, 200)}"`);
           break;
         }
 
         if (!streamingStarted) {
           streamingStarted = true;
+          console.log(`[WIDGET DEBUG] first chunk received`);
         }
 
         const chunk = decoder.decode(value, { stream: true });
+        debugWidgetChunks++;
+        if (debugWidgetChunks <= 3) {
+          console.log(`[WIDGET DEBUG] chunk #${debugWidgetChunks} length=${chunk.length} content="${chunk.slice(0, 100)}"`);
+        }
         fullContent += chunk;
       }
 
@@ -769,6 +781,7 @@ class PreikChatWidget extends HTMLElement {
       const remaining = decoder.decode();
       if (remaining) {
         fullContent += remaining;
+        console.log(`[WIDGET DEBUG] final decode remaining="${remaining.slice(0, 100)}"`);
       }
 
       // Wait for reveal to catch up
