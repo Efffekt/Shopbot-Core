@@ -252,6 +252,10 @@ export default function PromptEditorWithTest({
           >
             <option value="">Standard (Gemini 2.5 Flash Lite)</option>
             <option value="gemini-3-flash-preview">Gemini 3 Flash (Preview)</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+            <option value="gpt-4.1-nano">GPT-4.1 Nano</option>
+            <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+            <option value="gpt-5-mini">GPT-5 Mini</option>
           </select>
         </div>
 

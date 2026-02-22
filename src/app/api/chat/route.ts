@@ -103,7 +103,15 @@ const messageSchema = z.object({
 const ALLOWED_TEST_MODELS = [
   "gemini-2.5-flash-lite",
   "gemini-3-flash-preview",
+  "gpt-4.1-nano",
+  "gpt-4o-mini",
+  "gpt-4.1-mini",
+  "gpt-5-mini",
 ] as const;
+
+function isOpenAIModel(modelId: string): boolean {
+  return modelId.startsWith("gpt-");
+}
 
 const chatSchema = z.object({
   messages: z.array(messageSchema).min(1).max(MAX_MESSAGES),
@@ -709,13 +717,16 @@ export async function POST(request: NextRequest) {
       let result: { text: string } | undefined;
 
       const vertex = getVertex();
-      const geminiModel = vertex(primaryModelId);
-      const openaiModel = openai("gpt-4o-mini");
+      const primaryProvider = isOpenAIModel(primaryModelId)
+        ? openai(primaryModelId)
+        : vertex(primaryModelId);
 
-      const models = [
-        { provider: geminiModel, name: primaryModelId },
-        { provider: openaiModel, name: "gpt-4o-mini" },
+      const models: { provider: Parameters<typeof generateText>[0]["model"]; name: string }[] = [
+        { provider: primaryProvider, name: primaryModelId },
       ];
+      if (primaryModelId !== "gpt-4o-mini") {
+        models.push({ provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" });
+      }
 
       for (let i = 0; i < models.length; i++) {
         const { provider, name } = models[i];
@@ -811,13 +822,16 @@ export async function POST(request: NextRequest) {
     }
 
     const vertex = getVertex();
-    const geminiModel = vertex(primaryModelId);
-    const openaiModel = openai("gpt-4o-mini");
+    const primaryProvider = isOpenAIModel(primaryModelId)
+      ? openai(primaryModelId)
+      : vertex(primaryModelId);
 
-    const models = [
-      { provider: geminiModel, name: primaryModelId },
-      { provider: openaiModel, name: "gpt-4o-mini" },
+    const models: { provider: Parameters<typeof streamText>[0]["model"]; name: string }[] = [
+      { provider: primaryProvider, name: primaryModelId },
     ];
+    if (primaryModelId !== "gpt-4o-mini") {
+      models.push({ provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" });
+    }
 
     for (let i = 0; i < models.length; i++) {
       const { provider, name } = models[i];
