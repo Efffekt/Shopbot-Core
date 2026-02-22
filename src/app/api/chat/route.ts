@@ -619,13 +619,20 @@ export async function POST(request: NextRequest) {
       if (relevantDocs && relevantDocs.length > 0) {
         // Extract unique valid URLs from context chunks for the allowlist
         const contextUrls = new Set<string>();
-        for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string } }[]) {
+        for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string }; similarity?: number }[]) {
           const url = doc.metadata?.source || doc.metadata?.url;
           if (url && url.startsWith("http")) {
             contextUrls.add(url);
           }
         }
         availableUrls = [...contextUrls];
+
+        // DEBUG: log context documents to trace wrong URL associations
+        console.log(`[CHAT DEBUG] reqId=${reqId} context documents (${relevantDocs.length}):`);
+        for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string }; similarity?: number }[]) {
+          const url = doc.metadata?.source || doc.metadata?.url || "NO URL";
+          console.log(`[CHAT DEBUG]   url=${url} similarity=${(doc.similarity ?? 0).toFixed(3)} content="${doc.content.slice(0, 120)}"`);
+        }
 
         context = relevantDocs
           .map((doc: { content: string; metadata?: { source?: string; url?: string } }) => {
@@ -647,7 +654,10 @@ export async function POST(request: NextRequest) {
             `ADDITIONAL CONTEXT: Below are relevant documents from the database. ` +
             `Use this context to support your answers when relevant. ` +
             `For product details, prices, and URLs, prefer information from the context below. ` +
-            `Do not invent product names, prices, or URLs that are not in the context.`,
+            `Do not invent product names, prices, or URLs that are not in the context.\n` +
+            `IMPORTANT ABOUT LINKS: Each document has a SOURCE-URL. You must ONLY use a URL together with the product/content described in THAT SAME document. ` +
+            `NEVER use a URL from one document to link to a product described in a different document. ` +
+            `If you cannot find a URL that belongs to the specific product the user is asking about, use a search link instead.`,
           noContext:
             `CONTEXT FROM DATABASE:\n` +
             `No specific documents were found for this query. ` +
@@ -660,7 +670,10 @@ export async function POST(request: NextRequest) {
             `TILLEGGSKONTEKST: Nedenfor er relevante dokumenter fra databasen. ` +
             `Bruk denne konteksten til å støtte svarene dine når det er relevant. ` +
             `For produktdetaljer, priser og URL-er, foretrekk informasjon fra konteksten nedenfor. ` +
-            `Ikke finn opp produktnavn, priser eller URL-er som ikke finnes i konteksten.`,
+            `Ikke finn opp produktnavn, priser eller URL-er som ikke finnes i konteksten.\n` +
+            `VIKTIG OM LENKER: Hvert dokument har en SOURCE-URL. Du skal KUN bruke en URL sammen med produktet/innholdet som er beskrevet i DET SAMME dokumentet. ` +
+            `ALDRI bruk en URL fra ett dokument for å lenke til et produkt beskrevet i et annet dokument. ` +
+            `Hvis du ikke finner en URL som hører til det spesifikke produktet brukeren spør om, bruk en søkelenke i stedet.`,
           noContext:
             `KONTEKST FRA DATABASE:\n` +
             `Ingen spesifikke dokumenter ble funnet for dette spørsmålet. ` +
