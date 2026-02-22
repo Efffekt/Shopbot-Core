@@ -705,7 +705,7 @@ export async function POST(request: NextRequest) {
     const primaryModelId = testModel || "gemini-2.5-flash-lite";
 
     if (useNonStreaming) {
-      let modelUsed = primaryModelId;
+      let modelUsed: string = primaryModelId;
       let result: { text: string } | undefined;
 
       const vertex = getVertex();
@@ -793,7 +793,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Streaming mode (default) - Gemini primary, OpenAI fallback
-    let modelUsed = primaryModelId;
+    let modelUsed: string = primaryModelId;
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
     const streamHeaders: Record<string, string> = {
