@@ -597,14 +597,15 @@ export async function POST(request: NextRequest) {
       systemPrompt = promptResult;
       const { embedding } = embeddingResult;
       timings.embedding = Date.now() - embeddingStart;
-      console.log(`[CHAT DEBUG] reqId=${reqId} embedding generated in ${timings.embedding}ms for storeId=${storeId}`);
+      console.log(`[CHAT DEBUG] reqId=${reqId} embedding generated in ${timings.embedding}ms for storeId=${storeId} dims=${embedding.length} type=${typeof embedding[0]} first3=[${embedding.slice(0, 3).map(v => v.toFixed(6)).join(",")}]`);
 
-      // Vector search
+      // Vector search — pass embedding as JSON string for proper vector casting
+      const embeddingStr = JSON.stringify(embedding);
       const searchStart = Date.now();
       const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
         "match_site_content",
         {
-          query_embedding: embedding,
+          query_embedding: embeddingStr,
           match_threshold: 0.3,
           match_count: 15,
           filter_store_id: storeId,
@@ -625,7 +626,7 @@ export async function POST(request: NextRequest) {
 
         // Debug peek: show top 5 closest docs regardless of threshold
         const { data: peekDocs } = await supabaseAdmin.rpc("match_site_content", {
-          query_embedding: embedding,
+          query_embedding: embeddingStr,
           match_threshold: 0.0,
           match_count: 5,
           filter_store_id: storeId,
