@@ -152,13 +152,26 @@ function isUrlAllowed(url: string, allowedUrls: Set<string>): boolean {
   return false;
 }
 
-/** Build a search fallback URL from a hallucinated URL */
+/** Build a keyword search fallback URL from a hallucinated URL */
 function buildSearchFallback(url: string, baseDomain: string): string {
-  // Strip query params before extracting the product slug
+  // Strip query params, extract last path segment, split into words
   const urlWithoutParams = url.replace(/[?#].*$/, "").replace(/[.,;:!?)]+$/, "");
   const segments = urlWithoutParams.split("/").filter(Boolean);
-  const lastSegment = segments[segments.length - 1]?.replace(/-/g, " ") || "";
-  return `${baseDomain}/search?q=${encodeURIComponent(lastSegment)}`;
+  const slug = segments[segments.length - 1] || "";
+  const words = slug.split("-").filter(Boolean);
+
+  // Filter out noise: numbers, sizes (205mm, 1kg, 0-75), short stopwords
+  const noise = new Set(["til", "med", "og", "for", "fra", "den", "det", "en", "et", "av", "som", "per", "stk", "sett", "pakke"]);
+  const keywords = words.filter((w) => {
+    if (/\d/.test(w)) return false;       // contains digits (sizes, quantities)
+    if (w.length <= 2) return false;       // too short
+    if (noise.has(w.toLowerCase())) return false;
+    return true;
+  });
+
+  // Take max 3 keywords for a focused search
+  const query = keywords.slice(0, 3).join(" ");
+  return `${baseDomain}/search?q=${encodeURIComponent(query || slug)}`;
 }
 
 /** Strip tracking/internal query params from a URL, keeping only the clean path */
