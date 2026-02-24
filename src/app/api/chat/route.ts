@@ -781,6 +781,28 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Rewrite stale/renamed product references in context docs (temporary until re-scrape)
+      if (relevantDocs && relevantDocs.length > 0 && storeId === "baatpleiebutikken") {
+        const urlRewrites: Record<string, string> = {
+          "/products/tix-kraft": "/products/batproff-kraftvask-til-bat-kraftvask-for-polering",
+          "/products/hostvask-pakkepris-spar-10": "/products/varvask-pakkepris-spar-10",
+        };
+        for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string } }[]) {
+          // Rewrite stale URLs
+          for (const [oldPath, newPath] of Object.entries(urlRewrites)) {
+            if (doc.metadata?.source?.includes(oldPath)) {
+              doc.metadata.source = doc.metadata.source.replace(oldPath, newPath);
+            }
+            if (doc.metadata?.url?.includes(oldPath)) {
+              doc.metadata.url = doc.metadata.url.replace(oldPath, newPath);
+            }
+          }
+          // Rewrite stale product names in content
+          doc.content = doc.content.replace(/\bTix Kraft\b/gi, "Båtproff Kraftvask");
+          doc.content = doc.content.replace(/\bTIX KRAFT\b/g, "Båtproff Kraftvask");
+        }
+      }
+
       if (relevantDocs && relevantDocs.length > 0) {
         // Extract unique valid URLs from context chunks for the allowlist (strip tracking params)
         const contextUrls = new Set<string>();
