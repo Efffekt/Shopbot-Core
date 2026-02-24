@@ -710,7 +710,8 @@ export async function POST(request: NextRequest) {
       ? {
           withContext:
             `ADDITIONAL CONTEXT: Below are relevant documents from the database. ` +
-            `Use this context to support your answers when relevant. ` +
+            `IMPORTANT: When context has been retrieved from the database, it means the question IS within your domain. ALWAYS answer helpfully based on the context — NEVER refuse the question as outside your expertise when you have been given context. ` +
+            `Use this context to support your answers. ` +
             `For product details, prices, and URLs, prefer information from the context below. ` +
             `Do not invent product names, prices, or URLs that are not in the context.\n` +
             `IMPORTANT ABOUT LINKS: Each document has a SOURCE-URL. You must ONLY use a URL together with the product/content described in THAT SAME document. ` +
@@ -726,7 +727,8 @@ export async function POST(request: NextRequest) {
       : {
           withContext:
             `TILLEGGSKONTEKST: Nedenfor er relevante dokumenter fra databasen. ` +
-            `Bruk denne konteksten til å støtte svarene dine når det er relevant. ` +
+            `VIKTIG: Når kontekst er hentet fra databasen, betyr det at spørsmålet ER innenfor ditt domene. Svar ALLTID hjelpsomt basert på konteksten — avvis ALDRI spørsmålet som utenfor ditt fagområde når du har fått kontekst. ` +
+            `Bruk denne konteksten til å støtte svarene dine. ` +
             `For produktdetaljer, priser og URL-er, foretrekk informasjon fra konteksten nedenfor. ` +
             `Ikke finn opp produktnavn, priser eller URL-er som ikke finnes i konteksten.\n` +
             `VIKTIG OM LENKER: Hvert dokument har en SOURCE-URL. Du skal KUN bruke en URL sammen med produktet/innholdet som er beskrevet i DET SAMME dokumentet. ` +
