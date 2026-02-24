@@ -814,16 +814,19 @@ export async function POST(request: NextRequest) {
         }
         availableUrls = [...contextUrls];
 
-        // Inject product URLs for rewritten product names that lack a matching URL
-        // (e.g. content mentions "Båtproff Kraftvask" via Tix→Båtproff rewrite, but no doc has the product URL)
+        // Ensure core product URLs are always available for this tenant.
+        // The system prompt instructs the model to recommend these products,
+        // but vector search may only return blog posts without product page URLs.
         if (storeId === "baatpleiebutikken") {
-          const injections: Array<[RegExp, string]> = [
-            [/båtproff kraftvask/i, "https://www.baatpleiebutikken.no/products/batproff-kraftvask-til-bat-kraftvask-for-polering"],
+          const coreProductUrls = [
+            "https://www.baatpleiebutikken.no/products/batproff-kraftvask-til-bat-kraftvask-for-polering",
+            "https://www.baatpleiebutikken.no/products/rex-one-step-revolusjoner-poleringen",
+            "https://www.baatpleiebutikken.no/products/easy-gloss-polish-wax-hurtigpolering",
+            "https://www.baatpleiebutikken.no/products/topfinish-2-nano-refinishing-polish-lett-oksidert-bat",
           ];
-          for (const [pattern, url] of injections) {
-            const mentioned = relevantDocs.some((d: { content: string }) => pattern.test(d.content));
-            const hasUrl = availableUrls.some((u) => u.includes(url.split("/products/")[1]));
-            if (mentioned && !hasUrl) {
+          for (const url of coreProductUrls) {
+            const slug = url.split("/products/")[1];
+            if (!availableUrls.some((u) => u.includes(slug))) {
               availableUrls.push(url);
             }
           }
