@@ -47,6 +47,28 @@ export interface ActiveTenant {
   credit_usage: number;
 }
 
+export type FeedbackCategory = "feil_svar" | "manglende_info" | "feil_lenke" | "annet";
+export type FeedbackStatus = "new" | "reviewed" | "resolved";
+
+export interface ConversationFeedback {
+  id: string;
+  conversation_id: string;
+  tenant_id: string;
+  created_by: string;
+  created_by_email: string;
+  category: FeedbackCategory;
+  comment: string;
+  status: FeedbackStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeedbackTicket extends ConversationFeedback {
+  conversation: ConversationRecord | null;
+  tenant_name: string | null;
+}
+
 export interface GlobalUser {
   id: string;
   email: string;

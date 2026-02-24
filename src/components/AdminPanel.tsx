@@ -11,6 +11,7 @@ import BlogManager from "@/components/BlogManager";
 import AccountSettings from "@/components/AccountSettings";
 import ContactSubmissions from "@/components/ContactSubmissions";
 import AuditLogBrowser from "@/components/AuditLogBrowser";
+import FeedbackBrowser from "@/components/FeedbackBrowser";
 
 const AnalyticsDashboard = dynamic(
   () => import("@/components/AnalyticsDashboard"),
@@ -23,7 +24,7 @@ const AnalyticsDashboard = dynamic(
   }
 );
 
-type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "analyse" | "brukere" | "articles" | "henvendelser" | "logg" | "innstillinger";
+type Section = "oversikt" | "kunder" | "innhold" | "samtaler" | "tilbakemeldinger" | "analyse" | "brukere" | "articles" | "henvendelser" | "logg" | "innstillinger";
 
 interface AdminPanelProps {
   isSuperAdmin: boolean;
@@ -49,6 +50,7 @@ export default function AdminPanel({ isSuperAdmin, userEmail }: AdminPanelProps)
     { key: "kunder", label: "Kunder", superAdminOnly: true },
     { key: "innhold", label: "Innhold", superAdminOnly: true },
     { key: "samtaler", label: "Samtaler", superAdminOnly: true },
+    { key: "tilbakemeldinger", label: "Tilbakemeldinger", superAdminOnly: true },
     { key: "analyse", label: "Analyse" },
     { key: "articles", label: "Articles" },
     { key: "brukere", label: "Brukere", superAdminOnly: true },
@@ -116,6 +118,7 @@ export default function AdminPanel({ isSuperAdmin, userEmail }: AdminPanelProps)
           selectedTenantName={selectedTenantName}
         />
       )}
+      {activeSection === "tilbakemeldinger" && isSuperAdmin && <FeedbackBrowser />}
       {activeSection === "analyse" && (
         <AnalyticsDashboard
           selectedTenantId={selectedTenantId}

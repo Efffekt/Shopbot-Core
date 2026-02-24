@@ -1,10 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { ConversationRecord } from "@/types/admin";
+import type { ConversationRecord, ConversationFeedback, FeedbackCategory } from "@/types/admin";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("TenantConversationBrowser");
+
+const CATEGORY_LABELS: Record<FeedbackCategory, string> = {
+  feil_svar: "Feil svar",
+  manglende_info: "Manglende info",
+  feil_lenke: "Feil lenke",
+  annet: "Annet",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  new: "Ny",
+  reviewed: "Under behandling",
+  resolved: "Lost",
+};
 
 interface TenantConversationBrowserProps {
   tenantId: string;
@@ -14,6 +27,14 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
   const [conversations, setConversations] = useState<ConversationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, ConversationFeedback[]>>({});
+
+  // Feedback form state
+  const [showFeedbackForm, setShowFeedbackForm] = useState<string | null>(null);
+  const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>("feil_svar");
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -24,6 +45,25 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+
+  const fetchFeedback = useCallback(async (convIds: string[]) => {
+    if (convIds.length === 0) return;
+    try {
+      const res = await fetch(
+        `/api/tenant/${tenantId}/feedback?conversationIds=${convIds.join(",")}`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const map: Record<string, ConversationFeedback[]> = {};
+      for (const fb of data.feedback || []) {
+        if (!map[fb.conversation_id]) map[fb.conversation_id] = [];
+        map[fb.conversation_id].push(fb);
+      }
+      setFeedbackMap(map);
+    } catch (error) {
+      log.error("Failed to fetch feedback:", error);
+    }
+  }, [tenantId]);
 
   const fetchConversations = useCallback(async () => {
     setIsLoading(true);
@@ -40,15 +80,20 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setConversations(data.conversations || []);
+      const convs: ConversationRecord[] = data.conversations || [];
+      setConversations(convs);
       setTotalPages(data.pagination?.totalPages || 1);
       setTotal(data.pagination?.total || 0);
+
+      // Batch-fetch feedback for displayed conversations
+      const ids = convs.map((c) => c.id);
+      await fetchFeedback(ids);
     } catch (error) {
       log.error("Failed to fetch conversations:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, page, search, intent, handled]);
+  }, [tenantId, page, search, intent, handled, fetchFeedback]);
 
   useEffect(() => {
     fetchConversations();
@@ -57,6 +102,40 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
   function handleSearch() {
     setPage(1);
     fetchConversations();
+  }
+
+  async function handleSubmitFeedback(conversationId: string) {
+    if (!feedbackComment.trim()) return;
+    setSubmittingFeedback(true);
+    setFeedbackError(null);
+    try {
+      const res = await fetch(`/api/tenant/${tenantId}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          category: feedbackCategory,
+          comment: feedbackComment.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFeedbackError(data.error || "Kunne ikke sende tilbakemelding");
+        return;
+      }
+      // Update local feedbackMap
+      setFeedbackMap((prev) => ({
+        ...prev,
+        [conversationId]: [...(prev[conversationId] || []), data.feedback],
+      }));
+      setShowFeedbackForm(null);
+      setFeedbackComment("");
+      setFeedbackCategory("feil_svar");
+    } catch {
+      setFeedbackError("Noe gikk galt. Prov igjen.");
+    } finally {
+      setSubmittingFeedback(false);
+    }
   }
 
   return (
@@ -70,7 +149,7 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="Søk i brukerhenvendelser..."
+              placeholder="Sok i brukerhenvendelser..."
               className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text placeholder:text-preik-text-muted focus:ring-preik-accent focus:border-preik-accent"
             />
           </div>
@@ -80,7 +159,7 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
             className="px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text focus:ring-preik-accent focus:border-preik-accent"
           >
             <option value="all">Alle typer</option>
-            <option value="product_query">Produktspørsmål</option>
+            <option value="product_query">Produktsporsmal</option>
             <option value="support">Support</option>
             <option value="general">Generelt</option>
             <option value="unknown">Ukjent</option>
@@ -98,7 +177,7 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
             onClick={handleSearch}
             className="px-4 py-2 bg-preik-accent text-white rounded-xl text-sm font-medium hover:bg-preik-accent-hover transition-colors"
           >
-            Søk
+            Sok
           </button>
         </div>
         <p className="text-xs text-preik-text-muted mt-2">{total} samtaler funnet</p>
@@ -115,108 +194,201 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
         </div>
       ) : (
         <div className="space-y-3">
-          {conversations.map((conv) => (
-            <div
-              key={conv.id}
-              className="bg-preik-surface rounded-2xl border border-preik-border overflow-hidden"
-            >
-              <button
-                onClick={() => setExpandedId(expandedId === conv.id ? null : conv.id)}
-                className="w-full p-4 text-left hover:bg-preik-bg transition-colors"
+          {conversations.map((conv) => {
+            const convFeedback = feedbackMap[conv.id] || [];
+            const hasFeedback = convFeedback.length > 0;
+
+            return (
+              <div
+                key={conv.id}
+                className="bg-preik-surface rounded-2xl border border-preik-border overflow-hidden"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-preik-text truncate">
-                      &ldquo;{conv.user_query}&rdquo;
-                    </p>
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        conv.was_handled
-                          ? "bg-green-500/10 text-green-600"
-                          : "bg-red-500/10 text-red-600"
-                      }`}>
-                        {conv.was_handled ? "Besvart" : "Ikke besvart"}
-                      </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-preik-bg text-preik-text-muted">
-                        {conv.detected_intent}
-                      </span>
-                      {conv.referred_to_email && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600">
-                          E-post henvist
+                <button
+                  onClick={() => setExpandedId(expandedId === conv.id ? null : conv.id)}
+                  className="w-full p-4 text-left hover:bg-preik-bg transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-preik-text truncate">
+                        &ldquo;{conv.user_query}&rdquo;
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          conv.was_handled
+                            ? "bg-green-500/10 text-green-600"
+                            : "bg-red-500/10 text-red-600"
+                        }`}>
+                          {conv.was_handled ? "Besvart" : "Ikke besvart"}
                         </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-preik-bg text-preik-text-muted">
+                          {conv.detected_intent}
+                        </span>
+                        {conv.referred_to_email && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600">
+                            E-post henvist
+                          </span>
+                        )}
+                        {hasFeedback && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
+                            Tilbakemelding sendt
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-preik-text-muted whitespace-nowrap">
+                      {new Date(conv.created_at).toLocaleDateString("nb-NO", {
+                        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </button>
+
+                {expandedId === conv.id && conv.ai_response && (
+                  <div className="px-4 pb-4 border-t border-preik-border pt-3">
+                    <p className="text-xs font-medium text-preik-text-muted mb-1">AI-svar:</p>
+                    <p className="text-sm text-preik-text whitespace-pre-wrap">{conv.ai_response}</p>
+                    {conv.session_id && (
+                      <p className="text-xs text-preik-text-muted mt-2">Session: {conv.session_id}</p>
+                    )}
+
+                    {conv.metadata && Object.keys(conv.metadata).length > 0 && (() => {
+                      const meta = conv.metadata;
+                      const timings = meta.timings as Record<string, number> | undefined;
+                      const fmtMs = (ms: number) => ms >= 1000
+                        ? `${(ms / 1000).toFixed(1).replace(".", ",")} s`
+                        : `${Math.round(ms)} ms`;
+                      return (
+                        <div className="mt-3 pt-3 border-t border-preik-border">
+                          <p className="text-xs font-medium text-preik-text-muted mb-2">Detaljer</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {meta.model != null && (
+                              <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                <p className="text-[11px] text-preik-text-muted">Modell</p>
+                                <p className="text-xs font-medium text-preik-text">{String(meta.model)}</p>
+                              </div>
+                            )}
+                            {meta.docsFound != null && (
+                              <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                <p className="text-[11px] text-preik-text-muted">Dokumenter funnet</p>
+                                <p className="text-xs font-medium text-preik-text">{String(meta.docsFound)}</p>
+                              </div>
+                            )}
+                            {meta.nonStreaming != null && (
+                              <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                <p className="text-[11px] text-preik-text-muted">Modus</p>
+                                <p className="text-xs font-medium text-preik-text">{meta.nonStreaming ? "Non-streaming" : "Streaming"}</p>
+                              </div>
+                            )}
+                            {timings?.total != null && (
+                              <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                <p className="text-[11px] text-preik-text-muted">Total responstid</p>
+                                <p className="text-xs font-medium text-preik-text">{fmtMs(timings.total)}</p>
+                              </div>
+                            )}
+                            {timings?.vectorSearch != null && (
+                              <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                <p className="text-[11px] text-preik-text-muted">Vektorsok</p>
+                                <p className="text-xs font-medium text-preik-text">{fmtMs(timings.vectorSearch)}</p>
+                              </div>
+                            )}
+                            {timings?.aiTotal != null && (
+                              <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                <p className="text-[11px] text-preik-text-muted">AI-generering</p>
+                                <p className="text-xs font-medium text-preik-text">{fmtMs(timings.aiTotal)}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Feedback Section */}
+                    <div className="mt-3 pt-3 border-t border-preik-border">
+                      {hasFeedback ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-preik-text-muted">Tilbakemelding</p>
+                          {convFeedback.map((fb) => (
+                            <div key={fb.id} className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
+                                  {CATEGORY_LABELS[fb.category]}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  fb.status === "new"
+                                    ? "bg-blue-500/10 text-blue-600"
+                                    : fb.status === "reviewed"
+                                      ? "bg-yellow-500/10 text-yellow-600"
+                                      : "bg-green-500/10 text-green-600"
+                                }`}>
+                                  {STATUS_LABELS[fb.status]}
+                                </span>
+                                <span className="text-[11px] text-preik-text-muted ml-auto">
+                                  {new Date(fb.created_at).toLocaleDateString("nb-NO", {
+                                    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-sm text-preik-text">{fb.comment}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : showFeedbackForm === conv.id ? (
+                        <div className="space-y-3">
+                          <p className="text-xs font-medium text-preik-text-muted">Gi tilbakemelding</p>
+                          <select
+                            value={feedbackCategory}
+                            onChange={(e) => setFeedbackCategory(e.target.value as FeedbackCategory)}
+                            className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text focus:ring-preik-accent focus:border-preik-accent"
+                          >
+                            <option value="feil_svar">Feil svar</option>
+                            <option value="manglende_info">Manglende info</option>
+                            <option value="feil_lenke">Feil lenke</option>
+                            <option value="annet">Annet</option>
+                          </select>
+                          <textarea
+                            value={feedbackComment}
+                            onChange={(e) => setFeedbackComment(e.target.value)}
+                            placeholder="Beskriv hva som bor forbedres..."
+                            rows={3}
+                            className="w-full px-3 py-2 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text placeholder:text-preik-text-muted focus:ring-preik-accent focus:border-preik-accent resize-none"
+                          />
+                          {feedbackError && (
+                            <p className="text-xs text-red-500">{feedbackError}</p>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleSubmitFeedback(conv.id)}
+                              disabled={submittingFeedback || !feedbackComment.trim()}
+                              className="px-4 py-2 bg-preik-accent text-white rounded-xl text-sm font-medium hover:bg-preik-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {submittingFeedback ? "Sender..." : "Send"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowFeedbackForm(null);
+                                setFeedbackComment("");
+                                setFeedbackError(null);
+                              }}
+                              className="px-4 py-2 bg-preik-surface border border-preik-border rounded-xl text-sm text-preik-text hover:bg-preik-bg transition-colors"
+                            >
+                              Avbryt
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowFeedbackForm(conv.id)}
+                          className="text-sm text-preik-accent hover:text-preik-accent-hover transition-colors"
+                        >
+                          Gi tilbakemelding
+                        </button>
                       )}
                     </div>
                   </div>
-                  <span className="text-xs text-preik-text-muted whitespace-nowrap">
-                    {new Date(conv.created_at).toLocaleDateString("nb-NO", {
-                      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              </button>
-
-              {expandedId === conv.id && conv.ai_response && (
-                <div className="px-4 pb-4 border-t border-preik-border pt-3">
-                  <p className="text-xs font-medium text-preik-text-muted mb-1">AI-svar:</p>
-                  <p className="text-sm text-preik-text whitespace-pre-wrap">{conv.ai_response}</p>
-                  {conv.session_id && (
-                    <p className="text-xs text-preik-text-muted mt-2">Session: {conv.session_id}</p>
-                  )}
-
-                  {conv.metadata && Object.keys(conv.metadata).length > 0 && (() => {
-                    const meta = conv.metadata;
-                    const timings = meta.timings as Record<string, number> | undefined;
-                    const fmtMs = (ms: number) => ms >= 1000
-                      ? `${(ms / 1000).toFixed(1).replace(".", ",")} s`
-                      : `${Math.round(ms)} ms`;
-                    return (
-                      <div className="mt-3 pt-3 border-t border-preik-border">
-                        <p className="text-xs font-medium text-preik-text-muted mb-2">Detaljer</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {meta.model != null && (
-                            <div className="bg-preik-bg rounded-lg px-3 py-2">
-                              <p className="text-[11px] text-preik-text-muted">Modell</p>
-                              <p className="text-xs font-medium text-preik-text">{String(meta.model)}</p>
-                            </div>
-                          )}
-                          {meta.docsFound != null && (
-                            <div className="bg-preik-bg rounded-lg px-3 py-2">
-                              <p className="text-[11px] text-preik-text-muted">Dokumenter funnet</p>
-                              <p className="text-xs font-medium text-preik-text">{String(meta.docsFound)}</p>
-                            </div>
-                          )}
-                          {meta.nonStreaming != null && (
-                            <div className="bg-preik-bg rounded-lg px-3 py-2">
-                              <p className="text-[11px] text-preik-text-muted">Modus</p>
-                              <p className="text-xs font-medium text-preik-text">{meta.nonStreaming ? "Non-streaming" : "Streaming"}</p>
-                            </div>
-                          )}
-                          {timings?.total != null && (
-                            <div className="bg-preik-bg rounded-lg px-3 py-2">
-                              <p className="text-[11px] text-preik-text-muted">Total responstid</p>
-                              <p className="text-xs font-medium text-preik-text">{fmtMs(timings.total)}</p>
-                            </div>
-                          )}
-                          {timings?.vectorSearch != null && (
-                            <div className="bg-preik-bg rounded-lg px-3 py-2">
-                              <p className="text-[11px] text-preik-text-muted">Vektorsøk</p>
-                              <p className="text-xs font-medium text-preik-text">{fmtMs(timings.vectorSearch)}</p>
-                            </div>
-                          )}
-                          {timings?.aiTotal != null && (
-                            <div className="bg-preik-bg rounded-lg px-3 py-2">
-                              <p className="text-[11px] text-preik-text-muted">AI-generering</p>
-                              <p className="text-xs font-medium text-preik-text">{fmtMs(timings.aiTotal)}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
 
           {/* Pagination */}
           <div className="flex items-center justify-between pt-2">
