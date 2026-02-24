@@ -564,6 +564,7 @@ export async function POST(request: NextRequest) {
 
     // Fast path: skip embedding/search for very short messages (greetings, etc)
     const isSimpleMessage = lastUserText.length < 20 && !/produkt|pris|anbefal|kjøp|voks|polish|båt/i.test(lastUserText);
+    console.log(`[CHAT DEBUG] reqId=${reqId} query="${lastUserText.slice(0, 120)}" length=${lastUserText.length} isSimpleMessage=${isSimpleMessage}`);
 
     const normalizedMessages = messages.map((m) => ({
       role: m.role as "user" | "assistant" | "system",
@@ -596,6 +597,7 @@ export async function POST(request: NextRequest) {
       systemPrompt = promptResult;
       const { embedding } = embeddingResult;
       timings.embedding = Date.now() - embeddingStart;
+      console.log(`[CHAT DEBUG] reqId=${reqId} embedding generated in ${timings.embedding}ms for storeId=${storeId}`);
 
       // Vector search
       const searchStart = Date.now();
@@ -610,10 +612,16 @@ export async function POST(request: NextRequest) {
       );
       timings.vectorSearch = Date.now() - searchStart;
       docsFound = relevantDocs?.length || 0;
+      console.log(`[CHAT DEBUG] reqId=${reqId} vectorSearch took ${timings.vectorSearch}ms, docsFound=${docsFound}, threshold=0.3, matchCount=15`);
 
       if (searchError) {
+        console.log(`[CHAT DEBUG] reqId=${reqId} VECTOR SEARCH ERROR: ${JSON.stringify(searchError)}`);
         log.warn("Vector search failed, continuing without context", { reqId, storeId, error: searchError });
         // Continue with system prompt only — don't crash the chat
+      }
+
+      if (!relevantDocs || relevantDocs.length === 0) {
+        console.log(`[CHAT DEBUG] reqId=${reqId} NO DOCUMENTS FOUND for query="${lastUserText.slice(0, 120)}" storeId=${storeId} — bot will answer without context`);
       }
 
       if (relevantDocs && relevantDocs.length > 0) {
@@ -703,13 +711,18 @@ export async function POST(request: NextRequest) {
     }
 
     let fullSystemPrompt: string;
+    let promptPath: string;
     if (context) {
       fullSystemPrompt = `${systemPrompt}\n\n${guardrails.withContext}\n\n${guardrails.contextHeader}\n${context}${urlAllowlist}`;
+      promptPath = "WITH_CONTEXT";
     } else if (!isSimpleMessage) {
       fullSystemPrompt = `${systemPrompt}\n\n${guardrails.noContext}`;
+      promptPath = "NO_CONTEXT";
     } else {
       fullSystemPrompt = systemPrompt;
+      promptPath = "SIMPLE_MESSAGE";
     }
+    console.log(`[CHAT DEBUG] reqId=${reqId} promptPath=${promptPath} contextLength=${context.length} availableUrls=${availableUrls.length} systemPromptLength=${fullSystemPrompt.length}`);
 
     // Defense-in-depth: append security footer to ALL prompts (catches DB-stored custom prompts too)
     const securityFooter = lang === "en"
