@@ -180,7 +180,17 @@ function buildSearchFallback(url: string, baseDomain: string): string {
 function stripTrackingParams(url: string): string {
   try {
     const parsed = new URL(url);
-    parsed.search = "";
+    // Keep meaningful params (variant, id) but strip tracking/search params
+    const trackingPrefixes = ["utm_", "_pos", "_psq", "_ss", "_v", "fbclid", "gclid", "ref", "mc_"];
+    const keysToRemove: string[] = [];
+    parsed.searchParams.forEach((_val, key) => {
+      if (trackingPrefixes.some((p) => key.startsWith(p) || key === p)) {
+        keysToRemove.push(key);
+      }
+    });
+    for (const key of keysToRemove) {
+      parsed.searchParams.delete(key);
+    }
     parsed.hash = "";
     return parsed.toString().replace(/\/$/, "");
   } catch {
