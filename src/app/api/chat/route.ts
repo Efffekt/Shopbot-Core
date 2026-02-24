@@ -869,8 +869,14 @@ export async function POST(request: NextRequest) {
     let fullSystemPrompt: string;
     let promptPath: string;
     if (context) {
+      // When context docs exist, the question IS on-topic — override tenant rejection rules
+      const antiRejection = lang === "en"
+        ? `IMPORTANT: Relevant product documents were found for this question. The question IS within your domain. Do NOT reject it. Answer helpfully using the documents below.`
+        : `VIKTIG: Relevante produktdokumenter ble funnet for dette spørsmålet. Spørsmålet ER innenfor ditt domene. Du skal IKKE avvise det. Svar hjelpsomt basert på dokumentene nedenfor.`;
+
       fullSystemPrompt = [
         systemPrompt,
+        antiRejection,
         guardrails.contextRules,
         `${guardrails.contextHeader}\n${context}`,
         guardrails.groundingFooter,
