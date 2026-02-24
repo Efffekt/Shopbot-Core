@@ -599,13 +599,24 @@ export async function POST(request: NextRequest) {
       timings.embedding = Date.now() - embeddingStart;
       console.log(`[CHAT DEBUG] reqId=${reqId} embedding generated in ${timings.embedding}ms for storeId=${storeId} dims=${embedding.length} type=${typeof embedding[0]} first3=[${embedding.slice(0, 3).map(v => v.toFixed(6)).join(",")}]`);
 
-      // Vector search — pass embedding as JSON string for proper vector casting
-      const embeddingStr = JSON.stringify(embedding);
+      // Quick sanity check: can service role see documents at all?
+      try {
+        const { data: tableCheck, error: tableError } = await supabaseAdmin
+          .from("documents")
+          .select("id, content")
+          .eq("store_id", storeId)
+          .limit(1);
+        console.log(`[CHAT DEBUG] reqId=${reqId} TABLE CHECK: rows=${tableCheck?.length ?? "null"} error=${tableError ? JSON.stringify(tableError) : "none"} content="${tableCheck?.[0]?.content?.slice(0, 80) ?? "N/A"}"`);
+      } catch (e) {
+        console.log(`[CHAT DEBUG] reqId=${reqId} TABLE CHECK EXCEPTION: ${e}`);
+      }
+
+      // Vector search
       const searchStart = Date.now();
       const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
         "match_site_content",
         {
-          query_embedding: embeddingStr,
+          query_embedding: embedding,
           match_threshold: 0.3,
           match_count: 15,
           filter_store_id: storeId,
@@ -625,12 +636,15 @@ export async function POST(request: NextRequest) {
         console.log(`[CHAT DEBUG] reqId=${reqId} NO DOCUMENTS FOUND for query="${lastUserText.slice(0, 120)}" storeId=${storeId} — bot will answer without context`);
 
         // Debug peek: show top 5 closest docs regardless of threshold
-        const { data: peekDocs } = await supabaseAdmin.rpc("match_site_content", {
-          query_embedding: embeddingStr,
+        const { data: peekDocs, error: peekError } = await supabaseAdmin.rpc("match_site_content", {
+          query_embedding: embedding,
           match_threshold: 0.0,
           match_count: 5,
           filter_store_id: storeId,
         });
+        if (peekError) {
+          console.log(`[CHAT DEBUG] reqId=${reqId} PEEK ERROR: ${JSON.stringify(peekError)}`);
+        }
         if (peekDocs && peekDocs.length > 0) {
           console.log(`[CHAT DEBUG] reqId=${reqId} PEEK top ${peekDocs.length} closest docs (threshold=0):`);
           for (const doc of peekDocs as { content: string; metadata?: { source?: string; url?: string }; similarity?: number }[]) {
