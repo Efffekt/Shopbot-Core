@@ -765,7 +765,8 @@ export async function POST(request: NextRequest) {
     let fullSystemPrompt: string;
     let promptPath: string;
     if (context) {
-      fullSystemPrompt = `${systemPrompt}\n\n${guardrails.withContext}\n\n${guardrails.contextHeader}\n${context}${urlAllowlist}`;
+      // Guardrail BEFORE tenant prompt so the model sees the "never refuse when context exists" rule first
+      fullSystemPrompt = `${guardrails.withContext}\n\n${systemPrompt}\n\n${guardrails.contextHeader}\n${context}${urlAllowlist}`;
       promptPath = "WITH_CONTEXT";
     } else if (!isSimpleMessage) {
       fullSystemPrompt = `${systemPrompt}\n\n${guardrails.noContext}`;
