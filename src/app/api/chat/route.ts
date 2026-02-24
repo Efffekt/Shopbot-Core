@@ -101,10 +101,10 @@ const messageSchema = z.object({
 });
 
 const ALLOWED_TEST_MODELS = [
+  "gpt-4o-mini",
   "gemini-2.5-flash-lite",
   "gemini-3-flash-preview",
   "gpt-4.1-nano",
-  "gpt-4o-mini",
   "gpt-4.1-mini",
   "gpt-5-mini",
 ] as const;
@@ -722,7 +722,7 @@ export async function POST(request: NextRequest) {
     const allowedUrlSet = new Set(availableUrls);
 
     // Non-streaming mode for WebViews/in-app browsers
-    const primaryModelId = testModel || "gemini-2.5-flash-lite";
+    const primaryModelId = testModel || "gpt-4o-mini";
     console.log(`[CHAT DEBUG] reqId=${reqId} storeId=${storeId} primaryModelId=${primaryModelId} testModel=${testModel} nonStreaming=${useNonStreaming}`);
 
     if (useNonStreaming) {
@@ -739,6 +739,8 @@ export async function POST(request: NextRequest) {
       ];
       if (primaryModelId !== "gpt-4o-mini") {
         models.push({ provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" });
+      } else {
+        models.push({ provider: vertex("gemini-2.5-flash-lite"), name: "gemini-2.5-flash-lite" });
       }
 
       for (let i = 0; i < models.length; i++) {
@@ -816,7 +818,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Streaming mode (default) - Gemini primary, OpenAI fallback
+    // Streaming mode (default) - GPT-4o-mini primary, Gemini fallback
     let modelUsed: string = primaryModelId;
 
     // Safari/Mobile compatible streaming headers - CRITICAL for iOS
@@ -844,6 +846,8 @@ export async function POST(request: NextRequest) {
     ];
     if (primaryModelId !== "gpt-4o-mini") {
       models.push({ provider: openai("gpt-4o-mini"), name: "gpt-4o-mini" });
+    } else {
+      models.push({ provider: vertex("gemini-2.5-flash-lite"), name: "gemini-2.5-flash-lite" });
     }
 
     for (let i = 0; i < models.length; i++) {
