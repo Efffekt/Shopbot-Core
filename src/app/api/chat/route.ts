@@ -595,7 +595,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Fast path: skip embedding/search for very short messages (greetings, etc)
-    const isSimpleMessage = lastUserText.length < 20 && !/produkt|pris|anbefal|kjøp|voks|polish|båt/i.test(lastUserText);
+    // But only if the conversation doesn't have product-related context from earlier messages
+    const productKeywords = /produkt|pris|anbefal|kjøp|voks|polish|poler|båt|maskin|pad|pute|ullp|rengjør|vask|bunn|forseg/i;
+    const hasProductContext = messages.some((m) => productKeywords.test(typeof m.content === "string" ? m.content : JSON.stringify(m.content)));
+    const isSimpleMessage = lastUserText.length < 20 && !productKeywords.test(lastUserText) && !hasProductContext;
     console.log(`[CHAT DEBUG] reqId=${reqId} query="${lastUserText.slice(0, 120)}" length=${lastUserText.length} isSimpleMessage=${isSimpleMessage}`);
 
     const normalizedMessages = messages.map((m) => ({
@@ -765,6 +768,7 @@ export async function POST(request: NextRequest) {
             `ADDITIONAL CONTEXT: Below are relevant documents from the database. ` +
             `IMPORTANT: When context has been retrieved from the database, it means the question IS within your domain. ALWAYS answer helpfully based on the context — NEVER refuse the question as outside your expertise when you have been given context. ` +
             `Use this context to support your answers. ` +
+            `If the user mentions a term you don't recognize (like a boat model, code, or abbreviation), don't get stuck on it — focus on the main topic of their question (e.g. polishing, cleaning, antifouling) and answer based on the context you have. ` +
             `RELEVANCE FILTERING: Not all documents below may be relevant to the user's question. ONLY use documents that are DIRECTLY related to the topic the user is asking about. Completely ignore documents about unrelated topics even if they appear in the context. ` +
             `For product details, prices, and URLs, prefer information from the context below. ` +
             `NEVER invent or combine product names. Only recommend products whose EXACT full name appears in the context. Do not combine a brand name from one document with a product type from another. If no specific product page exists in the context for what the user asks about, say you don't have that exact product listed and suggest they browse the store or use a search link.\n` +
@@ -783,6 +787,7 @@ export async function POST(request: NextRequest) {
             `TILLEGGSKONTEKST: Nedenfor er relevante dokumenter fra databasen. ` +
             `VIKTIG: Når kontekst er hentet fra databasen, betyr det at spørsmålet ER innenfor ditt domene. Svar ALLTID hjelpsomt basert på konteksten — avvis ALDRI spørsmålet som utenfor ditt fagområde når du har fått kontekst. ` +
             `Bruk denne konteksten til å støtte svarene dine. ` +
+            `Hvis brukeren nevner et begrep du ikke kjenner (som en båtmodell, kode eller forkortelse), ikke heng deg opp i det — fokuser på hovedtemaet i spørsmålet (f.eks. polering, rengjøring, bunnstoff) og svar basert på konteksten du har. ` +
             `RELEVANSFILTRERING: Ikke alle dokumenter nedenfor er nødvendigvis relevante for brukerens spørsmål. Bruk KUN dokumenter som er DIREKTE relatert til emnet brukeren spør om. Ignorer fullstendig dokumenter om urelaterte emner selv om de finnes i konteksten. ` +
             `For produktdetaljer, priser og URL-er, foretrekk informasjon fra konteksten nedenfor. ` +
             `ALDRI finn opp eller kombiner produktnavn. Anbefal KUN produkter hvis EKSAKTE fulle navn finnes i konteksten. Ikke kombiner et merkenavn fra ett dokument med en produkttype fra et annet. Hvis ingen spesifikk produktside finnes i konteksten for det brukeren spør om, si at du ikke har det eksakte produktet listet og foreslå at de søker i butikken eller bruk en søkelenke.\n` +
@@ -827,7 +832,7 @@ export async function POST(request: NextRequest) {
       fullSystemPrompt = `${systemPrompt}\n\n${guardrails.noContext}`;
       promptPath = "NO_CONTEXT";
     } else {
-      fullSystemPrompt = systemPrompt;
+      fullSystemPrompt = `${systemPrompt}\n\n${guardrails.noContext}`;
       promptPath = "SIMPLE_MESSAGE";
     }
     console.log(`[CHAT DEBUG] reqId=${reqId} promptPath=${promptPath} contextLength=${context.length} availableUrls=${availableUrls.length} systemPromptLength=${fullSystemPrompt.length}`);
