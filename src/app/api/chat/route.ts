@@ -837,8 +837,8 @@ export async function POST(request: NextRequest) {
         const firstUrl = new URL(availableUrls[0]);
         const baseDomain = `${firstUrl.protocol}//${firstUrl.host}`;
         searchUrlHint = lang === "en"
-          ? `\nIf the product you are recommending does NOT have a matching URL above, use a search URL instead: ${baseDomain}/search?q=PRODUCT+NAME (replace PRODUCT+NAME with the actual product name). NEVER link to a wrong product — a search link is always better than a wrong product link.`
-          : `\nHvis produktet du anbefaler IKKE har en matchende URL over, bruk en søkelenke i stedet: ${baseDomain}/search?q=PRODUKTNAVN (erstatt PRODUKTNAVN med det faktiske produktnavnet). ALDRI lenk til feil produkt — en søkelenke er alltid bedre enn en feil produktlenke.`;
+          ? `\nIf a product does NOT have a matching URL above, use a search URL: ${baseDomain}/search?q=SEARCH+TERMS (use simple keywords from the user's question, do NOT invent product names). A search link is always better than a wrong product link.`
+          : `\nHvis et produkt IKKE har en matchende URL over, bruk en søkelenke: ${baseDomain}/search?q=SØKEORD (bruk enkle søkeord fra brukerens spørsmål, IKKE finn opp produktnavn). En søkelenke er alltid bedre enn en feil produktlenke.`;
       } catch { /* invalid URL, skip hint */ }
 
       if (lang === "en") {
@@ -869,14 +869,21 @@ export async function POST(request: NextRequest) {
     let fullSystemPrompt: string;
     let promptPath: string;
     if (context) {
-      // When context docs exist, the question IS on-topic — override tenant rejection rules
-      const antiRejection = lang === "en"
-        ? `IMPORTANT: Relevant product documents were found for this question. The question IS within your domain. Do NOT reject it. Answer helpfully using the documents below.`
-        : `VIKTIG: Relevante produktdokumenter ble funnet for dette spørsmålet. Spørsmålet ER innenfor ditt domene. Du skal IKKE avvise det. Svar hjelpsomt basert på dokumentene nedenfor.`;
+      // When context docs exist, the question IS on-topic.
+      // Strip canned rejection templates from tenant prompt to prevent GPT-4o-mini
+      // from pattern-matching the quoted rejection response and outputting it verbatim.
+      let contextSystemPrompt = systemPrompt.replace(
+        /[Hh]vis brukeren stiller spørsmål som ikke er relatert[\s\S]*?skal du svare:\s*"[^"]*"/,
+        ""
+      ).replace(
+        /[Ii]f the user asks[\s\S]*?(?:respond|answer) with:\s*"[^"]*"/,
+        ""
+      );
+      // Clean up any leftover double-newlines from the removal
+      contextSystemPrompt = contextSystemPrompt.replace(/\n{3,}/g, "\n\n").trim();
 
       fullSystemPrompt = [
-        systemPrompt,
-        antiRejection,
+        contextSystemPrompt,
         guardrails.contextRules,
         `${guardrails.contextHeader}\n${context}`,
         guardrails.groundingFooter,
