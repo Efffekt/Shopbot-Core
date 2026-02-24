@@ -65,6 +65,17 @@ vi.mock("@/lib/tenants", () => ({
   validateOrigin: mockValidateOrigin,
 }));
 
+vi.mock("@/lib/guardrails", () => ({
+  getGuardrails: () => ({
+    contextRules: "KONTEKSTREGLER: test context rules",
+    groundingFooter: "FORANKRINGSREGEL: test grounding",
+    contextHeader: "KONTEKST FRA DATABASE:",
+    noContextRules: "Ingen dokumenter ble funnet.",
+    simpleMessage: "Ingen produktsøk utført.",
+    securityFooter: "SIKKERHET: test security",
+  }),
+}));
+
 vi.mock("@/lib/validate-content-type", () => ({
   validateJsonContentType: mockValidateJsonContentType,
 }));
@@ -731,21 +742,58 @@ describe("POST /api/chat", () => {
       );
     });
 
-    it("uses last user message for embedding", async () => {
+    it("uses last user message for embedding when message is long enough", async () => {
       mockGenerateText.mockResolvedValue({ text: "Response" });
 
       const req = makeRequest(validBody({
         messages: [
           { role: "user", content: "Hei" },
           { role: "assistant", content: "Hei! Hvordan kan jeg hjelpe?" },
-          { role: "user", content: "Hva koster Meguiars polering?" },
+          { role: "user", content: "Kan du fortelle meg hva Meguiars Ultimate Compound polering koster og om den passer til min båt?" },
         ],
         noStream: true,
       }));
       await POST(req);
 
+      // Long messages (>=60 chars) are NOT enriched with previous context
       expect(mockEmbed).toHaveBeenCalledWith(
-        expect.objectContaining({ value: "Hva koster Meguiars polering?" })
+        expect.objectContaining({ value: "Kan du fortelle meg hva Meguiars Ultimate Compound polering koster og om den passer til min båt?" })
+      );
+    });
+
+    it("enriches short follow-up messages with previous user message for embedding", async () => {
+      mockGenerateText.mockResolvedValue({ text: "Response" });
+
+      const req = makeRequest(validBody({
+        messages: [
+          { role: "user", content: "polleringspute som passer til ryobi" },
+          { role: "assistant", content: "Her er noen poleringsputer som passer til Ryobi..." },
+          { role: "user", content: "den er roterende" },
+        ],
+        noStream: true,
+      }));
+      await POST(req);
+
+      // Short follow-ups (<60 chars) get enriched with the previous user message
+      expect(mockEmbed).toHaveBeenCalledWith(
+        expect.objectContaining({ value: "polleringspute som passer til ryobi den er roterende" })
+      );
+    });
+
+    it("does not enrich when conversation has fewer than 3 messages", async () => {
+      mockGenerateText.mockResolvedValue({ text: "Response" });
+
+      const req = makeRequest(validBody({
+        messages: [
+          { role: "user", content: "anbefal en polering" },
+        ],
+        noStream: true,
+      }));
+      await POST(req);
+
+      // Single message — no enrichment even though it's short (<60 chars)
+      expect(mockEmbed).toHaveBeenCalledWith(
+        expect.objectContaining({ value: "anbefal en polering" })
       );
     });
   });
