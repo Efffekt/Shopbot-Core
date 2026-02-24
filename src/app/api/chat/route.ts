@@ -169,8 +169,8 @@ function buildSearchFallback(url: string, baseDomain: string): string {
     return true;
   });
 
-  // Take last 2 keywords — brands/prefixes are first in slugs, product type is last
-  const query = keywords.slice(-2).join(" ");
+  // Take last keyword only — brands/prefixes come first, product type is last
+  const query = keywords.slice(-1).join(" ");
   return `${baseDomain}/search?q=${encodeURIComponent(query || slug)}`;
 }
 
