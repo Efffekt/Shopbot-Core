@@ -814,6 +814,21 @@ export async function POST(request: NextRequest) {
         }
         availableUrls = [...contextUrls];
 
+        // Inject product URLs for rewritten product names that lack a matching URL
+        // (e.g. content mentions "Båtproff Kraftvask" via Tix→Båtproff rewrite, but no doc has the product URL)
+        if (storeId === "baatpleiebutikken") {
+          const injections: Array<[RegExp, string]> = [
+            [/båtproff kraftvask/i, "https://www.baatpleiebutikken.no/products/batproff-kraftvask-til-bat-kraftvask-for-polering"],
+          ];
+          for (const [pattern, url] of injections) {
+            const mentioned = relevantDocs.some((d: { content: string }) => pattern.test(d.content));
+            const hasUrl = availableUrls.some((u) => u.includes(url.split("/products/")[1]));
+            if (mentioned && !hasUrl) {
+              availableUrls.push(url);
+            }
+          }
+        }
+
         // DEBUG: log context documents to trace wrong URL associations
         console.log(`[CHAT DEBUG] reqId=${reqId} context documents (${relevantDocs.length}):`);
         for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string }; similarity?: number }[]) {
