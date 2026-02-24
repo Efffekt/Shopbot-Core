@@ -599,16 +599,34 @@ export async function POST(request: NextRequest) {
       timings.embedding = Date.now() - embeddingStart;
       console.log(`[CHAT DEBUG] reqId=${reqId} embedding generated in ${timings.embedding}ms for storeId=${storeId} dims=${embedding.length} type=${typeof embedding[0]} first3=[${embedding.slice(0, 3).map(v => v.toFixed(6)).join(",")}]`);
 
-      // Quick sanity check: can service role see documents at all?
+      // Debug: test RPC with a known embedding from the table itself
       try {
-        const { data: tableCheck, error: tableError } = await supabaseAdmin
+        const { data: knownDoc, error: knownErr } = await supabaseAdmin
           .from("documents")
-          .select("id, content")
+          .select("id, content, embedding")
           .eq("store_id", storeId)
-          .limit(1);
-        console.log(`[CHAT DEBUG] reqId=${reqId} TABLE CHECK: rows=${tableCheck?.length ?? "null"} error=${tableError ? JSON.stringify(tableError) : "none"} content="${tableCheck?.[0]?.content?.slice(0, 80) ?? "N/A"}"`);
+          .limit(1)
+          .single();
+        if (knownErr) {
+          console.log(`[CHAT DEBUG] reqId=${reqId} KNOWN DOC ERROR: ${JSON.stringify(knownErr)}`);
+        } else {
+          const knownEmb = knownDoc.embedding;
+          console.log(`[CHAT DEBUG] reqId=${reqId} KNOWN DOC: id=${knownDoc.id} embType=${typeof knownEmb} isArray=${Array.isArray(knownEmb)} length=${Array.isArray(knownEmb) ? knownEmb.length : "N/A"} sample=${JSON.stringify(knownEmb)?.slice(0, 80)}`);
+
+          // Pass the DB embedding back through the RPC — should find itself
+          const { data: selfMatch, error: selfErr } = await supabaseAdmin.rpc("match_site_content", {
+            query_embedding: knownEmb,
+            match_threshold: 0.0,
+            match_count: 1,
+            filter_store_id: storeId,
+          });
+          console.log(`[CHAT DEBUG] reqId=${reqId} SELF-MATCH TEST: found=${selfMatch?.length ?? 0} error=${selfErr ? JSON.stringify(selfErr) : "none"}`);
+
+          // Also try with the AI-generated embedding for comparison
+          console.log(`[CHAT DEBUG] reqId=${reqId} AI EMBEDDING: isArray=${Array.isArray(embedding)} length=${embedding.length} sample=${JSON.stringify(embedding)?.slice(0, 80)}`);
+        }
       } catch (e) {
-        console.log(`[CHAT DEBUG] reqId=${reqId} TABLE CHECK EXCEPTION: ${e}`);
+        console.log(`[CHAT DEBUG] reqId=${reqId} KNOWN DOC EXCEPTION: ${e}`);
       }
 
       // Vector search
