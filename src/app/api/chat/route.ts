@@ -765,6 +765,7 @@ export async function POST(request: NextRequest) {
             `ADDITIONAL CONTEXT: Below are relevant documents from the database. ` +
             `IMPORTANT: When context has been retrieved from the database, it means the question IS within your domain. ALWAYS answer helpfully based on the context — NEVER refuse the question as outside your expertise when you have been given context. ` +
             `Use this context to support your answers. ` +
+            `RELEVANCE FILTERING: Not all documents below may be relevant to the user's question. ONLY use documents that are DIRECTLY related to the topic the user is asking about. Completely ignore documents about unrelated topics even if they appear in the context. ` +
             `For product details, prices, and URLs, prefer information from the context below. ` +
             `Do not invent product names, prices, or URLs that are not in the context.\n` +
             `IMPORTANT ABOUT LINKS: Each document has a SOURCE-URL. You must ONLY use a URL together with the product/content described in THAT SAME document. ` +
@@ -782,6 +783,7 @@ export async function POST(request: NextRequest) {
             `TILLEGGSKONTEKST: Nedenfor er relevante dokumenter fra databasen. ` +
             `VIKTIG: Når kontekst er hentet fra databasen, betyr det at spørsmålet ER innenfor ditt domene. Svar ALLTID hjelpsomt basert på konteksten — avvis ALDRI spørsmålet som utenfor ditt fagområde når du har fått kontekst. ` +
             `Bruk denne konteksten til å støtte svarene dine. ` +
+            `RELEVANSFILTRERING: Ikke alle dokumenter nedenfor er nødvendigvis relevante for brukerens spørsmål. Bruk KUN dokumenter som er DIREKTE relatert til emnet brukeren spør om. Ignorer fullstendig dokumenter om urelaterte emner selv om de finnes i konteksten. ` +
             `For produktdetaljer, priser og URL-er, foretrekk informasjon fra konteksten nedenfor. ` +
             `Ikke finn opp produktnavn, priser eller URL-er som ikke finnes i konteksten.\n` +
             `VIKTIG OM LENKER: Hvert dokument har en SOURCE-URL. Du skal KUN bruke en URL sammen med produktet/innholdet som er beskrevet i DET SAMME dokumentet. ` +
