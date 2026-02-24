@@ -743,6 +743,44 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Machine-type compatibility filter: remove product docs that are incompatible with user's stated machine
+      if (relevantDocs && relevantDocs.length > 0 && tenantConfig.features.boatExpertise) {
+        const userTexts = messages
+          .filter((m) => m.role === "user")
+          .map((m) => extractTextFromMessage(m))
+          .join(" ")
+          .toLowerCase();
+
+        let machineType: "roterende" | "da" | null = null;
+        if (/\broterende\b/.test(userTexts)) {
+          machineType = "roterende";
+        } else if (/\b(da|dual.?action|oscillerende|random.?orbit)\b/.test(userTexts)) {
+          machineType = "da";
+        }
+
+        if (machineType) {
+          const before = relevantDocs.length;
+          relevantDocs = relevantDocs.filter((doc) => {
+            const url = (doc.metadata?.source || doc.metadata?.url || "").toLowerCase();
+            // Only filter product pages, not blog/guide pages
+            if (!url.includes("/products/") && !url.includes("/collections/")) return true;
+            const snippet = doc.content.slice(0, 300).toLowerCase();
+
+            if (machineType === "roterende") {
+              if (/uten.roterende/.test(url) || /uten.roterende/.test(snippet)) return false;
+              if (/(?:med|for|til).da.maskin/.test(url)) return false;
+              if (/^til deg som .* (?:da|oscillerende)/i.test(doc.content.slice(0, 80))) return false;
+            } else if (machineType === "da") {
+              if (/passer kun til.*roterende/.test(snippet)) return false;
+            }
+            return true;
+          });
+          if (before !== relevantDocs.length) {
+            console.log(`[CHAT DEBUG] reqId=${reqId} machineFilter: removed ${before - relevantDocs.length} incompatible docs (userMachine=${machineType}, remaining=${relevantDocs.length})`);
+          }
+        }
+      }
+
       if (relevantDocs && relevantDocs.length > 0) {
         // Extract unique valid URLs from context chunks for the allowlist (strip tracking params)
         const contextUrls = new Set<string>();
