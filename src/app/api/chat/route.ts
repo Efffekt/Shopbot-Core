@@ -169,8 +169,8 @@ function buildSearchFallback(url: string, baseDomain: string): string {
     return true;
   });
 
-  // Take max 3 keywords for a focused search
-  const query = keywords.slice(0, 3).join(" ");
+  // Take last 2 keywords — brands/prefixes are first in slugs, product type is last
+  const query = keywords.slice(-2).join(" ");
   return `${baseDomain}/search?q=${encodeURIComponent(query || slug)}`;
 }
 
