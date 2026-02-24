@@ -622,6 +622,23 @@ export async function POST(request: NextRequest) {
 
       if (!relevantDocs || relevantDocs.length === 0) {
         console.log(`[CHAT DEBUG] reqId=${reqId} NO DOCUMENTS FOUND for query="${lastUserText.slice(0, 120)}" storeId=${storeId} — bot will answer without context`);
+
+        // Debug peek: show top 5 closest docs regardless of threshold
+        const { data: peekDocs } = await supabaseAdmin.rpc("match_site_content", {
+          query_embedding: embedding,
+          match_threshold: 0.0,
+          match_count: 5,
+          filter_store_id: storeId,
+        });
+        if (peekDocs && peekDocs.length > 0) {
+          console.log(`[CHAT DEBUG] reqId=${reqId} PEEK top ${peekDocs.length} closest docs (threshold=0):`);
+          for (const doc of peekDocs as { content: string; metadata?: { source?: string; url?: string }; similarity?: number }[]) {
+            const url = doc.metadata?.source || doc.metadata?.url || "NO URL";
+            console.log(`[CHAT DEBUG]   similarity=${(doc.similarity ?? 0).toFixed(4)} source=${url} content="${doc.content.slice(0, 150)}"`);
+          }
+        } else {
+          console.log(`[CHAT DEBUG] reqId=${reqId} PEEK returned 0 docs even with threshold=0 — no documents exist for this store`);
+        }
       }
 
       if (relevantDocs && relevantDocs.length > 0) {
