@@ -22,8 +22,12 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [serverResults, setServerResults] = useState<SourceGroup[] | null>(null);
+  const [serverSearching, setServerSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filteredSources = useMemo(() => {
+  // Client-side filter first (instant, searches title/source/preview)
+  const clientFiltered = useMemo(() => {
     const q = search.toLowerCase().trim();
     if (!q) return sources;
     return sources.filter(
@@ -33,6 +37,43 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
         src.preview.toLowerCase().includes(q)
     );
   }, [sources, search]);
+
+  // When client filter finds nothing and search is 2+ chars, do server-side full-content search
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    const q = search.trim();
+
+    if (!q || q.length < 2 || clientFiltered.length > 0) {
+      setServerResults(null);
+      setServerSearching(false);
+      return;
+    }
+
+    setServerSearching(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/tenant/${tenantId}/content?grouped=true&search=${encodeURIComponent(q)}`
+        );
+        if (!response.ok) throw new Error();
+        const result = await response.json();
+        setServerResults(result.sources || []);
+      } catch {
+        setServerResults(null);
+      } finally {
+        setServerSearching(false);
+      }
+    }, 400);
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [search, clientFiltered.length, tenantId]);
+
+  // Use server results when client filter found nothing, otherwise client filter
+  const filteredSources = serverResults !== null && clientFiltered.length === 0
+    ? serverResults
+    : clientFiltered;
 
   // Add content form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -292,8 +333,10 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-preik-text-muted shrink-0">
-          {search
-            ? `${filteredSources.length} av ${sources.length} kilder`
+          {serverSearching
+            ? "Søker i alt innhold..."
+            : search
+            ? `${filteredSources.length} av ${sources.length} kilder${serverResults !== null ? " (dyptsøk)" : ""}`
             : `${sources.length} ${sources.length === 1 ? "kilde" : "kilder"} indeksert`}
         </p>
         {sources.length > 0 && (
@@ -466,7 +509,7 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
           </div>
         )}
 
-        {sources.length > 0 && filteredSources.length === 0 && (
+        {sources.length > 0 && filteredSources.length === 0 && !serverSearching && (
           <div className="text-center py-12 text-preik-text-muted">
             Ingen treff for &laquo;{search}&raquo;
           </div>

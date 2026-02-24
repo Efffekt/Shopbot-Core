@@ -135,10 +135,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Grouped mode: return documents grouped by source
     if (grouped) {
-      const { data: docs, error } = await supabaseAdmin
+      const groupedSearch = (searchParams.get("search")?.trim() || "").slice(0, 200);
+
+      let groupedQuery = supabaseAdmin
         .from("documents")
         .select("id, content, metadata, created_at")
-        .eq("store_id", tenantId)
+        .eq("store_id", tenantId);
+
+      if (groupedSearch) {
+        const escaped = groupedSearch.replace(/[%_\\]/g, "\\$&");
+        groupedQuery = groupedQuery.ilike("content", `%${escaped}%`);
+      }
+
+      const { data: docs, error } = await groupedQuery
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -173,6 +182,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         success: true,
         sources: Array.from(groups.values()),
         totalSources: groups.size,
+        search: groupedSearch || undefined,
       }, {
         headers: { "Cache-Control": "private, max-age=120, stale-while-revalidate=60" },
       });
