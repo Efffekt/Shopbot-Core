@@ -767,7 +767,7 @@ export async function POST(request: NextRequest) {
             `Use this context to support your answers. ` +
             `RELEVANCE FILTERING: Not all documents below may be relevant to the user's question. ONLY use documents that are DIRECTLY related to the topic the user is asking about. Completely ignore documents about unrelated topics even if they appear in the context. ` +
             `For product details, prices, and URLs, prefer information from the context below. ` +
-            `Do not invent product names, prices, or URLs that are not in the context.\n` +
+            `NEVER invent or combine product names. Only recommend products whose EXACT full name appears in the context. Do not combine a brand name from one document with a product type from another. If no specific product page exists in the context for what the user asks about, say you don't have that exact product listed and suggest they browse the store or use a search link.\n` +
             `IMPORTANT ABOUT LINKS: Each document has a SOURCE-URL. You must ONLY use a URL together with the product/content described in THAT SAME document. ` +
             `NEVER use a URL from one document to link to a product described in a different document. ` +
             `If you cannot find a URL that belongs to the specific product the user is asking about, use a search link instead.`,
@@ -785,7 +785,7 @@ export async function POST(request: NextRequest) {
             `Bruk denne konteksten til å støtte svarene dine. ` +
             `RELEVANSFILTRERING: Ikke alle dokumenter nedenfor er nødvendigvis relevante for brukerens spørsmål. Bruk KUN dokumenter som er DIREKTE relatert til emnet brukeren spør om. Ignorer fullstendig dokumenter om urelaterte emner selv om de finnes i konteksten. ` +
             `For produktdetaljer, priser og URL-er, foretrekk informasjon fra konteksten nedenfor. ` +
-            `Ikke finn opp produktnavn, priser eller URL-er som ikke finnes i konteksten.\n` +
+            `ALDRI finn opp eller kombiner produktnavn. Anbefal KUN produkter hvis EKSAKTE fulle navn finnes i konteksten. Ikke kombiner et merkenavn fra ett dokument med en produkttype fra et annet. Hvis ingen spesifikk produktside finnes i konteksten for det brukeren spør om, si at du ikke har det eksakte produktet listet og foreslå at de søker i butikken eller bruk en søkelenke.\n` +
             `VIKTIG OM LENKER: Hvert dokument har en SOURCE-URL. Du skal KUN bruke en URL sammen med produktet/innholdet som er beskrevet i DET SAMME dokumentet. ` +
             `ALDRI bruk en URL fra ett dokument for å lenke til et produkt beskrevet i et annet dokument. ` +
             `Hvis du ikke finner en URL som hører til det spesifikke produktet brukeren spør om, bruk en søkelenke i stedet.`,
