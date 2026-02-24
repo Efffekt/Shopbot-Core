@@ -128,17 +128,21 @@ function normalizeUrl(url: string): string {
   return url.replace(/^(https?:\/\/)www\./, "$1");
 }
 
-/** Check if a URL is in the allowlist (handles www/non-www, trailing slash, search URLs) */
+/** Check if a URL is in the allowlist (handles www/non-www, trailing slash, query params, search URLs) */
 function isUrlAllowed(url: string, allowedUrls: Set<string>): boolean {
   if (allowedUrls.size === 0) return true; // No allowlist = no filtering
+  // Compare both with and without query params
   const normalized = normalizeUrl(url);
+  const normalizedStripped = normalizeUrl(stripTrackingParams(url));
   for (const allowed of allowedUrls) {
     const normalizedAllowed = normalizeUrl(allowed);
-    if (normalized === normalizedAllowed) return true;
-    // Trailing slash tolerance
-    const a = normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
-    const b = normalizedAllowed.endsWith("/") ? normalizedAllowed.slice(0, -1) : normalizedAllowed;
-    if (a === b) return true;
+    // Exact match or match ignoring trailing slash
+    for (const candidate of [normalized, normalizedStripped]) {
+      if (candidate === normalizedAllowed) return true;
+      const a = candidate.endsWith("/") ? candidate.slice(0, -1) : candidate;
+      const b = normalizedAllowed.endsWith("/") ? normalizedAllowed.slice(0, -1) : normalizedAllowed;
+      if (a === b) return true;
+    }
   }
   // Allow search URLs (the AI's sanctioned fallback pattern)
   try {
@@ -150,9 +154,23 @@ function isUrlAllowed(url: string, allowedUrls: Set<string>): boolean {
 
 /** Build a search fallback URL from a hallucinated URL */
 function buildSearchFallback(url: string, baseDomain: string): string {
-  const segments = url.replace(/[.,;:!?)]+$/, "").split("/").filter(Boolean);
+  // Strip query params before extracting the product slug
+  const urlWithoutParams = url.replace(/[?#].*$/, "").replace(/[.,;:!?)]+$/, "");
+  const segments = urlWithoutParams.split("/").filter(Boolean);
   const lastSegment = segments[segments.length - 1]?.replace(/-/g, " ") || "";
   return `${baseDomain}/search?q=${encodeURIComponent(lastSegment)}`;
+}
+
+/** Strip tracking/internal query params from a URL, keeping only the clean path */
+function stripTrackingParams(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return url;
+  }
 }
 
 /** Extract the base domain (without www.) from the allowlist, plus both www/non-www variants */
@@ -695,12 +713,12 @@ export async function POST(request: NextRequest) {
       }
 
       if (relevantDocs && relevantDocs.length > 0) {
-        // Extract unique valid URLs from context chunks for the allowlist
+        // Extract unique valid URLs from context chunks for the allowlist (strip tracking params)
         const contextUrls = new Set<string>();
         for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string }; similarity?: number }[]) {
           const url = doc.metadata?.source || doc.metadata?.url;
           if (url && url.startsWith("http")) {
-            contextUrls.add(url);
+            contextUrls.add(stripTrackingParams(url));
           }
         }
         availableUrls = [...contextUrls];
@@ -714,7 +732,8 @@ export async function POST(request: NextRequest) {
 
         context = relevantDocs
           .map((doc: { content: string; metadata?: { source?: string; url?: string } }) => {
-            const url = doc.metadata?.source || doc.metadata?.url || "NO URL AVAILABLE";
+            const rawUrl = doc.metadata?.source || doc.metadata?.url || "NO URL AVAILABLE";
+            const url = rawUrl.startsWith("http") ? stripTrackingParams(rawUrl) : rawUrl;
             return `--- DOCUMENT START ---\nSOURCE-URL: ${url}\nCONTENT: ${doc.content}\n--- DOCUMENT END ---`;
           })
           .join("\n\n");
