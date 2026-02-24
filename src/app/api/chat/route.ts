@@ -629,20 +629,40 @@ export async function POST(request: NextRequest) {
         console.log(`[CHAT DEBUG] reqId=${reqId} KNOWN DOC EXCEPTION: ${e}`);
       }
 
-      // Vector search
+      // Vector search — fetch extra to allow deduplication
       const searchStart = Date.now();
-      const { data: relevantDocs, error: searchError } = await supabaseAdmin.rpc(
+      const { data: rawDocs, error: searchError } = await supabaseAdmin.rpc(
         "match_site_content",
         {
           query_embedding: embedding,
           match_threshold: 0.3,
-          match_count: 15,
+          match_count: 50,
           filter_store_id: storeId,
         }
       );
       timings.vectorSearch = Date.now() - searchStart;
+
+      // Deduplicate: many URL variants of the same page produce identical content chunks.
+      // Keep highest-similarity entry per unique content (first 200 chars as key).
+      type DocRow = { id: string; content: string; metadata?: { source?: string; url?: string }; similarity?: number };
+      let relevantDocs: DocRow[] | null = null;
+      if (rawDocs && rawDocs.length > 0) {
+        const seen = new Set<string>();
+        const deduped: DocRow[] = [];
+        for (const doc of rawDocs as DocRow[]) {
+          const key = doc.content.slice(0, 200);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(doc);
+          if (deduped.length >= 15) break;
+        }
+        relevantDocs = deduped;
+        console.log(`[CHAT DEBUG] reqId=${reqId} vectorSearch took ${timings.vectorSearch}ms, rawDocs=${rawDocs.length}, afterDedup=${deduped.length}, threshold=0.3`);
+      } else {
+        relevantDocs = rawDocs;
+        console.log(`[CHAT DEBUG] reqId=${reqId} vectorSearch took ${timings.vectorSearch}ms, docsFound=0, threshold=0.3`);
+      }
       docsFound = relevantDocs?.length || 0;
-      console.log(`[CHAT DEBUG] reqId=${reqId} vectorSearch took ${timings.vectorSearch}ms, docsFound=${docsFound}, threshold=0.3, matchCount=15`);
 
       if (searchError) {
         console.log(`[CHAT DEBUG] reqId=${reqId} VECTOR SEARCH ERROR: ${JSON.stringify(searchError)}`);
