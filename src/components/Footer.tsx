@@ -58,7 +58,15 @@ export function Footer() {
         <div className="px-8 py-6 border-t border-preik-border">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-preik-text-muted">
-              © {new Date().getFullYear()} Preik. Laget i Norge.
+              © {new Date().getFullYear()} Preik. Utviklet av{" "}
+              <a
+                href="https://efffekt.no"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-preik-text hover:text-preik-accent transition-colors"
+              >
+                Efffekt
+              </a>
             </p>
             <div className="flex items-center gap-4">
               <ThemeToggle />
