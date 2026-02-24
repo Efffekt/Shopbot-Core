@@ -160,17 +160,18 @@ function buildSearchFallback(url: string, baseDomain: string): string {
   const slug = segments[segments.length - 1] || "";
   const words = slug.split("-").filter(Boolean);
 
-  // Filter out noise: numbers, sizes (205mm, 1kg, 0-75), short stopwords
-  const noise = new Set(["til", "med", "og", "for", "fra", "den", "det", "en", "et", "av", "som", "per", "stk", "sett", "pakke"]);
+  // Filter out noise: numbers, sizes, stopwords, and very short words
+  const noise = new Set(["til", "med", "og", "for", "fra", "den", "det", "en", "et", "av", "som", "per", "stk", "sett", "pakke", "bat", "test", "nye", "kun", "var", "din", "vare", "alle", "best", "type"]);
   const keywords = words.filter((w) => {
     if (/\d/.test(w)) return false;       // contains digits (sizes, quantities)
-    if (w.length <= 2) return false;       // too short
+    if (w.length <= 3) return false;       // too short to be meaningful
     if (noise.has(w.toLowerCase())) return false;
     return true;
   });
 
-  // Take last keyword only — brands/prefixes come first, product type is last
-  const query = keywords.slice(-1).join(" ");
+  // Pick the longest keyword — product type words are long, noise words are short
+  const longest = keywords.sort((a, b) => b.length - a.length)[0] || "";
+  const query = longest;
   return `${baseDomain}/search?q=${encodeURIComponent(query || slug)}`;
 }
 
