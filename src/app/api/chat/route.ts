@@ -782,7 +782,16 @@ export async function POST(request: NextRequest) {
     // Build URL allowlist from context chunks
     let urlAllowlist = "";
     if (availableUrls.length > 0) {
-      const urlList = availableUrls.map((u) => `- ${u}`).join("\n");
+      // Categorize URLs into products vs guides/articles
+      const productUrls: string[] = [];
+      const guideUrls: string[] = [];
+      for (const u of availableUrls) {
+        if (u.includes("/blogs/") || u.includes("/pages/")) {
+          guideUrls.push(u);
+        } else {
+          productUrls.push(u);
+        }
+      }
 
       // Extract base domain for search URL fallback (e.g. "https://baatpleiebutikken.no")
       let searchUrlHint = "";
@@ -794,9 +803,25 @@ export async function POST(request: NextRequest) {
           : `\nHvis produktet du anbefaler IKKE har en matchende URL over, bruk en søkelenke i stedet: ${baseDomain}/search?q=PRODUKTNAVN (erstatt PRODUKTNAVN med det faktiske produktnavnet). ALDRI lenk til feil produkt — en søkelenke er alltid bedre enn en feil produktlenke.`;
       } catch { /* invalid URL, skip hint */ }
 
-      urlAllowlist = lang === "en"
-        ? `AVAILABLE LINKS (use ONLY these, do NOT invent URLs):\n${urlList}${searchUrlHint}`
-        : `TILGJENGELIGE LENKER (bruk KUN disse, IKKE finn opp URL-er):\n${urlList}${searchUrlHint}`;
+      if (lang === "en") {
+        const sections: string[] = [];
+        if (productUrls.length > 0) {
+          sections.push(`Product links:\n${productUrls.map((u) => `- ${u}`).join("\n")}`);
+        }
+        if (guideUrls.length > 0) {
+          sections.push(`Guides and articles:\n${guideUrls.map((u) => `- ${u}`).join("\n")}`);
+        }
+        urlAllowlist = `AVAILABLE LINKS (use ONLY these, do NOT invent URLs):\n\n${sections.join("\n\n")}${searchUrlHint}`;
+      } else {
+        const sections: string[] = [];
+        if (productUrls.length > 0) {
+          sections.push(`Produktlenker:\n${productUrls.map((u) => `- ${u}`).join("\n")}`);
+        }
+        if (guideUrls.length > 0) {
+          sections.push(`Guider og artikler:\n${guideUrls.map((u) => `- ${u}`).join("\n")}`);
+        }
+        urlAllowlist = `TILGJENGELIGE LENKER (bruk KUN disse, IKKE finn opp URL-er):\n\n${sections.join("\n\n")}${searchUrlHint}`;
+      }
     }
 
     // Prompt assembly order:
