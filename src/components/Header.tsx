@@ -44,7 +44,7 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
       >
         <div
           className={`max-w-6xl mx-auto transition-all duration-200 ${
-            isScrolled ? "border-l border-r border-preik-border" : ""
+            isScrolled ? "sm:border-l sm:border-r border-preik-border" : ""
           }`}
         >
           <div className="px-6 py-4 flex items-center justify-between">

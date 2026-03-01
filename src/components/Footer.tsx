@@ -6,7 +6,7 @@ import { CookieSettingsButton } from "./CookieSettingsButton";
 export function Footer() {
   return (
     <footer className="bg-preik-bg border-t border-preik-border transition-colors duration-200">
-      <div className="max-w-6xl mx-auto border-l border-r border-preik-border">
+      <div className="max-w-6xl mx-auto sm:border-l sm:border-r border-preik-border">
         {/* Main footer content */}
         <div className="px-8 py-20">
           <ScrollReveal animation="up">
