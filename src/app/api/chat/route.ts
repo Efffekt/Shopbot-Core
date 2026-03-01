@@ -821,9 +821,10 @@ export async function POST(request: NextRequest) {
           if (url && url.startsWith("http")) {
             contextUrls.add(stripTrackingParams(url));
           }
-          // Also extract product/collection URLs from markdown links within content text
+          // Also extract URLs from markdown links within content text
           // e.g. [Product Name](https://shop.no/products/some-product)
-          const contentUrlRegex = /\]\((https?:\/\/[^)]*\/(?:products|collections)\/[^)]+)\)/g;
+          // Matches /products/, /collections/, /blogs/, and /pages/ paths
+          const contentUrlRegex = /\]\((https?:\/\/[^)]*\/(?:products|collections|blogs|pages)\/[^)]+)\)/g;
           let contentUrlMatch;
           while ((contentUrlMatch = contentUrlRegex.exec(doc.content)) !== null) {
             contextUrls.add(stripTrackingParams(contentUrlMatch[1]));
