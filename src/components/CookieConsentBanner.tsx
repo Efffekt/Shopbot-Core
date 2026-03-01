@@ -31,7 +31,7 @@ export function CookieConsentBanner() {
     } else if (stored === "denied") {
       updateConsent(false);
     } else {
-      setVisible(true);
+      setVisible(true); // eslint-disable-line react-hooks/set-state-in-effect
     }
 
     function handleReopen() {

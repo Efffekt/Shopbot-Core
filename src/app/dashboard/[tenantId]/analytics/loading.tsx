@@ -33,11 +33,11 @@ export default function AnalyticsLoading() {
         <div className="bg-preik-bg border border-preik-border rounded-xl p-4 space-y-3">
           <div className="h-5 w-32 bg-preik-border rounded animate-pulse" />
           <div className="flex items-end gap-1 h-32">
-            {Array.from({ length: 14 }, (_, i) => (
+            {[45, 72, 38, 85, 55, 63, 90, 42, 78, 50, 67, 35, 82, 58].map((h, i) => (
               <div
                 key={i}
                 className="flex-1 bg-preik-border rounded-t animate-pulse"
-                style={{ height: `${30 + Math.random() * 70}%` }}
+                style={{ height: `${h}%` }}
               />
             ))}
           </div>

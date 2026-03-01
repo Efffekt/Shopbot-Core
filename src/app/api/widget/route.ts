@@ -8,10 +8,9 @@ let WIDGET_BUNDLE: string;
 let WIDGET_SIZE_KB: string;
 
 try {
-  // Dynamic import to handle case where bundle doesn't exist yet
-  const bundle = require("@/lib/widget/dist/widget-bundle");
+  const bundle = await import("@/lib/widget/dist/widget-bundle");
   WIDGET_BUNDLE = bundle.WIDGET_BUNDLE;
-  WIDGET_SIZE_KB = bundle.WIDGET_SIZE_KB;
+  WIDGET_SIZE_KB = String(bundle.WIDGET_SIZE_KB);
 } catch {
   WIDGET_BUNDLE = `console.error("[Preik] Widget not built. Run 'npm run build:widget' first.");`;
   WIDGET_SIZE_KB = "0";

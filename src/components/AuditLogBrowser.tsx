@@ -48,7 +48,7 @@ export default function AuditLogBrowser() {
   }
 
   useEffect(() => {
-    fetchLog(page, entityType);
+    fetchLog(page, entityType); // eslint-disable-line react-hooks/set-state-in-effect
   }, [page, entityType]);
 
   function formatDate(dateStr: string) {
@@ -81,7 +81,7 @@ export default function AuditLogBrowser() {
     }
   }
 
-  function SortIcon({ column }: { column: typeof sortKey }) {
+  function sortIcon(column: typeof sortKey) {
     if (sortKey !== column) return <span className="ml-1 text-preik-text-muted/40">&uarr;&darr;</span>;
     return <span className="ml-1">{sortDir === "asc" ? "\u2191" : "\u2193"}</span>;
   }
@@ -140,19 +140,19 @@ export default function AuditLogBrowser() {
                   className="text-left px-4 py-3 text-preik-text-muted font-medium cursor-pointer select-none hover:text-preik-text transition-colors"
                   onClick={() => toggleSort("created_at")}
                 >
-                  Tidspunkt<SortIcon column="created_at" />
+                  Tidspunkt{sortIcon("created_at")}
                 </th>
                 <th
                   className="text-left px-4 py-3 text-preik-text-muted font-medium cursor-pointer select-none hover:text-preik-text transition-colors"
                   onClick={() => toggleSort("actor_email")}
                 >
-                  Bruker<SortIcon column="actor_email" />
+                  Bruker{sortIcon("actor_email")}
                 </th>
                 <th
                   className="text-left px-4 py-3 text-preik-text-muted font-medium cursor-pointer select-none hover:text-preik-text transition-colors"
                   onClick={() => toggleSort("action")}
                 >
-                  Handling<SortIcon column="action" />
+                  Handling{sortIcon("action")}
                 </th>
                 <th className="text-left px-4 py-3 text-preik-text-muted font-medium">Detaljer</th>
               </tr>

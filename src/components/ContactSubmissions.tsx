@@ -38,7 +38,7 @@ export default function ContactSubmissions() {
   }
 
   useEffect(() => {
-    fetchSubmissions(page);
+    fetchSubmissions(page); // eslint-disable-line react-hooks/set-state-in-effect
   }, [page]);
 
   async function handleDelete(id: string) {

@@ -63,7 +63,7 @@ export default function FeedbackBrowser() {
   }, [page, statusFilter, categoryFilter]);
 
   useEffect(() => {
-    fetchTickets();
+    fetchTickets(); // eslint-disable-line react-hooks/set-state-in-effect
   }, [fetchTickets]);
 
   async function handleUpdateStatus(ticketId: string, status: FeedbackStatus, note?: string) {
