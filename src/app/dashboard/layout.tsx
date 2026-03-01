@@ -28,7 +28,7 @@ export default async function DashboardLayout({
               <Link href="/dashboard" className="preik-wordmark text-2xl">
                 preik
               </Link>
-              <span className="text-xs text-preik-text-muted uppercase tracking-wide font-medium">
+              <span className="hidden sm:inline text-xs text-preik-text-muted uppercase tracking-wide font-medium">
                 Dashboard
               </span>
             </div>

@@ -67,8 +67,8 @@ export function DemoSection() {
 
         {/* Demo container */}
         <div className="grid lg:grid-cols-2 gap-16 items-start">
-          {/* Left - Features */}
-          <div className="space-y-10">
+          {/* Left - Features (shown after chat on mobile) */}
+          <div className="space-y-10 order-2 lg:order-1">
             <div className="space-y-8">
               {features.map((feature, index) => (
                 <ScrollReveal key={index} animation="left" stagger={index + 1}>
@@ -104,8 +104,8 @@ export function DemoSection() {
             </ScrollReveal>
           </div>
 
-          {/* Right - Chat Widget */}
-          <ScrollReveal animation="right" delay={200} className="lg:sticky lg:top-24">
+          {/* Right - Chat Widget (shown first on mobile) */}
+          <ScrollReveal animation="right" delay={200} className="order-1 lg:order-2 lg:sticky lg:top-24">
             <ChatWidget
               ref={chatRef}
               storeId="preik-demo"

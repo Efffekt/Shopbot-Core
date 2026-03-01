@@ -350,7 +350,7 @@ export default function IntegrationPage() {
     <div>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-brand font-light text-preik-text">Integrasjon</h1>
             <p className="mt-2 text-preik-text-muted">
@@ -782,7 +782,7 @@ export default function IntegrationPage() {
         </div>
 
         {/* Right column - Preview & Code */}
-        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+        <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           {/* Preview */}
           <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
             <div className="flex items-center justify-between mb-4">
