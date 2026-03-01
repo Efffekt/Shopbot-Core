@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import { ScrollReveal } from "./ScrollReveal";
+import { CookieSettingsButton } from "./CookieSettingsButton";
 
 export function Footer() {
   return (
@@ -47,6 +48,7 @@ export function Footer() {
                   <li><Link href="/docs" className="hover:text-preik-text transition-colors">Dokumentasjon</Link></li>
                   <li><Link href="/personvern" className="hover:text-preik-text transition-colors">Personvern</Link></li>
                   <li><Link href="/cookies" className="hover:text-preik-text transition-colors">Cookies</Link></li>
+                  <li><CookieSettingsButton /></li>
                   <li><Link href="/vilkar" className="hover:text-preik-text transition-colors">Vilkår</Link></li>
                 </ul>
               </div>
