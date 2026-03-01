@@ -477,7 +477,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       outline: none;
       min-width: 0;
       resize: none;
-      overflow-y: auto;
+      overflow: hidden;
       max-height: 96px;
       line-height: 1.5;
       padding: 8px 0;

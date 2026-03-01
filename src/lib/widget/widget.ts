@@ -477,6 +477,8 @@ class PreikChatWidget extends HTMLElement {
               class="input-field"
               placeholder="${this.escapeHtml(this.config.placeholder)}"
               aria-label="Message input"
+              spellcheck="false"
+              autocomplete="off"
             ></textarea>
             <button class="send-btn" aria-label="Send message" disabled>
               ${ICONS.send}
@@ -632,7 +634,9 @@ class PreikChatWidget extends HTMLElement {
       // Auto-grow textarea
       if (this.inputField) {
         this.inputField.style.height = "auto";
-        this.inputField.style.height = `${Math.min(this.inputField.scrollHeight, 96)}px`;
+        const sh = this.inputField.scrollHeight;
+        this.inputField.style.height = `${Math.min(sh, 96)}px`;
+        this.inputField.style.overflow = sh > 96 ? "auto" : "hidden";
       }
     });
 
@@ -677,6 +681,7 @@ class PreikChatWidget extends HTMLElement {
     this.state.isOpen = true;
     this.chatWindow?.classList.add("open");
     this.trigger?.setAttribute("aria-expanded", "true");
+    if (this.trigger) this.trigger.style.display = "none";
 
     // Focus input after animation
     setTimeout(() => {
@@ -688,6 +693,7 @@ class PreikChatWidget extends HTMLElement {
     this.state.isOpen = false;
     this.chatWindow?.classList.remove("open");
     this.trigger?.setAttribute("aria-expanded", "false");
+    if (this.trigger) this.trigger.style.display = "";
   }
 
   private scrollToBottom(instant: boolean = false) {

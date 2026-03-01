@@ -308,7 +308,9 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
     // Auto-grow textarea
     const el = e.target;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
+    const sh = el.scrollHeight;
+    el.style.height = `${Math.min(sh, 96)}px`;
+    el.style.overflow = sh > 96 ? "auto" : "hidden";
   };
 
   return (
@@ -417,7 +419,9 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="flex-1 bg-transparent text-[15px] text-preik-text placeholder:text-preik-text-muted outline-none min-w-0 resize-none overflow-y-auto max-h-24 py-2 leading-relaxed transition-colors"
+            className="flex-1 bg-transparent text-[15px] text-preik-text placeholder:text-preik-text-muted outline-none min-w-0 resize-none overflow-hidden max-h-24 py-2 leading-relaxed transition-colors"
+            spellCheck={false}
+            autoComplete="off"
             disabled={isLoading || isStreaming}
           />
           <button
