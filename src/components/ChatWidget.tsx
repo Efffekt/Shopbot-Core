@@ -1,13 +1,99 @@
 "use client";
 
-import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from "react";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("ChatWidget");
 
+// Inline formatting: bold, italic, code, links → returns HTML string
+function renderInline(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code class='inline-code'>$1</code>")
+    .replace(/\[(.+?)\]\((.+?)\)/g, (_m, label, url) => {
+      if (!/^(https?:|mailto:|tel:|\/|\.\/|#)/i.test(url)) return label;
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    });
+}
+
+// Line-by-line block markdown parser → returns JSX elements
+function renderMarkdown(content: string): React.ReactNode {
+  const lines = content.split("\n");
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Empty line — skip
+    if (line.trim() === "") { i++; continue; }
+
+    // Headings: # through ###### → h3-h6 (offset to avoid oversized in chat)
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = Math.min(Math.max(headingMatch[1].length + 2, 3), 6);
+      const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
+      elements.push(
+        <Tag key={key++} className="font-semibold" style={{
+          fontSize: level === 3 ? "1.05em" : level === 4 ? "1em" : "0.95em",
+          margin: "0.75em 0 0.25em 0",
+        }} dangerouslySetInnerHTML={{ __html: renderInline(headingMatch[2].trim()) }} />
+      );
+      i++;
+      continue;
+    }
+
+    // Unordered list
+    if (/^[\-\*]\s+/.test(line)) {
+      const items: React.ReactNode[] = [];
+      while (i < lines.length && /^[\-\*]\s+/.test(lines[i])) {
+        items.push(<li key={key++} dangerouslySetInnerHTML={{ __html: renderInline(lines[i].replace(/^[\-\*]\s+/, "")) }} />);
+        i++;
+      }
+      elements.push(<ul key={key++} className="list-disc pl-6 my-2 space-y-1">{items}</ul>);
+      continue;
+    }
+
+    // Ordered list
+    if (/^\d+\.\s+/.test(line)) {
+      const items: React.ReactNode[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        items.push(<li key={key++} dangerouslySetInnerHTML={{ __html: renderInline(lines[i].replace(/^\d+\.\s+/, "")) }} />);
+        i++;
+      }
+      elements.push(<ol key={key++} className="list-decimal pl-6 my-2 space-y-1">{items}</ol>);
+      continue;
+    }
+
+    // Paragraph: consecutive non-special lines
+    const paraLines: string[] = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() !== "" &&
+      !/^#{1,6}\s+/.test(lines[i]) &&
+      !/^[\-\*]\s+/.test(lines[i]) &&
+      !/^\d+\.\s+/.test(lines[i])
+    ) {
+      paraLines.push(renderInline(lines[i]));
+      i++;
+    }
+    if (paraLines.length > 0) {
+      elements.push(<p key={key++} className="mb-2 last:mb-0" dangerouslySetInnerHTML={{ __html: paraLines.join("<br>") }} />);
+    }
+  }
+
+  return <>{elements}</>;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
+  timestamp: Date;
 }
 
 interface ChatWidgetProps {
@@ -32,7 +118,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
@@ -57,7 +143,11 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
 
     const userMessage = messageToSend;
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    // Reset textarea height
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
+    setMessages((prev) => [...prev, { role: "user", content: userMessage, timestamp: new Date() }]);
     setIsLoading(true);
 
     abortControllerRef.current?.abort();
@@ -88,7 +178,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         const data = await response.json();
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: data.content || data.text || "" },
+          { role: "assistant", content: data.content || data.text || "", timestamp: new Date() },
         ]);
         setIsLoading(false);
         return;
@@ -102,7 +192,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
       setIsStreaming(true);
 
       // Add empty assistant message
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "", timestamp: new Date() }]);
 
       const decoder = new TextDecoder();
       let fullContent = "";
@@ -118,7 +208,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
           // Final update
           setMessages((prev) => {
             const updated = [...prev];
-            updated[updated.length - 1] = { role: "assistant", content: fullContent };
+            updated[updated.length - 1] = { ...updated[updated.length - 1], content: fullContent };
             return updated;
           });
           setIsStreaming(false);
@@ -137,7 +227,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
           const snapshot = displayedContent;
           setMessages((prev) => {
             const updated = [...prev];
-            updated[updated.length - 1] = { role: "assistant", content: snapshot };
+            updated[updated.length - 1] = { ...updated[updated.length - 1], content: snapshot };
             return updated;
           });
         }
@@ -173,7 +263,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
       // Ensure final content
       setMessages((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", content: fullContent };
+        updated[updated.length - 1] = { ...updated[updated.length - 1], content: fullContent };
         return updated;
       });
       setIsStreaming(false);
@@ -184,7 +274,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         setIsStreaming(false);
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: "Forespørselen tok for lang tid. Prøv igjen." },
+          { role: "assistant", content: "Forespørselen tok for lang tid. Prøv igjen.", timestamp: new Date() },
         ]);
         return;
       }
@@ -196,6 +286,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         {
           role: "assistant",
           content: "Beklager, noe gikk galt. Prøv igjen senere.",
+          timestamp: new Date(),
         },
       ]);
     }
@@ -210,6 +301,14 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    // Auto-grow textarea
+    const el = e.target;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
   };
 
   return (
@@ -259,13 +358,25 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
           </div>
         )}
 
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex flex-col max-w-[85%] animate-fade-in ${
-              message.role === "user" ? "self-end" : "self-start"
-            }`}
-          >
+        {messages.map((message, index) => {
+          const prev = index > 0 ? messages[index - 1] : null;
+          const gap = prev && message.timestamp && prev.timestamp
+            ? message.timestamp.getTime() - prev.timestamp.getTime()
+            : 0;
+          const showTime = gap > 5 * 60 * 1000;
+
+          return (
+          <div key={index}>
+            {showTime && (
+              <div className="text-center text-[11px] text-preik-text-muted py-1 opacity-70">
+                {message.timestamp.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            )}
+            <div
+              className={`flex flex-col max-w-[85%] animate-fade-in ${
+                message.role === "user" ? "self-end ml-auto" : "self-start"
+              }`}
+            >
             <div
               className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed transition-colors ${
                 message.role === "user"
@@ -273,10 +384,15 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
                   : "bg-preik-surface text-preik-text border border-preik-border rounded-bl-sm"
               }`}
             >
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              {message.role === "assistant"
+                ? renderMarkdown(message.content)
+                : <p className="whitespace-pre-wrap">{message.content}</p>
+              }
             </div>
           </div>
-        ))}
+          </div>
+          );
+        })}
 
         {isLoading && (
           <div className="self-start">
@@ -293,15 +409,15 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
 
       {/* Input area */}
       <div className="px-5 py-4 bg-preik-surface border-t border-preik-border transition-colors">
-        <div className="flex items-center gap-3 bg-preik-bg border border-preik-border rounded-full pl-4 pr-1 py-1 focus-within:border-preik-accent focus-within:ring-[3px] focus-within:ring-preik-accent/10 transition-all">
-          <input
+        <div className="flex items-end gap-3 bg-preik-bg border border-preik-border rounded-2xl pl-4 pr-1 py-1 focus-within:border-preik-accent focus-within:ring-[3px] focus-within:ring-preik-accent/10 transition-all">
+          <textarea
             ref={inputRef}
-            type="text"
+            rows={1}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="flex-1 bg-transparent text-[15px] text-preik-text placeholder:text-preik-text-muted outline-none min-w-0 transition-colors"
+            className="flex-1 bg-transparent text-[15px] text-preik-text placeholder:text-preik-text-muted outline-none min-w-0 resize-none overflow-y-auto max-h-24 py-2 leading-relaxed transition-colors"
             disabled={isLoading || isStreaming}
           />
           <button

@@ -205,35 +205,108 @@ function escapeHtmlAttr(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Simple markdown-ish parser
+// Escape HTML special characters
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Inline formatting: bold, italic, code, links
+function formatInline(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .replace(/\[(.+?)\]\((.+?)\)/g, (_match: string, label: string, url: string) => {
+      const rawUrl = url.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+      if (!/^(https?:|mailto:|tel:|\/|\.\/|#)/i.test(rawUrl)) return label;
+      const safeUrl = escapeHtmlAttr(rawUrl);
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    });
+}
+
+// Line-by-line block markdown parser
 function parseMarkdown(text: string): string {
-  return (
-    text
-      // Escape HTML (including quotes for attribute injection prevention)
-      .replace(/&/g, "&amp;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      // Bold
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      // Italic
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      // Inline code
-      .replace(/`(.+?)`/g, "<code>$1</code>")
-      // Links (sanitize href to prevent javascript: XSS and attribute breakout)
-      .replace(/\[(.+?)\]\((.+?)\)/g, (_match: string, label: string, url: string) => {
-        // Decode entities back for URL validation, then re-escape for attribute
-        const rawUrl = url.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-        if (!/^(https?:|mailto:|tel:|\/|\.\/|#)/i.test(rawUrl)) return label;
-        const safeUrl = escapeHtmlAttr(rawUrl);
-        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-      })
-      // Line breaks to paragraphs
-      .split("\n\n")
-      .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-      .join("")
-  );
+  const escaped = escapeHtml(text);
+  const lines = escaped.split("\n");
+  const blocks: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Empty line — skip (paragraph break)
+    if (line.trim() === "") {
+      i++;
+      continue;
+    }
+
+    // Heading: ## through ###### → h3-h6 (offset +2)
+    const headingMatch = line.match(/^(#{2,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = Math.min(headingMatch[1].length + 2, 6); // offset by +2, max h6
+      blocks.push(`<h${level}>${formatInline(headingMatch[2].trim())}</h${level}>`);
+      i++;
+      continue;
+    }
+
+    // # single hash → also h3 (avoid oversized h1/h2 in chat)
+    const h1Match = line.match(/^#\s+(.+)$/);
+    if (h1Match) {
+      blocks.push(`<h3>${formatInline(h1Match[1].trim())}</h3>`);
+      i++;
+      continue;
+    }
+
+    // Unordered list: - item or * item (greedy grouping)
+    if (/^[\-\*]\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[\-\*]\s+/.test(lines[i])) {
+        items.push(`<li>${formatInline(lines[i].replace(/^[\-\*]\s+/, ""))}</li>`);
+        i++;
+      }
+      blocks.push(`<ul>${items.join("")}</ul>`);
+      continue;
+    }
+
+    // Ordered list: 1. item (greedy grouping)
+    if (/^\d+\.\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        items.push(`<li>${formatInline(lines[i].replace(/^\d+\.\s+/, ""))}</li>`);
+        i++;
+      }
+      blocks.push(`<ol>${items.join("")}</ol>`);
+      continue;
+    }
+
+    // Paragraph: consecutive non-special lines
+    const paraLines: string[] = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() !== "" &&
+      !/^#{1,6}\s+/.test(lines[i]) &&
+      !/^[\-\*]\s+/.test(lines[i]) &&
+      !/^\d+\.\s+/.test(lines[i])
+    ) {
+      paraLines.push(formatInline(lines[i]));
+      i++;
+    }
+    if (paraLines.length > 0) {
+      blocks.push(`<p>${paraLines.join("<br>")}</p>`);
+    }
+  }
+
+  return blocks.join("");
+}
+
+// Format time for timestamp dividers
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
 }
 
 // Chat Widget Web Component
@@ -254,7 +327,7 @@ class PreikChatWidget extends HTMLElement {
   private trigger: HTMLButtonElement | null = null;
   private chatWindow: HTMLDivElement | null = null;
   private messagesContainer: HTMLDivElement | null = null;
-  private inputField: HTMLInputElement | null = null;
+  private inputField: HTMLTextAreaElement | null = null;
   private sendButton: HTMLButtonElement | null = null;
 
   constructor() {
@@ -399,12 +472,12 @@ class PreikChatWidget extends HTMLElement {
 
         <div class="input-area">
           <div class="input-wrapper">
-            <input
-              type="text"
+            <textarea
+              rows="1"
               class="input-field"
               placeholder="${this.escapeHtml(this.config.placeholder)}"
               aria-label="Message input"
-            />
+            ></textarea>
             <button class="send-btn" aria-label="Send message" disabled>
               ${ICONS.send}
             </button>
@@ -462,15 +535,22 @@ class PreikChatWidget extends HTMLElement {
       `;
     }
 
-    let html = this.state.messages
-      .map(
-        (msg) => `
+    let html = "";
+    let prevTimestamp: number | null = null;
+
+    for (const msg of this.state.messages) {
+      const ts = new Date(msg.timestamp).getTime();
+      if (!isNaN(ts) && prevTimestamp !== null && ts - prevTimestamp > 5 * 60 * 1000) {
+        html += `<div class="time-divider">${formatTime(new Date(ts))}</div>`;
+      }
+      if (!isNaN(ts)) prevTimestamp = ts;
+
+      html += `
         <div class="message ${msg.role}">
           <div class="bubble">${parseMarkdown(msg.content)}</div>
         </div>
-      `
-      )
-      .join("");
+      `;
+    }
 
     if (this.state.isLoading) {
       html += `
@@ -508,7 +588,7 @@ class PreikChatWidget extends HTMLElement {
         if (lastBubble) {
           // Use textContent during streaming to avoid flash (no HTML parsing)
           lastBubble.textContent = lastMsg.content;
-          this.scrollToBottom();
+          this.scrollToBottom(true); // instant during streaming
           return;
         }
       }
@@ -543,11 +623,16 @@ class PreikChatWidget extends HTMLElement {
     // Clear conversation button
     this.shadow.querySelector(".clear-btn")?.addEventListener("click", () => this.clearMessages());
 
-    // Input field
+    // Input field — auto-resize textarea
     this.inputField?.addEventListener("input", () => {
       const hasText = (this.inputField?.value || "").trim().length > 0;
       if (this.sendButton) {
         this.sendButton.disabled = !hasText;
+      }
+      // Auto-grow textarea
+      if (this.inputField) {
+        this.inputField.style.height = "auto";
+        this.inputField.style.height = `${Math.min(this.inputField.scrollHeight, 96)}px`;
       }
     });
 
@@ -605,9 +690,16 @@ class PreikChatWidget extends HTMLElement {
     this.trigger?.setAttribute("aria-expanded", "false");
   }
 
-  private scrollToBottom() {
+  private scrollToBottom(instant: boolean = false) {
     if (this.messagesContainer) {
-      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+      if (instant) {
+        // During streaming, use instant scroll to avoid lag
+        this.messagesContainer.style.scrollBehavior = "auto";
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        this.messagesContainer.style.scrollBehavior = "smooth";
+      } else {
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+      }
     }
   }
 
@@ -621,9 +713,10 @@ class PreikChatWidget extends HTMLElement {
     const text = (this.inputField?.value || "").trim();
     if (!text || this.state.isLoading) return;
 
-    // Clear input
+    // Clear input and reset textarea height
     if (this.inputField) {
       this.inputField.value = "";
+      this.inputField.style.height = "auto";
     }
     if (this.sendButton) {
       this.sendButton.disabled = true;
@@ -838,6 +931,7 @@ class PreikChatWidget extends HTMLElement {
       // Resend
       if (this.inputField) {
         this.inputField.value = lastUserMessage.content;
+        this.inputField.style.height = "auto";
       }
       this.sendMessage();
     }

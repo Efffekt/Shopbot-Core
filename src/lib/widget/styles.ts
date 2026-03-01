@@ -148,7 +148,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       opacity: 0;
       transform: translateY(20px) scale(0.95);
       pointer-events: none;
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1), transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     .chat-window.open {
@@ -307,6 +307,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       display: flex;
       flex-direction: column;
       gap: 16px;
+      scroll-behavior: smooth;
     }
 
     /* Empty State */
@@ -332,19 +333,26 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       display: flex;
       flex-direction: column;
       max-width: 85%;
-      animation: fadeIn 0.3s ease;
+      animation: messageIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    @keyframes fadeIn {
+    @keyframes messageIn {
       from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(8px) scale(0.97);
       }
       to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
       }
     }
+
+    /* Stagger last 5 messages */
+    .message:nth-last-child(5) { animation-delay: 0.12s; }
+    .message:nth-last-child(4) { animation-delay: 0.09s; }
+    .message:nth-last-child(3) { animation-delay: 0.06s; }
+    .message:nth-last-child(2) { animation-delay: 0.03s; }
+    .message:nth-last-child(1) { animation-delay: 0s; }
 
     .message.user {
       align-self: flex-end;
@@ -385,6 +393,15 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
 
     .message.assistant .bubble a {
       color: var(--widget-accent);
+    }
+
+    /* Time Dividers */
+    .time-divider {
+      text-align: center;
+      font-size: 11px;
+      color: var(--widget-text-muted);
+      padding: 4px 0;
+      opacity: 0.7;
     }
 
     /* Loading Dots */
@@ -436,11 +453,11 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
 
     .input-wrapper {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       gap: 12px;
       background: var(--widget-bg);
       border: 1px solid var(--widget-border);
-      border-radius: 9999px;
+      border-radius: 1rem;
       padding: 4px 4px 4px 16px;
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
@@ -459,6 +476,11 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       color: var(--widget-text);
       outline: none;
       min-width: 0;
+      resize: none;
+      overflow-y: auto;
+      max-height: 96px;
+      line-height: 1.5;
+      padding: 8px 0;
     }
 
     .input-field::placeholder {
@@ -599,6 +621,20 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     .bubble em {
       font-style: italic;
     }
+
+    .bubble h3, .bubble h4, .bubble h5, .bubble h6 {
+      font-weight: 600;
+      margin: 0.75em 0 0.25em 0;
+    }
+
+    .bubble h3:first-child, .bubble h4:first-child,
+    .bubble h5:first-child, .bubble h6:first-child {
+      margin-top: 0;
+    }
+
+    .bubble h3 { font-size: 1.05em; }
+    .bubble h4 { font-size: 1em; }
+    .bubble h5, .bubble h6 { font-size: 0.95em; }
 
     .bubble code {
       background: rgba(0, 0, 0, 0.1);
