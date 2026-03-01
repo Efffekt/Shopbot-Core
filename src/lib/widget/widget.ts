@@ -319,6 +319,7 @@ class PreikChatWidget extends HTMLElement {
   private apiUrl: string;
   private testModel: string | undefined;
   private abortController: AbortController | null = null;
+  private isStreaming: boolean = false;
   private boundEscapeHandler: ((e: KeyboardEvent) => void) | null = null;
   private mediaQuery: MediaQueryList | null = null;
   private boundMediaHandler: (() => void) | null = null;
@@ -481,7 +482,8 @@ class PreikChatWidget extends HTMLElement {
               autocomplete="off"
             ></textarea>
             <button class="send-btn" aria-label="Send message" disabled>
-              ${ICONS.send}
+              <span class="send-icon">${ICONS.send}</span>
+              <span class="stop-icon">${ICONS.stop}</span>
             </button>
           </div>
           <div class="watermark-row">
@@ -557,9 +559,11 @@ class PreikChatWidget extends HTMLElement {
     if (this.state.isLoading) {
       html += `
         <div class="loading">
-          <div class="loading-dot"></div>
-          <div class="loading-dot"></div>
-          <div class="loading-dot"></div>
+          <div class="loading-shimmer">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+          </div>
         </div>
       `;
     }
@@ -647,8 +651,14 @@ class PreikChatWidget extends HTMLElement {
       }
     });
 
-    // Send button
-    this.sendButton?.addEventListener("click", () => this.sendMessage());
+    // Send button — acts as stop button during streaming
+    this.sendButton?.addEventListener("click", () => {
+      if (this.isStreaming) {
+        this.abortController?.abort();
+      } else {
+        this.sendMessage();
+      }
+    });
 
     // Onboarding CTA button
     this.shadow.querySelector(".onboarding-cta")?.addEventListener("click", () => this.dismissOnboarding());
@@ -694,6 +704,21 @@ class PreikChatWidget extends HTMLElement {
     this.chatWindow?.classList.remove("open");
     this.trigger?.setAttribute("aria-expanded", "false");
     if (this.trigger) this.trigger.style.display = "";
+  }
+
+  private setStreamingState(streaming: boolean) {
+    this.isStreaming = streaming;
+    if (this.sendButton) {
+      if (streaming) {
+        this.sendButton.classList.add("streaming");
+        this.sendButton.disabled = false;
+        this.sendButton.setAttribute("aria-label", "Stop response");
+      } else {
+        this.sendButton.classList.remove("streaming");
+        this.sendButton.setAttribute("aria-label", "Send message");
+        this.sendButton.disabled = !(this.inputField?.value || "").trim();
+      }
+    }
   }
 
   private scrollToBottom(instant: boolean = false) {
@@ -820,6 +845,7 @@ class PreikChatWidget extends HTMLElement {
       };
       this.state.messages.push(assistantMessage);
       this.state.isLoading = false;
+      this.setStreamingState(true);
       this.updateMessages();
 
       // Word-by-word reveal function
@@ -893,13 +919,23 @@ class PreikChatWidget extends HTMLElement {
 
       // Ensure final content is set with markdown parsing
       assistantMessage.content = fullContent;
+      this.setStreamingState(false);
       this.updateMessages(false); // Full re-render with markdown
       this.saveMessages();
     } catch (error) {
       clearTimeout(timeoutId);
+      this.setStreamingState(false);
 
       // Check if it was an abort (user cancelled or timeout)
       if ((error as Error).name === "AbortError") {
+        // If streaming was in progress, keep partial content and finalize
+        const lastMsg = this.state.messages[this.state.messages.length - 1];
+        if (lastMsg?.role === "assistant" && lastMsg.content) {
+          this.state.isLoading = false;
+          this.updateMessages(false); // Re-render with markdown
+          this.saveMessages();
+          return;
+        }
         // Only show error if we haven't received any response yet
         if (this.state.isLoading) {
           this.state.isLoading = false;

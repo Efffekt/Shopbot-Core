@@ -272,10 +272,17 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
       if ((error as Error).name === "AbortError") {
         setIsLoading(false);
         setIsStreaming(false);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: "Forespørselen tok for lang tid. Prøv igjen.", timestamp: new Date() },
-        ]);
+        // If streaming was in progress, keep partial content
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant" && last.content) {
+            return prev; // Keep partial response
+          }
+          return [
+            ...prev,
+            { role: "assistant", content: "Forespørselen tok for lang tid. Prøv igjen.", timestamp: new Date() },
+          ];
+        });
         return;
       }
       log.error("Chat error:", error);
@@ -314,7 +321,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
   };
 
   return (
-    <div className="bg-preik-bg rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px] w-full max-w-[400px] transition-colors">
+    <div className="bg-preik-bg border border-preik-border rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px] w-full max-w-[400px] transition-colors">
       {/* Header */}
       <div className="px-5 py-4 bg-preik-surface border-b border-preik-border flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3">
@@ -397,11 +404,11 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
         })}
 
         {isLoading && (
-          <div className="self-start">
-            <div className="bg-preik-surface px-4 py-3 rounded-2xl rounded-bl-sm border border-preik-border flex items-center gap-1 transition-colors">
-              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1.4s" }} />
-              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "160ms", animationDuration: "1.4s" }} />
-              <span className="w-2 h-2 bg-preik-text-muted rounded-full animate-bounce" style={{ animationDelay: "320ms", animationDuration: "1.4s" }} />
+          <div className="self-start animate-fade-in">
+            <div className="bg-preik-surface px-[18px] py-[14px] rounded-2xl rounded-bl-sm border border-preik-border flex items-center gap-1.5 transition-colors">
+              <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0s]" />
+              <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0.2s]" />
+              <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0.4s]" />
             </div>
           </div>
         )}
@@ -422,18 +429,30 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
             className="flex-1 bg-transparent text-[15px] text-preik-text placeholder:text-preik-text-muted outline-none min-w-0 resize-none overflow-hidden max-h-24 py-2 leading-relaxed transition-colors"
             spellCheck={false}
             autoComplete="off"
-            disabled={isLoading || isStreaming}
+            disabled={isLoading}
           />
           <button
-            onClick={() => sendMessage()}
-            disabled={isLoading || isStreaming || !input.trim()}
-            aria-label="Send melding"
+            onClick={() => {
+              if (isStreaming) {
+                abortControllerRef.current?.abort();
+              } else {
+                sendMessage();
+              }
+            }}
+            disabled={isLoading || (!isStreaming && !input.trim())}
+            aria-label={isStreaming ? "Stopp svar" : "Send melding"}
             className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center hover:bg-preik-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
-            <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <line x1="22" y1="2" x2="11" y2="13"/>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
+            {isStreaming ? (
+              <svg className="w-[18px] h-[18px] text-white" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+            ) : (
+              <svg className="w-[18px] h-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            )}
           </button>
         </div>
 

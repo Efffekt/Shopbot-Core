@@ -104,7 +104,19 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       font-size: 15px;
       font-weight: 500;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
+      transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      animation: triggerIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+    }
+
+    @keyframes triggerIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .trigger:hover {
@@ -138,8 +150,9 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       z-index: 2147483647;
       width: 400px;
       height: 550px;
-      max-height: calc(100vh - 140px);
+      max-height: calc(100vh - 40px);
       background: var(--widget-bg);
+      border: 1px solid var(--widget-border);
       border-radius: 1rem;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       display: flex;
@@ -404,43 +417,46 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       opacity: 0.7;
     }
 
-    /* Loading Dots */
+    /* Typing Indicator */
     .loading {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 12px 16px;
+      gap: 6px;
+      padding: 14px 18px;
       background: var(--widget-surface);
       border: 1px solid var(--widget-border);
       border-radius: 1rem;
       border-bottom-left-radius: 4px;
       align-self: flex-start;
+      animation: messageIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .loading-shimmer {
+      display: flex;
+      gap: 4px;
+      align-items: center;
     }
 
     .loading-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       background: var(--widget-text-muted);
       border-radius: 50%;
-      animation: bounce 1.4s infinite ease-in-out;
+      animation: typingPulse 1.4s infinite ease-in-out;
     }
 
-    .loading-dot:nth-child(1) {
-      animation-delay: -0.32s;
-    }
+    .loading-dot:nth-child(1) { animation-delay: 0s; }
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
 
-    .loading-dot:nth-child(2) {
-      animation-delay: -0.16s;
-    }
-
-    @keyframes bounce {
-      0%, 80%, 100% {
-        transform: scale(0.8);
-        opacity: 0.5;
-      }
-      40% {
+    @keyframes typingPulse {
+      0%, 60%, 100% {
+        opacity: 0.3;
         transform: scale(1);
+      }
+      30% {
         opacity: 1;
+        transform: scale(1.2);
       }
     }
 
@@ -464,7 +480,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
 
     .input-wrapper:focus-within {
       border-color: var(--widget-accent);
-      box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.1);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--widget-accent) 12%, transparent);
     }
 
     .input-field {
@@ -516,6 +532,18 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       height: 18px;
     }
 
+    .send-btn .stop-icon {
+      display: none;
+    }
+
+    .send-btn.streaming .send-icon {
+      display: none;
+    }
+
+    .send-btn.streaming .stop-icon {
+      display: flex;
+    }
+
     /* Watermark */
     .watermark-row {
       display: flex;
@@ -553,32 +581,38 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       align-items: center;
       gap: 12px;
       padding: 12px 16px;
-      background: #FEF2F2;
-      border: 1px solid #FECACA;
+      background: color-mix(in srgb, #EF4444 8%, var(--widget-surface));
+      border: 1px solid color-mix(in srgb, #EF4444 20%, var(--widget-border));
       border-radius: 0.5rem;
-      color: #991B1B;
+      color: color-mix(in srgb, #EF4444 70%, var(--widget-text));
       font-size: 14px;
     }
 
     .error-btn {
       padding: 6px 12px;
-      background: #FEE2E2;
-      border: 1px solid #FECACA;
+      background: color-mix(in srgb, #EF4444 12%, var(--widget-surface));
+      border: 1px solid color-mix(in srgb, #EF4444 20%, var(--widget-border));
       border-radius: 6px;
-      color: #991B1B;
+      color: color-mix(in srgb, #EF4444 70%, var(--widget-text));
       font-size: 13px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
+      white-space: nowrap;
       transition: all 0.15s ease;
     }
 
     .error-btn:hover {
-      background: #FECACA;
+      background: color-mix(in srgb, #EF4444 18%, var(--widget-surface));
     }
 
     /* Scrollbar */
+    .messages {
+      scrollbar-width: thin;
+      scrollbar-color: var(--widget-border) transparent;
+    }
+
     .messages::-webkit-scrollbar {
       width: 6px;
     }
@@ -659,6 +693,8 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     .onboarding-content {
       flex: 1;
       overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--widget-border) transparent;
       padding: 24px 20px;
       font-size: 14px;
       line-height: 1.7;

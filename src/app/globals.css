@@ -154,6 +154,17 @@ body::after {
   animation: fade-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@keyframes typingPulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
 /* ═══════════════════════════════════════════════════
    Scroll reveal animations
    ═══════════════════════════════════════════════════ */
