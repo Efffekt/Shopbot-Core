@@ -321,9 +321,9 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
   };
 
   return (
-    <div className="bg-preik-bg border border-preik-border rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px] w-full max-w-[400px] transition-colors">
+    <div className="bg-preik-bg border border-preik-border rounded-[1.25rem] shadow-[0_8px_16px_rgba(0,0,0,0.08),0_25px_50px_-12px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col h-[500px] w-full max-w-[400px] transition-colors">
       {/* Header */}
-      <div className="px-5 py-4 bg-preik-surface border-b border-preik-border flex items-center justify-between transition-colors">
+      <div className="px-5 py-4 bg-gradient-to-br from-preik-surface to-preik-accent/[0.04] border-b border-preik-border flex items-center justify-between transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-preik-accent flex items-center justify-center">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -337,7 +337,7 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
           <div>
             <p className="font-brand font-semibold italic text-[17px] text-preik-text transition-colors">{brandName}</p>
             <p className="text-[13px] text-preik-text-muted flex items-center gap-1.5 transition-colors">
-              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-[statusPulse_2s_ease-in-out_infinite]" />
               Online
             </p>
           </div>
@@ -382,33 +382,48 @@ export const ChatWidget = forwardRef<ChatWidgetRef, ChatWidgetProps>(function Ch
               </div>
             )}
             <div
-              className={`flex flex-col max-w-[85%] animate-fade-in ${
-                message.role === "user" ? "self-end ml-auto" : "self-start"
+              className={`flex flex-col animate-fade-in ${
+                message.role === "user" ? "self-end ml-auto max-w-[85%]" : "self-start max-w-[90%]"
               }`}
             >
-            <div
-              className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed transition-colors ${
-                message.role === "user"
-                  ? "bg-preik-accent text-white rounded-br-sm"
-                  : "bg-preik-surface text-preik-text border border-preik-border rounded-bl-sm"
-              }`}
-            >
-              {message.role === "assistant"
-                ? renderMarkdown(message.content)
-                : <p className="whitespace-pre-wrap">{message.content}</p>
-              }
+              {message.role === "assistant" ? (
+                <div className="flex items-end gap-2">
+                  <div className="w-[26px] h-[26px] rounded-full bg-preik-accent/10 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-3.5 h-3.5 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <rect x="3" y="11" width="18" height="10" rx="2"/>
+                      <circle cx="12" cy="5" r="2"/>
+                      <path d="M12 7v4"/>
+                    </svg>
+                  </div>
+                  <div className="px-4 py-3 rounded-2xl rounded-bl-sm text-[15px] leading-relaxed bg-preik-surface text-preik-text border border-preik-border hover:shadow-sm transition-all">
+                    {renderMarkdown(message.content)}
+                  </div>
+                </div>
+              ) : (
+                <div className="px-4 py-3 rounded-2xl rounded-br-sm text-[15px] leading-relaxed bg-gradient-to-br from-preik-accent to-preik-accent-hover text-white hover:shadow-sm transition-all">
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                </div>
+              )}
             </div>
-          </div>
           </div>
           );
         })}
 
         {isLoading && (
           <div className="self-start animate-fade-in">
-            <div className="bg-preik-surface px-[18px] py-[14px] rounded-2xl rounded-bl-sm border border-preik-border flex items-center gap-1.5 transition-colors">
-              <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0s]" />
-              <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0.2s]" />
-              <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0.4s]" />
+            <div className="flex items-end gap-2">
+              <div className="w-[26px] h-[26px] rounded-full bg-preik-accent/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3.5 h-3.5 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <rect x="3" y="11" width="18" height="10" rx="2"/>
+                  <circle cx="12" cy="5" r="2"/>
+                  <path d="M12 7v4"/>
+                </svg>
+              </div>
+              <div className="bg-preik-surface px-[18px] py-[14px] rounded-2xl rounded-bl-sm border border-preik-border flex items-center gap-1.5 transition-colors">
+                <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0s]" />
+                <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0.2s]" />
+                <span className="w-1.5 h-1.5 bg-preik-text-muted rounded-full animate-[typingPulse_1.4s_ease-in-out_infinite_0.4s]" />
+              </div>
             </div>
           </div>
         )}

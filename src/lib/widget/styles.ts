@@ -153,8 +153,8 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       max-height: calc(100vh - 40px);
       background: var(--widget-bg);
       border: 1px solid var(--widget-border);
-      border-radius: 1rem;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border-radius: 1.25rem;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08), 0 25px 50px -12px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -210,7 +210,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       align-items: center;
       justify-content: space-between;
       padding: 16px 20px;
-      background: var(--widget-surface);
+      background: linear-gradient(135deg, var(--widget-surface) 0%, color-mix(in srgb, var(--widget-accent) 6%, var(--widget-surface)) 100%);
       border-bottom: 1px solid var(--widget-border);
     }
 
@@ -289,6 +289,12 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       height: 8px;
       background: #22C55E;
       border-radius: 50%;
+      animation: statusPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes statusPulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
     }
 
     .close-btn {
@@ -373,6 +379,30 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
 
     .message.assistant {
       align-self: flex-start;
+      max-width: 90%;
+    }
+
+    .message-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .msg-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--widget-accent) 12%, var(--widget-bg));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--widget-accent);
+      flex-shrink: 0;
+    }
+
+    .msg-avatar svg {
+      width: 14px;
+      height: 14px;
     }
 
     .bubble {
@@ -382,10 +412,15 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       line-height: 1.5;
       word-wrap: break-word;
       overflow-wrap: break-word;
+      transition: box-shadow 0.2s ease;
+    }
+
+    .bubble:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 
     .message.user .bubble {
-      background: var(--widget-accent);
+      background: linear-gradient(135deg, var(--widget-accent) 0%, var(--widget-accent-hover) 100%);
       color: var(--widget-accent-text);
       border-bottom-right-radius: 4px;
     }

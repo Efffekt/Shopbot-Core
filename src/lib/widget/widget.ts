@@ -549,20 +549,36 @@ class PreikChatWidget extends HTMLElement {
       }
       if (!isNaN(ts)) prevTimestamp = ts;
 
-      html += `
-        <div class="message ${msg.role}">
-          <div class="bubble">${parseMarkdown(msg.content)}</div>
-        </div>
-      `;
+      if (msg.role === "assistant") {
+        html += `
+          <div class="message assistant">
+            <div class="message-row">
+              <div class="msg-avatar">${ICONS.bot}</div>
+              <div class="bubble">${parseMarkdown(msg.content)}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="message user">
+            <div class="bubble">${parseMarkdown(msg.content)}</div>
+          </div>
+        `;
+      }
     }
 
     if (this.state.isLoading) {
       html += `
-        <div class="loading">
-          <div class="loading-shimmer">
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
+        <div class="message assistant">
+          <div class="message-row">
+            <div class="msg-avatar">${ICONS.bot}</div>
+            <div class="loading">
+              <div class="loading-shimmer">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+              </div>
+            </div>
           </div>
         </div>
       `;
