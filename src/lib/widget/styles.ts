@@ -134,7 +134,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     /* Chat Window */
     .chat-window {
       position: fixed;
-      bottom: 100px;
+      bottom: 20px;
       z-index: 2147483647;
       width: 400px;
       height: 550px;
