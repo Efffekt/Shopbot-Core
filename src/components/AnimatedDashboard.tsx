@@ -206,7 +206,7 @@ export function AnimatedDashboard() {
       if (cancelled) return;
       setS1Phase(1);
 
-      const target = "returvilkår"; let ci = 0;
+      const target = "hudkrem tørr hud"; let ci = 0;
       t(() => { if (cancelled) return;
         const ti = iv(() => {
           if (cancelled) { clearInterval(ti); return; }
@@ -216,7 +216,7 @@ export function AnimatedDashboard() {
               t(() => { if (cancelled) return; setVisibleConvos(2);
                 t(() => { if (cancelled) return; setVisibleConvos(3);
                   t(() => { if (cancelled) return; setExpandedConvo(true);
-                    const resp = "Returfristen er 30 dager fra mottak. Produktet må være uåpnet og i originalemballasje. Kontakt oss for returetikett.";
+                    const resp = "For tørr og sensitiv hud anbefaler vi CeraVe Moisturizing Cream. Den inneholder ceramider og hyaluronsyre som gjenoppbygger hudbarrieren.";
                     let ri = 0;
                     t(() => { if (cancelled) return;
                       const si = iv(() => {
@@ -449,8 +449,8 @@ export function AnimatedDashboard() {
                   Siste aktivitet
                 </p>
                 {[
-                  { icon: "chat", text: "Ny samtale", detail: "«Hva er returfristen?»", time: "2 min", color: "bg-blue-500/10 text-blue-600" },
-                  { icon: "file", text: "Innhold oppdatert", detail: "Returvilkår og reklamasjon", time: "1 time", color: "bg-green-500/10 text-green-600" },
+                  { icon: "chat", text: "Ny samtale", detail: "«Hvilken hudkrem er best for tørr hud?»", time: "2 min", color: "bg-blue-500/10 text-blue-600" },
+                  { icon: "file", text: "Innhold oppdatert", detail: "Produktguide – Hudpleie", time: "1 time", color: "bg-green-500/10 text-green-600" },
                   { icon: "code", text: "Widget installert", detail: "minbutikk.no", time: "3 timer", color: "bg-purple-500/10 text-purple-600" },
                 ].map((a, i) => (
                   <div key={i} className={`flex items-center gap-2.5 py-1.5 transition-all duration-500 ${
@@ -499,9 +499,9 @@ export function AnimatedDashboard() {
 
               <div className="flex-1 overflow-hidden space-y-1.5">
                 {[
-                  { q: "Hva er returfristen?", status: "Besvart", intent: "Support", time: "2 min", avatar: "KL", avatarBg: "bg-blue-500/15 text-blue-600" },
-                  { q: "Anbefaling for teakdekk?", status: "Besvart", intent: "Produkt", time: "15 min", avatar: "TS", avatarBg: "bg-orange-500/15 text-orange-600" },
-                  { q: "Hvor er pakken min?", status: "Ikke besvart", intent: "Support", time: "1 time", avatar: "AM", avatarBg: "bg-purple-500/15 text-purple-600" },
+                  { q: "Hvilken hudkrem er best for tørr hud?", status: "Besvart", intent: "Produkt", time: "2 min", avatar: "KL", avatarBg: "bg-blue-500/15 text-blue-600" },
+                  { q: "Har dere noe som fjerner flekker fra sofa?", status: "Besvart", intent: "Produkt", time: "15 min", avatar: "TS", avatarBg: "bg-orange-500/15 text-orange-600" },
+                  { q: "Hva er forskjellen på modell X og Y?", status: "Besvart", intent: "Produkt", time: "1 time", avatar: "AM", avatarBg: "bg-purple-500/15 text-purple-600" },
                 ].map((c, i) => (
                   <div key={i} className={`transition-all duration-500 ${visibleConvos >= i + 1 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
                     <div className={`bg-preik-bg border rounded-xl p-2.5 ${i === 0 && expandedConvo ? "border-preik-accent/30" : "border-preik-border"}`}>
@@ -552,7 +552,7 @@ export function AnimatedDashboard() {
                                 <I t="thumb" c="w-2.5 h-2.5" />
                                 <span className="text-[9px] font-medium">Nyttig</span>
                               </div>
-                              <span className="text-[9px] text-preik-text-muted/40">Kilde: returvilkar.md</span>
+                              <span className="text-[9px] text-preik-text-muted/40">Kilde: hudpleie-guide.md</span>
                             </div>
                           )}
                         </div>
@@ -623,9 +623,9 @@ export function AnimatedDashboard() {
                   <div className="bg-preik-bg border border-preik-border rounded-xl p-2.5">
                     <p className="text-[10px] text-preik-text-muted/50 mb-1.5">Samtaletyper</p>
                     {[
-                      { label: "Produkt", pct: 58, color: "bg-orange-400" },
-                      { label: "Support", pct: 31, color: "bg-blue-400" },
-                      { label: "Henvist", pct: 11, color: "bg-green-400" },
+                      { label: "Produkt", pct: 72, color: "bg-orange-400" },
+                      { label: "Veiledning", pct: 18, color: "bg-blue-400" },
+                      { label: "Henvist", pct: 10, color: "bg-green-400" },
                     ].map((item, i) => (
                       <div key={i} className={`flex items-center gap-2 py-0.5 transition-all duration-500 ${
                         visibleIntents >= i + 1 ? "opacity-100" : "opacity-0"
@@ -641,9 +641,9 @@ export function AnimatedDashboard() {
                   <div className="bg-preik-bg border border-preik-border rounded-xl p-2.5">
                     <p className="text-[10px] text-preik-text-muted/50 mb-1.5">Topp sokeord</p>
                     {[
-                      { term: "retur", count: 42 },
-                      { term: "frakt", count: 38 },
-                      { term: "teakolje", count: 27 },
+                      { term: "hudkrem", count: 42 },
+                      { term: "flekkfjerner", count: 38 },
+                      { term: "sammenligning", count: 27 },
                     ].map((item, i) => (
                       <div key={i} className={`flex items-center gap-1.5 py-0.5 transition-all duration-500 ${
                         visibleTerms >= i + 1 ? "opacity-100" : "opacity-0"
@@ -690,10 +690,10 @@ export function AnimatedDashboard() {
 
               <div className="flex-1 overflow-hidden space-y-1.5">
                 {[
-                  { title: "Returvilkår og reklamasjon", chunks: 8, type: "Manuell", date: "28. feb", preview: "Returfristen er 30 dager fra mottak. Alle varer må returneres i originalemballasje og uåpnet stand." },
-                  { title: "Bunnsmøring og vedlikehold", chunks: 12, type: "Manuell", date: "25. feb", preview: "For best resultat, bruk Jotun Nonstop Supreme for aluminiumsbåter. Påfør to strøk med 24 timers mellomtørk." },
-                  { title: "Produktkatalog – Teakpleie", chunks: 24, type: "Skrapet", date: "20. feb", preview: "Semco Teak Cleaner brukes for å fjerne grå misfarging på teaktre. Påfør med svamp og la virke i 15 minutter." },
-                  { title: "Frakt og leveringstider", chunks: 4, type: "Manuell", date: "18. feb", preview: "Fri frakt over 499 kr. Normalt 2-4 virkedager med Posten Servicepakke. Henting på postkontor." },
+                  { title: "Produktguide – Hudpleie", chunks: 8, type: "Manuell", date: "28. feb", preview: "CeraVe Moisturizing Cream inneholder ceramider og hyaluronsyre. Passer for tørr og sensitiv hud." },
+                  { title: "Rengjøring og vedlikehold", chunks: 12, type: "Manuell", date: "25. feb", preview: "Dr. Beckmann flekkfjerner fungerer på de fleste tekstiler. Test alltid på et usynlig område først." },
+                  { title: "Produktkatalog 2025", chunks: 24, type: "Skrapet", date: "20. feb", preview: "Komplett produktkatalog med spesifikasjoner, priser og tilgjengelighet for alle varegrupper." },
+                  { title: "Sammenligning – Populære modeller", chunks: 4, type: "Manuell", date: "18. feb", preview: "Modell X har lengre batteritid, mens modell Y har bedre ytelse. Begge leveres med 2 års garanti." },
                 ].map((src, i) => (
                   <div key={i} className={`transition-all duration-500 ${visibleSources >= i + 1 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
                     <div className={`bg-preik-bg border rounded-xl p-2.5 ${i === 1 && expandedSource ? "border-preik-accent/30" : "border-preik-border"}`}>
