@@ -32,14 +32,14 @@ export default async function DashboardLayout({
                 Dashboard
               </span>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <Link
                 href="/"
-                className="text-sm text-preik-text-muted hover:text-preik-text transition-colors"
+                className="hidden sm:inline text-sm text-preik-text-muted hover:text-preik-text transition-colors"
               >
                 Hjem
               </Link>
-              <span className="text-sm text-preik-text-muted">{user.email}</span>
+              <span className="hidden sm:inline text-sm text-preik-text-muted">{user.email}</span>
               <form action="/api/auth/signout" method="POST">
                 <button
                   type="submit"

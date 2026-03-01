@@ -847,7 +847,7 @@ export default function IntegrationPage() {
           {/* Quick guides */}
           <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
             <h2 className="text-lg font-semibold text-preik-text mb-4">Plattform-guider</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { name: "WordPress", desc: "Insert Headers and Footers plugin" },
                 { name: "Shopify", desc: "theme.liquid → før </body>" },

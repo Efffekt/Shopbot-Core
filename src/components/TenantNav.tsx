@@ -47,7 +47,7 @@ export default function TenantNav({ tenantId, tenantName, isAdmin }: TenantNavPr
       </nav>
 
       {/* Tab navigation */}
-      <div className="flex flex-wrap gap-1 border-b border-preik-border">
+      <div className="flex flex-nowrap gap-1 border-b border-preik-border overflow-x-auto scrollbar-hide">
         {visibleTabs.map((tab) => {
           const fullHref = `${basePath}${tab.href}`;
           const isActive =
@@ -59,7 +59,7 @@ export default function TenantNav({ tenantId, tenantName, isAdmin }: TenantNavPr
             <Link
               key={tab.href}
               href={fullHref}
-              className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors relative ${
+              className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors relative whitespace-nowrap ${
                 isActive
                   ? "text-preik-accent"
                   : "text-preik-text-muted hover:text-preik-text hover:bg-preik-surface"

@@ -360,7 +360,7 @@ export function AnimatedDashboard() {
       <div className="flex h-[480px]">
 
         {/* ── Sidebar ── */}
-        <div className="w-[170px] flex-shrink-0 bg-preik-bg border-r border-preik-border p-4 flex flex-col">
+        <div className="hidden sm:flex w-[170px] flex-shrink-0 bg-preik-bg border-r border-preik-border p-4 flex-col">
           <div className="mb-5">
             <p className="font-brand font-semibold italic text-[17px] text-preik-text">preik</p>
             <p className="text-[10px] text-preik-text-muted/50 mt-0.5">Dashboard</p>
@@ -603,15 +603,15 @@ export function AnimatedDashboard() {
               {/* Bar chart + intents side by side */}
               <div className="grid grid-cols-5 gap-2 flex-1">
                 {/* Chart (3 cols) */}
-                <div className={`col-span-3 bg-preik-bg border border-preik-border rounded-xl p-2.5 transition-opacity duration-500 ${s2Phase >= 3 ? "opacity-100" : "opacity-0"}`}>
+                <div className={`col-span-3 bg-preik-bg border border-preik-border rounded-xl p-2.5 flex flex-col transition-opacity duration-500 ${s2Phase >= 3 ? "opacity-100" : "opacity-0"}`}>
                   <p className="text-[10px] text-preik-text-muted/50 mb-2">Samtalevolum</p>
-                  <div className="flex items-end gap-1.5 h-[65px]">
+                  <div className="flex items-end gap-1.5 flex-1 min-h-0">
                     {dayNames.map((d, i) => (
-                      <div key={d} className="flex-1 flex flex-col items-center gap-0.5">
-                        <div className="w-full flex items-end justify-center" style={{ height: "50px" }}>
+                      <div key={d} className="flex-1 flex flex-col items-center gap-0.5 h-full">
+                        <div className="w-full flex items-end justify-center flex-1">
                           <div className="w-full max-w-[24px] bg-preik-accent/80 rounded-t-sm transition-all duration-700 ease-out" style={{ height: `${barHeights[i]}%` }} />
                         </div>
-                        <span className="text-[7px] text-preik-text-muted/40">{d}</span>
+                        <span className="text-[7px] text-preik-text-muted/40 flex-shrink-0">{d}</span>
                       </div>
                     ))}
                   </div>

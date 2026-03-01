@@ -84,7 +84,7 @@ export default async function SettingsPage({ params }: PageProps) {
             {credits ? (
               <div className="space-y-5">
                 {/* Stats row */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="bg-preik-bg rounded-xl p-3 border border-preik-border text-center">
                     <p className="text-2xl font-brand font-light text-preik-text">{credits.creditsUsed.toLocaleString("nb-NO")}</p>
                     <p className="text-xs text-preik-text-muted mt-0.5">Brukt</p>

@@ -1,9 +1,27 @@
 "use client";
 
+import { useRef, useState, useEffect } from "react";
 import { AnimatedDashboard } from "./AnimatedDashboard";
 import { ScrollReveal } from "./ScrollReveal";
 
+const BASE_W = 840;
+const BASE_H = 480;
+
 export function DashboardShowcaseSection() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setScale(Math.min(entry.contentRect.width / BASE_W, 1));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section className="py-32 px-6 bg-preik-accent transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
@@ -21,10 +39,18 @@ export function DashboardShowcaseSection() {
           </div>
         </ScrollReveal>
 
-        {/* Scale the dashboard down on smaller screens to keep it readable */}
+        {/* Scale the dashboard to always fit the container width */}
         <ScrollReveal animation="up" delay={200}>
-          <div className="origin-top scale-[0.42] sm:scale-[0.7] md:scale-[0.85] lg:scale-100 -mb-[278px] sm:-mb-[144px] md:-mb-[72px] lg:mb-0">
-            <AnimatedDashboard />
+          <div ref={containerRef} className="overflow-hidden rounded-2xl">
+            <div
+              className="min-w-[840px] origin-top-left"
+              style={{
+                transform: `scale(${scale})`,
+                marginBottom: `-${BASE_H * (1 - scale)}px`,
+              }}
+            >
+              <AnimatedDashboard />
+            </div>
           </div>
         </ScrollReveal>
       </div>
