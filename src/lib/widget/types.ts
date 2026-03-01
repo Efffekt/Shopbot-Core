@@ -18,6 +18,7 @@ export interface WidgetConfig {
   contained: boolean; // Render inside container instead of fixed to viewport
   onboarding: string; // Markdown text for onboarding screen (empty = disabled)
   onboardingCta: string; // CTA button text (default: "Start chat")
+  privacyUrl: string; // URL to privacy policy (empty = default preik.ai/personvern)
 }
 
 export interface Message {

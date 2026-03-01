@@ -2,7 +2,9 @@ import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { DemoSection } from "@/components/DemoSection";
 import { ProcessSection } from "@/components/ProcessSection";
+import { DashboardShowcaseSection } from "@/components/DashboardShowcaseSection";
 import { PricingSection } from "@/components/PricingSection";
+import { QuoteBanner } from "@/components/QuoteBanner";
 import { FAQSection } from "@/components/FAQSection";
 import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
@@ -121,7 +123,9 @@ export default async function Home() {
       <main id="main-content">
         <HeroSection />
         <ProcessSection />
+        <DashboardShowcaseSection />
         <DemoSection />
+        <QuoteBanner />
         <PricingSection />
         <FAQSection />
         <ContactSection />

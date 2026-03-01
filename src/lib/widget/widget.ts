@@ -22,6 +22,7 @@ const DEFAULT_CONFIG: WidgetConfig = {
   contained: false,
   onboarding: "",
   onboardingCta: "Start chat",
+  privacyUrl: "",
 };
 
 // Generate unique ID
@@ -106,6 +107,7 @@ function parseScriptOverrides(): Partial<WidgetConfig> & { storeId: string; star
   if (d.theme !== undefined) overrides.theme = d.theme as "auto" | "light" | "dark";
   if (d.onboarding !== undefined) overrides.onboarding = d.onboarding.replace(/\\n/g, "\n");
   if (d.onboardingCta !== undefined) overrides.onboardingCta = d.onboardingCta;
+  if (d.privacyUrl !== undefined) overrides.privacyUrl = d.privacyUrl;
 
   return { storeId, startOpen, contained, ...overrides };
 }
@@ -407,9 +409,10 @@ class PreikChatWidget extends HTMLElement {
               ${ICONS.send}
             </button>
           </div>
-          <a href="https://preik.ai" target="_blank" rel="noopener noreferrer" class="watermark">
-            Levert av <span class="watermark-brand">preik</span>
-          </a>
+          <div class="watermark-row">
+            ${this.config.privacyUrl ? `<a href="${this.escapeHtml(this.config.privacyUrl)}" target="_blank" rel="noopener noreferrer" class="watermark">Personvern</a><span class="watermark-sep">·</span>` : ""}
+            <a href="https://preik.ai" target="_blank" rel="noopener noreferrer" class="watermark">Levert av <span class="watermark-brand">preik</span></a>
+          </div>
         </div>
         `}
       </div>

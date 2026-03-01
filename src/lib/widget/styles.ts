@@ -495,11 +495,21 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     }
 
     /* Watermark */
-    .watermark {
-      display: block;
-      text-align: center;
+    .watermark-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       margin-top: 10px;
       font-size: 11px;
+    }
+
+    .watermark-sep {
+      color: var(--widget-text-muted);
+      opacity: 0.4;
+    }
+
+    .watermark {
       color: var(--widget-text-muted);
       text-decoration: none;
       transition: opacity 0.15s ease;

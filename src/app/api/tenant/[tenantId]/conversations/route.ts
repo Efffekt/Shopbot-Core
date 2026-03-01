@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { safeParseInt } from "@/lib/params";
+import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/tenant/conversations");
@@ -82,6 +83,75 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     log.error("Error in tenant conversations API:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// DELETE - Delete conversations by session ID or date range (GDPR data deletion)
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const { tenantId } = await params;
+  const user = await getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: access } = await supabase
+    .from("tenant_user_access")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("tenant_id", tenantId)
+    .single();
+
+  if (!access || access.role !== "admin") {
+    return NextResponse.json({ error: "Admin role required" }, { status: 403 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get("sessionId")?.trim().slice(0, 100);
+    const before = searchParams.get("before"); // ISO date string
+
+    let query = supabaseAdmin
+      .from("conversations")
+      .delete({ count: "exact" })
+      .eq("store_id", tenantId);
+
+    if (sessionId) {
+      query = query.eq("session_id", sessionId);
+    } else if (before) {
+      const beforeDate = new Date(before);
+      if (isNaN(beforeDate.getTime())) {
+        return NextResponse.json({ error: "Invalid date format for 'before' parameter" }, { status: 400 });
+      }
+      query = query.lt("created_at", beforeDate.toISOString());
+    } else {
+      return NextResponse.json(
+        { error: "Provide 'sessionId' or 'before' query parameter" },
+        { status: 400 }
+      );
+    }
+
+    const { count, error } = await query;
+
+    if (error) {
+      log.error("Error deleting conversations:", error);
+      return NextResponse.json({ error: "Failed to delete conversations" }, { status: 500 });
+    }
+
+    await logAudit({
+      actorEmail: user.email || user.id,
+      action: "delete",
+      entityType: "conversations",
+      entityId: tenantId,
+      details: { sessionId, before, deletedCount: count },
+    });
+
+    return NextResponse.json({ deleted: count || 0 });
+  } catch (error) {
+    log.error("Error in tenant conversations DELETE:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
