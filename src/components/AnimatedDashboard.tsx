@@ -569,8 +569,16 @@ export function AnimatedDashboard() {
             <div className="h-full flex flex-col">
               <div className={`mb-3 flex items-center justify-between transition-opacity duration-500 ${s2Phase >= 1 ? "opacity-100" : "opacity-0"}`}>
                 <h3 className="text-[17px] font-semibold text-preik-text">Analyse</h3>
-                <div className="bg-preik-bg border border-preik-border rounded-lg px-2.5 py-1 text-[10px] text-preik-text-muted flex items-center gap-1">
-                  <I t="clock" c="w-2.5 h-2.5" /> Siste 30 dager
+                <div className="flex gap-1">
+                  {[{ label: "7d", active: false }, { label: "30d", active: true }, { label: "90d", active: false }].map((p) => (
+                    <div key={p.label} className={`rounded-lg px-2 py-1 text-[10px] font-medium ${
+                      p.active
+                        ? "bg-preik-accent text-white"
+                        : "bg-preik-bg text-preik-text-muted border border-preik-border"
+                    }`}>
+                      {p.label}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -605,15 +613,21 @@ export function AnimatedDashboard() {
                 {/* Chart (3 cols) */}
                 <div className={`col-span-3 bg-preik-bg border border-preik-border rounded-xl p-2.5 flex flex-col transition-opacity duration-500 ${s2Phase >= 3 ? "opacity-100" : "opacity-0"}`}>
                   <p className="text-[10px] text-preik-text-muted/50 mb-2">Samtalevolum</p>
-                  <div className="flex items-end gap-1.5 flex-1 min-h-0">
-                    {dayNames.map((d, i) => (
-                      <div key={d} className="flex-1 flex flex-col items-center gap-0.5 h-full">
-                        <div className="w-full flex items-end justify-center flex-1">
-                          <div className="w-full max-w-[24px] bg-preik-accent/80 rounded-t-sm transition-all duration-700 ease-out" style={{ height: `${barHeights[i]}%` }} />
+                  <div className="flex flex-1 min-h-0">
+                    <div className="flex flex-col justify-between pr-1 py-0">
+                      <span className="text-[7px] text-preik-text-muted/40 leading-none">152</span>
+                      <span className="text-[7px] text-preik-text-muted/40 leading-none">0</span>
+                    </div>
+                    <div className="flex items-end gap-1.5 flex-1">
+                      {dayNames.map((d, i) => (
+                        <div key={d} className="flex-1 flex flex-col items-center gap-0.5 h-full">
+                          <div className="w-full flex items-end justify-center flex-1">
+                            <div className="w-full max-w-[24px] bg-preik-accent/80 rounded-t-sm transition-all duration-700 ease-out" style={{ height: `${barHeights[i]}%` }} />
+                          </div>
+                          <span className="text-[7px] text-preik-text-muted/40 flex-shrink-0">{d}</span>
                         </div>
-                        <span className="text-[7px] text-preik-text-muted/40 flex-shrink-0">{d}</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -627,12 +641,15 @@ export function AnimatedDashboard() {
                       { label: "Veiledning", pct: 18, color: "bg-blue-400" },
                       { label: "Henvist", pct: 10, color: "bg-green-400" },
                     ].map((item, i) => (
-                      <div key={i} className={`flex items-center gap-2 py-0.5 transition-all duration-500 ${
+                      <div key={i} className={`relative transition-all duration-500 ${
                         visibleIntents >= i + 1 ? "opacity-100" : "opacity-0"
                       }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${item.color}`} />
-                        <span className="text-[10px] text-preik-text-muted flex-1">{item.label}</span>
-                        <span className="text-[9px] text-preik-text-muted/50 tabular-nums">{item.pct}%</span>
+                        <div className={`absolute inset-0 ${item.color} opacity-[0.07] rounded`} style={{ width: `${item.pct}%` }} />
+                        <div className="relative flex items-center gap-2 py-0.5 px-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${item.color}`} />
+                          <span className="text-[10px] text-preik-text-muted flex-1">{item.label}</span>
+                          <span className="text-[9px] text-preik-text-muted/50 tabular-nums">{item.pct}%</span>
+                        </div>
                       </div>
                     ))}
                   </div>

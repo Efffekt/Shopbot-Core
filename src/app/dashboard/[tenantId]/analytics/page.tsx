@@ -24,11 +24,11 @@ export default async function AnalyticsPage({ params }: PageProps) {
 
   return (
     <div>
-      <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
+      <div className="mb-8">
         <h1 className="text-2xl font-brand font-light text-preik-text mb-2">Analyse</h1>
-        <p className="text-preik-text-muted mb-6">Se hvordan chatboten din presterer</p>
-        <TenantAnalyticsDashboard tenantId={tenantId} />
+        <p className="text-preik-text-muted">Se hvordan chatboten din presterer</p>
       </div>
+      <TenantAnalyticsDashboard tenantId={tenantId} />
     </div>
   );
 }
