@@ -5,18 +5,28 @@ import { createLogger } from "@/lib/logger";
 
 const log = createLogger("ChatWidget");
 
-// Inline formatting: bold, italic, code, links → returns HTML string
-function renderInline(text: string): string {
+// Escape HTML for safe insertion
+function escapeHtmlReact(text: string): string {
   return text
     .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Inline formatting: bold, italic, code, links → returns HTML string
+function renderInline(text: string): string {
+  return escapeHtmlReact(text)
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`(.+?)`/g, "<code class='inline-code'>$1</code>")
     .replace(/\[(.+?)\]\((.+?)\)/g, (_m, label, url) => {
-      if (!/^(https?:|mailto:|tel:|\/|\.\/|#)/i.test(url)) return label;
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+      // Decode entities back for URL validation, then re-escape for attribute
+      const rawUrl = url.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+      if (!/^(https?:|mailto:|tel:|\/|\.\/|#)/i.test(rawUrl)) return label;
+      const safeUrl = escapeHtmlReact(rawUrl);
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`;
     });
 }
 

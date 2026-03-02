@@ -559,9 +559,11 @@ class PreikChatWidget extends HTMLElement {
           </div>
         `;
       } else {
+        // User messages: escape only, no markdown parsing
+        const safeContent = escapeHtml(msg.content).replace(/\n/g, "<br>");
         html += `
           <div class="message user">
-            <div class="bubble">${parseMarkdown(msg.content)}</div>
+            <div class="bubble"><p>${safeContent}</p></div>
           </div>
         `;
       }
