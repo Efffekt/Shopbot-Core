@@ -149,7 +149,7 @@
 #### Rate Limiting Improvements
 - [x] Move from in-memory to persistent rate limiting (Upstash Redis recommended for Vercel)
 - [ ] Rate limit per tenant (not just per IP) to prevent abuse across sessions
-- [ ] Add rate limit headers to responses (X-RateLimit-Remaining, X-RateLimit-Reset)
+- [x] Add rate limit headers to responses (X-RateLimit-Remaining, X-RateLimit-Reset) — already on chat API
 
 #### Database
 - [ ] Add documents table schema to migrations (currently only created via API/Supabase UI)
@@ -222,7 +222,7 @@
 - [ ] Add proper error type narrowing in catch blocks (replace `error as Error` casts with `instanceof` checks)
 
 #### Performance Optimizations
-- [ ] Add in-memory TTL cache for `getTenantSystemPrompt()` — currently hits DB on every chat message (`tenants.ts:428-457`)
+- [x] Add in-memory TTL cache for `getTenantSystemPrompt()` — 5-min TTL with invalidation on prompt updates
 - [ ] Use `GROUP BY metadata->>source` in SQL instead of loading all documents and grouping in JS (`tenant/[tenantId]/content/route.ts:106-120`)
 - [ ] Add embedding batch limit to content edit route to match ingest route pattern (100 at a time, `tenant/[tenantId]/content/route.ts:224-231`)
 - [ ] Make vector search `match_count` configurable per tenant instead of hardcoded 12 (`chat/route.ts:453`)
@@ -444,9 +444,9 @@
 | ~~CRON_SECRET undefined = silent bypass~~ | ~~Medium~~ | ~~`cron/reset-credits/route.ts:11`~~ | Already fixed: returns false if env var missing, uses timingSafeEqual |
 | Auth duplication across 15+ admin routes | Medium | `src/app/api/admin/*/route.ts` | Needs shared `withAdminAuth()` wrapper |
 | Inconsistent API response formats | Medium | All 32 API routes | Mix of `{error}`, `{success}`, `{data}` shapes |
-| 84% of API routes have zero tests | High | `src/app/api/` | Only 6 of 37 routes tested — chat API (core product) untested |
+| Many API routes have zero tests | Medium | `src/app/api/` | Chat API now has 49 tests; admin/tenant routes still untested |
 | No pgvector ivfflat index | High | Supabase documents table | Vector search does O(n) full scan instead of O(log n) |
-| Prompt fetched from DB on every chat message | Medium | `tenants.ts:428-457` | No caching — unnecessary DB load |
+| ~~Prompt fetched from DB on every chat message~~ | ~~Medium~~ | ~~`tenants.ts:428-457`~~ | Fixed: 5-min TTL cache with invalidation (Mar 2026) |
 | Widget session never expires | Low | `widget.ts` localStorage | `preik_session_id` lives forever with no server validation |
 
 ---
