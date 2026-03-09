@@ -182,11 +182,11 @@
 - [ ] Add CSRF token validation to all state-changing POST/PUT/DELETE endpoints
 - [ ] Migrate CSP from `unsafe-inline` to nonce-based policy (`middleware.ts:30-42`)
 - [x] Use timing-safe comparison for `CRON_SECRET` + fail if env var is undefined (`cron/reset-credits/route.ts:11`) — already implemented
-- [ ] Fix SSRF mitigation: handle DNS rebinding, IPv6 loopback, `127.1` shortcuts (`url-safety.ts:37-46`)
-- [ ] Add Zod validation for blog metadata fields (`meta_title`, `meta_description`, `author_name`) in `admin/blog/route.ts:58-95`
-- [ ] Add max length constraint to blog slug validation (`admin/blog/route.ts:74-79`)
+- [x] Fix SSRF mitigation: block IPv6-mapped IPv4, hex/octal/decimal IP tricks, `0.0.0.0` (`url-safety.ts`)
+- [x] Add Zod validation for blog metadata fields (`meta_title`, `meta_description`, `author_name`) in both blog routes
+- [x] Add max length constraint to blog slug (200), title (500), meta fields in Zod schemas
 - [ ] Sanitize EXIF/metadata on uploaded images (`admin/blog/upload/route.ts`)
-- [ ] Add widget session expiry (localStorage `preik_session_id` currently lives forever)
+- [x] Add widget session expiry (24h TTL on `preik_session_id` in localStorage)
 - [ ] Add server-side session validation with TTL for widget sessions
 - [ ] Add `FOR UPDATE` row lock or `SERIALIZABLE` isolation to `increment_credits` to prevent race condition under extreme load
 
@@ -447,7 +447,7 @@
 | Many API routes have zero tests | Medium | `src/app/api/` | Chat API now has 49 tests; admin/tenant routes still untested |
 | No pgvector ivfflat index | High | Supabase documents table | Vector search does O(n) full scan instead of O(log n) |
 | ~~Prompt fetched from DB on every chat message~~ | ~~Medium~~ | ~~`tenants.ts:428-457`~~ | Fixed: 5-min TTL cache with invalidation (Mar 2026) |
-| Widget session never expires | Low | `widget.ts` localStorage | `preik_session_id` lives forever with no server validation |
+| ~~Widget session never expires~~ | ~~Low~~ | ~~`widget.ts` localStorage~~ | Fixed: 24h TTL on session ID (Mar 2026) |
 
 ---
 
