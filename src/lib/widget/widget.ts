@@ -30,15 +30,24 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
-// Get or create session ID
+// Get or create session ID (expires after 24 hours)
 function getSessionId(): string {
   const key = "preik_session_id";
-  let sessionId = localStorage.getItem(key);
-  if (!sessionId) {
-    sessionId = generateId();
-    localStorage.setItem(key, sessionId);
+  const tsKey = "preik_session_ts";
+  const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+  const sessionId = localStorage.getItem(key);
+  const sessionTs = localStorage.getItem(tsKey);
+
+  if (sessionId && sessionTs && Date.now() - Number(sessionTs) < SESSION_TTL_MS) {
+    return sessionId;
   }
-  return sessionId;
+
+  // Expired or missing — create a new session
+  const newId = generateId();
+  localStorage.setItem(key, newId);
+  localStorage.setItem(tsKey, String(Date.now()));
+  return newId;
 }
 
 // Detect WebView/in-app browsers

@@ -54,6 +54,32 @@ describe("isPrivateHost", () => {
     expect(isPrivateHost("example.com")).toBe(false);
     expect(isPrivateHost("google.com")).toBe(false);
   });
+
+  it("blocks 0.0.0.0", () => {
+    expect(isPrivateHost("0.0.0.0")).toBe(true);
+  });
+
+  it("blocks IPv6-mapped IPv4 loopback", () => {
+    expect(isPrivateHost("::ffff:127.0.0.1")).toBe(true);
+    expect(isPrivateHost("::ffff:10.0.0.1")).toBe(true);
+    expect(isPrivateHost("::ffff:192.168.1.1")).toBe(true);
+  });
+
+  it("blocks IPv6 unspecified address", () => {
+    expect(isPrivateHost("::")).toBe(true);
+  });
+
+  it("blocks hex IP notation (0x7f000001 = 127.0.0.1)", () => {
+    expect(isPrivateHost("0x7f000001")).toBe(true);
+  });
+
+  it("blocks decimal IP notation (2130706433 = 127.0.0.1)", () => {
+    expect(isPrivateHost("2130706433")).toBe(true);
+  });
+
+  it("blocks octal IP notation", () => {
+    expect(isPrivateHost("0177.0.0.1")).toBe(true);
+  });
 });
 
 describe("isSafeUrl", () => {

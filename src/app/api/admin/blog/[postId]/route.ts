@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAdmin } from "@/lib/admin-auth";
 import { logAudit } from "@/lib/audit";
@@ -6,6 +7,18 @@ import { createLogger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-content-type";
 
 const MAX_CONTENT_LENGTH = 500_000; // 500KB max blog content
+
+const blogPostUpdateSchema = z.object({
+  slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with hyphens only").optional(),
+  title: z.string().min(1).max(500).optional(),
+  excerpt: z.string().max(1000).nullable().optional(),
+  content: z.string().min(1).max(MAX_CONTENT_LENGTH).optional(),
+  author_name: z.string().min(1).max(200).optional(),
+  published_at: z.string().datetime().nullable().optional(),
+  meta_title: z.string().max(200).nullable().optional(),
+  meta_description: z.string().max(500).nullable().optional(),
+  cover_image_url: z.string().url().max(2000).nullable().optional(),
+});
 
 const log = createLogger("api/admin/blog/[postId]");
 
@@ -56,21 +69,16 @@ export async function PATCH(
     if (contentTypeError) return contentTypeError;
 
     const body = await request.json();
-    const { slug, title, excerpt, content, author_name, published_at, meta_title, meta_description, cover_image_url } = body;
+    const parsed = blogPostUpdateSchema.safeParse(body);
 
-    if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Slug must be lowercase alphanumeric with hyphens only" },
+        { error: "Invalid input", details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
 
-    if (typeof content === "string" && content.length > MAX_CONTENT_LENGTH) {
-      return NextResponse.json(
-        { error: `Content too long (max ${MAX_CONTENT_LENGTH} characters)` },
-        { status: 400 }
-      );
-    }
+    const { slug, title, excerpt, content, author_name, published_at, meta_title, meta_description, cover_image_url } = parsed.data;
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (slug !== undefined) updates.slug = slug;
