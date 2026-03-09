@@ -140,9 +140,9 @@
 - [~] Test domain validation logic (done in tenants.test.ts)
 
 #### CI/CD Pipeline
-- [ ] GitHub Actions workflow: lint on PR
-- [ ] GitHub Actions workflow: run tests on PR
-- [ ] GitHub Actions workflow: type-check on PR
+- [x] GitHub Actions workflow: lint on PR
+- [x] GitHub Actions workflow: run tests on PR
+- [x] GitHub Actions workflow: type-check on PR
 - [ ] Vercel preview deployments on PR (automatic with Vercel GitHub integration)
 - [ ] Vercel production deployment on merge to main
 
@@ -178,10 +178,10 @@
 ### P2 – Security & Reliability
 
 #### Security Fixes (from Feb 2026 audit)
-- [ ] Remove test domains from production whitelist (`shopbot-test.vercel.app`, `shopbot-core.vercel.app` in `tenants.ts:252-253`) or gate behind `NODE_ENV`
+- [x] Remove test domains from production whitelist (`shopbot-test.vercel.app`, `shopbot-core.vercel.app` in `tenants.ts:252-253`) — gated behind `NODE_ENV=development`
 - [ ] Add CSRF token validation to all state-changing POST/PUT/DELETE endpoints
 - [ ] Migrate CSP from `unsafe-inline` to nonce-based policy (`middleware.ts:30-42`)
-- [ ] Use timing-safe comparison for `CRON_SECRET` + fail if env var is undefined (`cron/reset-credits/route.ts:11`)
+- [x] Use timing-safe comparison for `CRON_SECRET` + fail if env var is undefined (`cron/reset-credits/route.ts:11`) — already implemented
 - [ ] Fix SSRF mitigation: handle DNS rebinding, IPv6 loopback, `127.1` shortcuts (`url-safety.ts:37-46`)
 - [ ] Add Zod validation for blog metadata fields (`meta_title`, `meta_description`, `author_name`) in `admin/blog/route.ts:58-95`
 - [ ] Add max length constraint to blog slug validation (`admin/blog/route.ts:74-79`)
@@ -392,9 +392,9 @@
 - [ ] Add alt text for bot avatar icon
 
 #### SEO & Marketing
-- [ ] Add `AggregateOffer` structured data for pricing section (Starter/Vekst/Bedrift tiers)
-- [ ] Add `BreadcrumbList` structured data for navigation
-- [ ] Add `brand` property to existing `SoftwareApplication` JSON-LD schema
+- [x] Add `AggregateOffer` structured data for pricing section (Starter/Vekst/Bedrift tiers)
+- [x] Add `BreadcrumbList` structured data for navigation
+- [x] Add `brand` property to existing `SoftwareApplication` JSON-LD schema
 - [ ] Add Open Graph and Twitter Card meta tags to blog posts
 - [ ] Add canonical URLs to all blog posts
 - [ ] Add BlogPosting structured data (JSON-LD) to blog posts
@@ -438,10 +438,10 @@
 | No database backup configuration | High | Supabase | Data loss risk |
 | ~~Password reset flow likely non-functional~~ | ~~High~~ | ~~Auth pages~~ | Fixed: Supabase SMTP configured via Resend |
 | `nul` file in git working directory | Low | Project root | Stray file, should be deleted/gitignored |
-| Test domains in production whitelist | High | `tenants.ts:252-253` | `shopbot-test.vercel.app` + `shopbot-core.vercel.app` should be removed or gated |
+| ~~Test domains in production whitelist~~ | ~~High~~ | ~~`tenants.ts:252-253`~~ | Gated behind `NODE_ENV=development` (Mar 2026) |
 | No CSRF protection on state-changing endpoints | High | All POST/PUT/DELETE routes | Relies solely on SameSite cookies |
 | CSP uses `unsafe-inline` for scripts | Medium | `middleware.ts:30-42` | Should migrate to nonce-based CSP |
-| CRON_SECRET undefined = silent bypass | Medium | `cron/reset-credits/route.ts:11` | Comparison becomes `Bearer undefined` if env var missing |
+| ~~CRON_SECRET undefined = silent bypass~~ | ~~Medium~~ | ~~`cron/reset-credits/route.ts:11`~~ | Already fixed: returns false if env var missing, uses timingSafeEqual |
 | Auth duplication across 15+ admin routes | Medium | `src/app/api/admin/*/route.ts` | Needs shared `withAdminAuth()` wrapper |
 | Inconsistent API response formats | Medium | All 32 API routes | Mix of `{error}`, `{success}`, `{data}` shapes |
 | 84% of API routes have zero tests | High | `src/app/api/` | Only 6 of 37 routes tested — chat API (core product) untested |
