@@ -38,6 +38,10 @@ const productLd = {
     priceCurrency: "NOK",
     availability: "https://schema.org/InStock",
   },
+  brand: {
+    "@type": "Brand",
+    name: "Preik",
+  },
   provider: {
     "@type": "Organization",
     name: "Preik",
@@ -101,6 +105,50 @@ const faqLd = {
   ],
 };
 
+const aggregateOfferLd = {
+  "@context": "https://schema.org",
+  "@type": "AggregateOffer",
+  lowPrice: 299,
+  highPrice: 899,
+  priceCurrency: "NOK",
+  offerCount: 3,
+  offers: [
+    {
+      "@type": "Offer",
+      name: "Starter",
+      price: 299,
+      priceCurrency: "NOK",
+      description: "1000 meldinger per måned",
+    },
+    {
+      "@type": "Offer",
+      name: "Vekst",
+      price: 899,
+      priceCurrency: "NOK",
+      description: "5000 meldinger per måned",
+    },
+    {
+      "@type": "Offer",
+      name: "Bedrift",
+      priceCurrency: "NOK",
+      description: "Tilpasset pris",
+    },
+  ],
+};
+
+const breadcrumbLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Hjem",
+      item: "https://preik.ai",
+    },
+  ],
+};
+
 export default async function Home() {
   const cookieStore = await cookies();
   const hasSession = cookieStore.getAll().some((c) => c.name.includes("auth-token"));
@@ -118,6 +166,14 @@ export default async function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(aggregateOfferLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
       <Header isLoggedIn={hasSession} />
       <main id="main-content">

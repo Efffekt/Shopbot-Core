@@ -217,10 +217,9 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
       "www.preik.no",
       "preik.ai",
       "www.preik.ai",
-      "localhost",
-      "localhost:3000",
-      "127.0.0.1",
-      "127.0.0.1:3000",
+      ...(process.env.NODE_ENV === "development"
+        ? ["localhost", "localhost:3000", "127.0.0.1", "127.0.0.1:3000"]
+        : []),
     ],
     features: {
       synonymMapping: false,
@@ -239,14 +238,11 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
       "www.baatpleiebutikken.no",
       "vbaat.no",
       "www.vbaat.no",
-      "shopbot-test.vercel.app",
-      "shopbot-core.vercel.app",
       "preik.no",
       "www.preik.no",
-      "localhost",
-      "localhost:3000",
-      "127.0.0.1",
-      "127.0.0.1:3000",
+      ...(process.env.NODE_ENV === "development"
+        ? ["shopbot-test.vercel.app", "shopbot-core.vercel.app", "localhost", "localhost:3000", "127.0.0.1", "127.0.0.1:3000"]
+        : []),
     ],
     features: {
       synonymMapping: true,
@@ -262,10 +258,9 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
     systemPrompt: DOCS_SITE_PROMPT,
     allowedDomains: [
       "docs.example.com",
-      "localhost",
-      "localhost:3000",
-      "127.0.0.1",
-      "127.0.0.1:3000",
+      ...(process.env.NODE_ENV === "development"
+        ? ["localhost", "localhost:3000", "127.0.0.1", "127.0.0.1:3000"]
+        : []),
     ],
     features: {
       synonymMapping: false,
@@ -281,10 +276,9 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
     systemPrompt: RK_DESIGNSYSTEM_PROMPT,
     allowedDomains: [
       "norwegianredcross.github.io",
-      "localhost",
-      "localhost:3000",
-      "127.0.0.1",
-      "127.0.0.1:3000",
+      ...(process.env.NODE_ENV === "development"
+        ? ["localhost", "localhost:3000", "127.0.0.1", "127.0.0.1:3000"]
+        : []),
     ],
     features: {
       synonymMapping: false,
