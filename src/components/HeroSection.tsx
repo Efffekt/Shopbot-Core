@@ -10,9 +10,6 @@ export function HeroSection() {
         <PreikWave className="absolute inset-0 w-full h-full" />
       </div>
 
-      {/* Bottom fade to next section */}
-      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-preik-surface to-transparent pointer-events-none" />
-
       {/* Content */}
       <div className="relative z-10 flex min-h-screen items-center pt-32 pb-24 px-6">
         <div className="max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
