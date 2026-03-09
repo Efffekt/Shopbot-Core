@@ -610,7 +610,6 @@ export async function POST(request: NextRequest) {
     const productKeywords = /produkt|pris|anbefal|kjøp|voks|polish|poler|båt|maskin|pad|pute|ullp|rengjør|vask|bunn|forseg/i;
     const hasProductContext = messages.some((m) => productKeywords.test(typeof m.content === "string" ? m.content : JSON.stringify(m.content)));
     const isSimpleMessage = lastUserText.length < 20 && !productKeywords.test(lastUserText) && !hasProductContext;
-    console.log(`[CHAT DEBUG] reqId=${reqId} query="${lastUserText.slice(0, 120)}" length=${lastUserText.length} isSimpleMessage=${isSimpleMessage}`);
 
     const normalizedMessages = messages.map((m) => ({
       role: m.role as "user" | "assistant" | "system",
@@ -639,8 +638,6 @@ export async function POST(request: NextRequest) {
           embeddingQuery = `${prevUserText} ${lastUserText}`.slice(0, 500);
         }
       }
-      console.log(`[CHAT DEBUG] reqId=${reqId} embeddingQuery="${embeddingQuery.slice(0, 120)}" (enriched=${embeddingQuery !== lastUserText})`);
-
       const embeddingStart = Date.now();
       const [embeddingResult, promptResult] = await Promise.all([
         embed({
@@ -656,37 +653,6 @@ export async function POST(request: NextRequest) {
       systemPrompt = promptResult;
       const { embedding } = embeddingResult;
       timings.embedding = Date.now() - embeddingStart;
-      console.log(`[CHAT DEBUG] reqId=${reqId} embedding generated in ${timings.embedding}ms for storeId=${storeId} dims=${embedding.length} type=${typeof embedding[0]} first3=[${embedding.slice(0, 3).map(v => v.toFixed(6)).join(",")}]`);
-
-      // Debug: test RPC with a known embedding from the table itself
-      try {
-        const { data: knownDoc, error: knownErr } = await supabaseAdmin
-          .from("documents")
-          .select("id, content, embedding")
-          .eq("store_id", storeId)
-          .limit(1)
-          .single();
-        if (knownErr) {
-          console.log(`[CHAT DEBUG] reqId=${reqId} KNOWN DOC ERROR: ${JSON.stringify(knownErr)}`);
-        } else {
-          const knownEmb = knownDoc.embedding;
-          console.log(`[CHAT DEBUG] reqId=${reqId} KNOWN DOC: id=${knownDoc.id} embType=${typeof knownEmb} isArray=${Array.isArray(knownEmb)} length=${Array.isArray(knownEmb) ? knownEmb.length : "N/A"} sample=${JSON.stringify(knownEmb)?.slice(0, 80)}`);
-
-          // Pass the DB embedding back through the RPC — should find itself
-          const { data: selfMatch, error: selfErr } = await supabaseAdmin.rpc("match_site_content", {
-            query_embedding: knownEmb,
-            match_threshold: 0.0,
-            match_count: 1,
-            filter_store_id: storeId,
-          });
-          console.log(`[CHAT DEBUG] reqId=${reqId} SELF-MATCH TEST: found=${selfMatch?.length ?? 0} error=${selfErr ? JSON.stringify(selfErr) : "none"}`);
-
-          // Also try with the AI-generated embedding for comparison
-          console.log(`[CHAT DEBUG] reqId=${reqId} AI EMBEDDING: isArray=${Array.isArray(embedding)} length=${embedding.length} sample=${JSON.stringify(embedding)?.slice(0, 80)}`);
-        }
-      } catch (e) {
-        console.log(`[CHAT DEBUG] reqId=${reqId} KNOWN DOC EXCEPTION: ${e}`);
-      }
 
       // Vector search — fetch extra to allow deduplication
       const searchStart = Date.now();
@@ -716,41 +682,18 @@ export async function POST(request: NextRequest) {
           if (deduped.length >= 8) break;
         }
         relevantDocs = deduped;
-        console.log(`[CHAT DEBUG] reqId=${reqId} vectorSearch took ${timings.vectorSearch}ms, rawDocs=${rawDocs.length}, afterDedup=${deduped.length}, threshold=0.3`);
       } else {
         relevantDocs = rawDocs;
-        console.log(`[CHAT DEBUG] reqId=${reqId} vectorSearch took ${timings.vectorSearch}ms, docsFound=0, threshold=0.3`);
       }
       docsFound = relevantDocs?.length || 0;
 
       if (searchError) {
-        console.log(`[CHAT DEBUG] reqId=${reqId} VECTOR SEARCH ERROR: ${JSON.stringify(searchError)}`);
         log.warn("Vector search failed, continuing without context", { reqId, storeId, error: searchError });
         // Continue with system prompt only — don't crash the chat
       }
 
       if (!relevantDocs || relevantDocs.length === 0) {
-        console.log(`[CHAT DEBUG] reqId=${reqId} NO DOCUMENTS FOUND for query="${lastUserText.slice(0, 120)}" storeId=${storeId} — bot will answer without context`);
-
-        // Debug peek: show top 5 closest docs regardless of threshold
-        const { data: peekDocs, error: peekError } = await supabaseAdmin.rpc("match_site_content", {
-          query_embedding: embedding,
-          match_threshold: 0.0,
-          match_count: 5,
-          filter_store_id: storeId,
-        });
-        if (peekError) {
-          console.log(`[CHAT DEBUG] reqId=${reqId} PEEK ERROR: ${JSON.stringify(peekError)}`);
-        }
-        if (peekDocs && peekDocs.length > 0) {
-          console.log(`[CHAT DEBUG] reqId=${reqId} PEEK top ${peekDocs.length} closest docs (threshold=0):`);
-          for (const doc of peekDocs as { content: string; metadata?: { source?: string; url?: string }; similarity?: number }[]) {
-            const url = doc.metadata?.source || doc.metadata?.url || "NO URL";
-            console.log(`[CHAT DEBUG]   similarity=${(doc.similarity ?? 0).toFixed(4)} source=${url} content="${doc.content.slice(0, 150)}"`);
-          }
-        } else {
-          console.log(`[CHAT DEBUG] reqId=${reqId} PEEK returned 0 docs even with threshold=0 — no documents exist for this store`);
-        }
+        log.debug("No documents found for query", { reqId, storeId });
       }
 
       // Machine-type compatibility filter: remove product docs that are incompatible with user's stated machine
@@ -786,7 +729,7 @@ export async function POST(request: NextRequest) {
             return true;
           });
           if (before !== relevantDocs.length) {
-            console.log(`[CHAT DEBUG] reqId=${reqId} machineFilter: removed ${before - relevantDocs.length} incompatible docs (userMachine=${machineType}, remaining=${relevantDocs.length})`);
+            log.debug("Machine filter applied", { reqId, removed: before - relevantDocs.length, machineType, remaining: relevantDocs.length });
           }
         }
       }
@@ -847,13 +790,6 @@ export async function POST(request: NextRequest) {
               availableUrls.push(url);
             }
           }
-        }
-
-        // DEBUG: log context documents to trace wrong URL associations
-        console.log(`[CHAT DEBUG] reqId=${reqId} context documents (${relevantDocs.length}):`);
-        for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string }; similarity?: number }[]) {
-          const url = doc.metadata?.source || doc.metadata?.url || "NO URL";
-          console.log(`[CHAT DEBUG]   url=${url} similarity=${(doc.similarity ?? 0).toFixed(3)} content="${doc.content.slice(0, 120)}"`);
         }
 
         const docLabel = tenantConfig.language === "en" ? "DOC" : "DOK";
@@ -955,14 +891,11 @@ export async function POST(request: NextRequest) {
       fullSystemPrompt = [systemPrompt, guardrails.simpleMessage, guardrails.securityFooter].join("\n\n");
       promptPath = "SIMPLE_MESSAGE";
     }
-    console.log(`[CHAT DEBUG] reqId=${reqId} promptPath=${promptPath} contextLength=${context.length} availableUrls=${availableUrls.length} systemPromptLength=${fullSystemPrompt.length}`);
-
     // Build URL allowlist Set for response sanitization
     const allowedUrlSet = new Set(availableUrls);
 
     // Non-streaming mode for WebViews/in-app browsers
     const primaryModelId = testModel || "gpt-4o-mini";
-    console.log(`[CHAT DEBUG] reqId=${reqId} storeId=${storeId} primaryModelId=${primaryModelId} testModel=${testModel} nonStreaming=${useNonStreaming}`);
 
     if (useNonStreaming) {
       let modelUsed: string = primaryModelId;
@@ -1094,7 +1027,6 @@ export async function POST(request: NextRequest) {
       modelUsed = name;
 
       try {
-        console.log(`[CHAT DEBUG] reqId=${reqId} streaming attempt #${i} model=${name}`);
         const result = streamText({
           model: provider,
           system: fullSystemPrompt,
@@ -1103,8 +1035,6 @@ export async function POST(request: NextRequest) {
           onFinish: async ({ text, finishReason, usage }) => {
             timings.aiTotal = Date.now() - aiStart;
             timings.total = Date.now() - start;
-
-            console.log(`[CHAT DEBUG] reqId=${reqId} onFinish model=${modelUsed} finishReason=${finishReason} textLength=${text.length} text="${text.slice(0, 200)}"`);
 
             log.info("Request complete", {
               reqId, storeId, model: modelUsed, mode: "streaming",
@@ -1136,25 +1066,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Pipe through URL sanitizer to replace hallucinated links with search URLs
-        // DEBUG: intercept stream to log chunks
-        let debugChunkCount = 0;
-        let debugTotalLength = 0;
-        const debugTransform = new TransformStream<string, string>({
-          transform(chunk, controller) {
-            debugChunkCount++;
-            debugTotalLength += chunk.length;
-            if (debugChunkCount <= 5) {
-              console.log(`[CHAT DEBUG] reqId=${reqId} stream chunk #${debugChunkCount} length=${chunk.length} content="${chunk.slice(0, 100)}"`);
-            }
-            controller.enqueue(chunk);
-          },
-          flush() {
-            console.log(`[CHAT DEBUG] reqId=${reqId} stream DONE totalChunks=${debugChunkCount} totalLength=${debugTotalLength}`);
-          },
-        });
-
         const sanitizedStream = result.textStream
-          .pipeThrough(debugTransform)
           .pipeThrough(createUrlSanitizerTransform(allowedUrlSet))
           .pipeThrough(new TextEncoderStream());
 

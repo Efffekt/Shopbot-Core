@@ -468,16 +468,13 @@ export async function getTenantSystemPrompt(storeId: string): Promise<string> {
       if (error.code !== "PGRST116") {
         log.warn("Failed to fetch prompt from DB", { storeId, error: error.message });
       }
-      console.log(`[PROMPT DEBUG] storeId=${storeId} source=HARDCODED (no DB row) length=${fallbackPrompt.length}`);
       return fallbackPrompt;
     }
 
     if (data?.system_prompt) {
-      console.log(`[PROMPT DEBUG] storeId=${storeId} source=DB length=${data.system_prompt.length} preview="${data.system_prompt.slice(0, 150).replace(/\n/g, " ")}"`);
       return data.system_prompt;
     }
 
-    console.log(`[PROMPT DEBUG] storeId=${storeId} source=HARDCODED (DB row empty) length=${fallbackPrompt.length}`);
     return fallbackPrompt;
   } catch (err) {
     log.error("Error fetching tenant prompt", { storeId, error: err as Error });
