@@ -11,6 +11,7 @@ vi.mock("@/lib/supabase", () => ({
 
 vi.mock("@/lib/ratelimit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: true, remaining: 59 })),
+  getClientIp: vi.fn(() => "1.2.3.4"),
 }));
 
 vi.mock("@/lib/logger", () => ({

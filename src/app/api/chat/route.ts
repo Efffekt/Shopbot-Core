@@ -12,6 +12,15 @@ const MAX_BODY_BYTES = 32_000; // ~32KB max request body
 const MAX_MESSAGE_LENGTH = 4_000; // per-message text limit
 const MAX_MESSAGES = 50; // max conversation history
 
+// Search & retrieval tuning
+const SIMPLE_MESSAGE_MAX_LENGTH = 20; // skip embedding for short greetings
+const EMBEDDING_QUERY_ENRICH_THRESHOLD = 60; // enrich short follow-ups below this
+const EMBEDDING_QUERY_MAX_LENGTH = 500; // truncate enriched queries
+const VECTOR_MATCH_THRESHOLD = 0.3; // minimum cosine similarity
+const VECTOR_MATCH_COUNT = 50; // candidates to fetch (before dedup)
+const DEDUP_MAX_RESULTS = 8; // max unique docs after deduplication
+const DEDUP_KEY_LENGTH = 200; // chars used as dedup fingerprint
+
 import { supabaseAdmin } from "@/lib/supabase";
 
 const log = createLogger("api/chat");
@@ -609,7 +618,7 @@ export async function POST(request: NextRequest) {
     // But only if the conversation doesn't have product-related context from earlier messages
     const productKeywords = /produkt|pris|anbefal|kjøp|voks|polish|poler|båt|maskin|pad|pute|ullp|rengjør|vask|bunn|forseg/i;
     const hasProductContext = messages.some((m) => productKeywords.test(typeof m.content === "string" ? m.content : JSON.stringify(m.content)));
-    const isSimpleMessage = lastUserText.length < 20 && !productKeywords.test(lastUserText) && !hasProductContext;
+    const isSimpleMessage = lastUserText.length < SIMPLE_MESSAGE_MAX_LENGTH && !productKeywords.test(lastUserText) && !hasProductContext;
 
     const normalizedMessages = messages.map((m) => ({
       role: m.role as "user" | "assistant" | "system",
@@ -631,11 +640,11 @@ export async function POST(request: NextRequest) {
       // Build embedding query: enrich short follow-ups with conversation context
       // e.g. "den er roterende" (16 chars) becomes "polleringspute som passer til ryobi den er roterende"
       let embeddingQuery = lastUserText;
-      if (lastUserText.length < 60 && messages.length >= 3) {
+      if (lastUserText.length < EMBEDDING_QUERY_ENRICH_THRESHOLD && messages.length >= 3) {
         const userMessages = messages.filter((m) => m.role === "user");
         if (userMessages.length >= 2) {
           const prevUserText = extractTextFromMessage(userMessages[userMessages.length - 2]);
-          embeddingQuery = `${prevUserText} ${lastUserText}`.slice(0, 500);
+          embeddingQuery = `${prevUserText} ${lastUserText}`.slice(0, EMBEDDING_QUERY_MAX_LENGTH);
         }
       }
       const embeddingStart = Date.now();
@@ -660,8 +669,8 @@ export async function POST(request: NextRequest) {
         "match_site_content",
         {
           query_embedding: embedding,
-          match_threshold: 0.3,
-          match_count: 50,
+          match_threshold: VECTOR_MATCH_THRESHOLD,
+          match_count: VECTOR_MATCH_COUNT,
           filter_store_id: storeId,
         }
       );
@@ -675,11 +684,11 @@ export async function POST(request: NextRequest) {
         const seen = new Set<string>();
         const deduped: DocRow[] = [];
         for (const doc of rawDocs as DocRow[]) {
-          const key = doc.content.slice(0, 200);
+          const key = doc.content.slice(0, DEDUP_KEY_LENGTH);
           if (seen.has(key)) continue;
           seen.add(key);
           deduped.push(doc);
-          if (deduped.length >= 8) break;
+          if (deduped.length >= DEDUP_MAX_RESULTS) break;
         }
         relevantDocs = deduped;
       } else {

@@ -5,7 +5,8 @@ import { createLogger } from "@/lib/logger";
 const log = createLogger("email");
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@preik.ai";
-const ADMIN_EMAIL = "hei@preik.ai";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "hei@preik.ai";
+const DASHBOARD_BASE_URL = process.env.DASHBOARD_BASE_URL || "https://preik.ai/dashboard";
 
 // Lazy init — won't crash if key is missing in dev
 let resendClient: Resend | null = null;
@@ -132,7 +133,7 @@ export async function sendCreditWarningIfNeeded(
             </p>
           </div>
           <p style="margin-top: 24px; font-size: 13px; color: #666;">
-            Logg inn på <a href="https://preik.ai/dashboard" style="color: #6C63FF;">dashbordet</a> for å administrere kreditter.
+            Logg inn på <a href="${DASHBOARD_BASE_URL}" style="color: #6C63FF;">dashbordet</a> for å administrere kreditter.
           </p>
           <p style="margin-top: 24px; font-size: 12px; color: #999;">Preik – AI-chatbot for nettbutikker</p>
         </div>
@@ -178,7 +179,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
             Din AI-chatbot er nå klar til å konfigureres. Her er de neste stegene:
           </p>
           <div style="margin: 24px 0; padding: 20px; background: #f5f5f5; border-radius: 8px;">
-            <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>1.</strong> Logg inn på <a href="https://preik.ai/dashboard/${escapeHtml(data.tenantId)}" style="color: #6C63FF;">dashbordet</a></p>
+            <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>1.</strong> Logg inn på <a href="${DASHBOARD_BASE_URL}/${escapeHtml(data.tenantId)}" style="color: #6C63FF;">dashbordet</a></p>
             <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>2.</strong> Legg til innhold i kunnskapsbasen (skriv tekst eller importer fra nettside)</p>
             <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>3.</strong> Tilpass chatbotens systemprompt</p>
             <p style="margin: 0; color: #1a1a2e;"><strong>4.</strong> Kopier embed-koden og legg den inn på nettsiden din</p>

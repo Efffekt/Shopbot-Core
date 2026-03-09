@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api/widget-config");
@@ -27,10 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Rate limit by IP
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
+    const ip = getClientIp(request.headers);
     const rateLimit = await checkRateLimit(`widgetcfg:${ip}`, WIDGET_CONFIG_LIMIT);
 
     if (!rateLimit.allowed) {

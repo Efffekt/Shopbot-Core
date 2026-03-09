@@ -210,7 +210,7 @@
 #### Code Duplication Reduction
 - [ ] Create `withAdminAuth(handler)` / `withSuperAdmin(handler)` wrapper to eliminate auth boilerplate in 15+ admin routes
 - [ ] Create `validateRequest(req, { maxBytes })` utility to replace duplicated content-type + body size + JSON parse pattern in 8+ routes
-- [ ] Import `getClientIp()` from `ratelimit.ts` everywhere instead of duplicating IP extraction in 4+ routes
+- [x] Import `getClientIp()` from `ratelimit.ts` everywhere instead of duplicating IP extraction in 4+ routes
 - [ ] Create `corsHeaders(origin, method)` builder to replace duplicated CORS header logic in chat, contact, widget-config routes
 - [ ] Standardize API response format to `{ success, error?, data? }` across all 32 routes
 
@@ -239,9 +239,9 @@
 
 #### Hardcoded Values Cleanup
 - [ ] Move all tenant configs from `tenants.ts:1-305` to database as primary source (keep hardcoded as fallback only)
-- [ ] Move hardcoded email addresses (`hei@preik.ai`, `noreply@preik.ai`) in `email.ts:7-8` to env vars
-- [ ] Move hardcoded dashboard URL in `email.ts:135` to env var
-- [ ] Extract magic numbers to named constants: 20-char fast-path threshold, 12 vector results, 1000-entry memory cleanup trigger
+- [x] Move hardcoded email addresses (`hei@preik.ai`) in `email.ts:8` to env var (`ADMIN_EMAIL` with fallback)
+- [x] Move hardcoded dashboard URL in `email.ts:135,181` to env var (`DASHBOARD_BASE_URL` with fallback)
+- [x] Extract magic numbers to named constants in chat route (match threshold, match count, dedup limit, fast-path threshold, etc.)
 - [ ] Make credit warning thresholds (80%, 100%) configurable via env vars or tenant config
 
 #### Developer Experience

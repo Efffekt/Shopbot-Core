@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase";
-import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
+import { checkRateLimit, RATE_LIMITS, getClientIp } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
 import { sendContactNotification } from "@/lib/email";
 import { validateJsonContentType } from "@/lib/validate-content-type";
@@ -18,10 +18,7 @@ const contactSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Rate limit by IP (5 per hour)
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
+    const ip = getClientIp(request.headers);
     const rateLimit = await checkRateLimit(`contact:${ip}`, RATE_LIMITS.contact);
 
     if (!rateLimit.allowed) {
