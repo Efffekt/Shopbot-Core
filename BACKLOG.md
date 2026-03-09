@@ -194,7 +194,9 @@
 - [ ] Integrate Sentry for error tracking (frontend + API routes)
 - [ ] Set up Sentry alerts for critical errors (chat failures, auth failures)
 - [ ] Set up uptime monitoring (e.g., BetterUptime, UptimeRobot, or Vercel's built-in)
+- [ ] Add Web Vitals collection (CLS, LCP, INP) via `web-vitals` library + reporting
 - [ ] Add Vercel Analytics for frontend performance (LCP, FID, CLS)
+- [ ] Track key user interactions: CTA clicks, form submissions, demo chat usage
 - [ ] Add database query monitoring / slow query detection
 
 #### GDPR & Compliance
@@ -390,6 +392,9 @@
 - [ ] Add alt text for bot avatar icon
 
 #### SEO & Marketing
+- [ ] Add `AggregateOffer` structured data for pricing section (Starter/Vekst/Bedrift tiers)
+- [ ] Add `BreadcrumbList` structured data for navigation
+- [ ] Add `brand` property to existing `SoftwareApplication` JSON-LD schema
 - [ ] Add Open Graph and Twitter Card meta tags to blog posts
 - [ ] Add canonical URLs to all blog posts
 - [ ] Add BlogPosting structured data (JSON-LD) to blog posts
@@ -413,6 +418,7 @@
 |-------|----------|-------|
 | Daglig samtalevolum chart not displaying correctly | Analytics dashboard (`TenantAnalyticsDashboard.tsx`) | Needs investigation |
 | Password change fields are too wide | Settings page (`innstillinger/page.tsx`, `AccountSettings.tsx`) | Reduce input width for a cleaner layout |
+| Streaming word-reveal uses setTimeout polling | `ChatWidget.tsx`, `widget.ts` | Replace with `requestAnimationFrame` for smoother rendering on low-end devices (low priority) |
 
 ---
 
@@ -420,7 +426,7 @@
 
 | Issue | Severity | Location | Notes |
 |-------|----------|----------|-------|
-| ~~75 console.log statements in chat route~~ | ~~Medium~~ | ~~`/src/app/api/chat/route.ts`~~ | Replaced with structured JSON logger (`src/lib/logger.ts`) |
+| ~~75 console.log statements in chat route~~ | ~~Medium~~ | ~~`/src/app/api/chat/route.ts`~~ | Replaced with structured JSON logger; remaining DEBUG logs removed (Mar 2026) |
 | ~~CORS allows all origins (`*`)~~ | ~~High~~ | ~~All API routes~~ | Tiered CORS: wildcard for widget/health, reflected origin for chat/contact, no CORS for internal |
 | ~~Rate limiting is in-memory only~~ | ~~Medium~~ | ~~`/src/lib/ratelimit.ts`~~ | Migrated to Upstash Redis (with in-memory fallback for dev) |
 | Documents table not in migrations | Low | Supabase | Add to version-controlled migrations |
