@@ -66,6 +66,8 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 -ml-2 text-preik-text-muted hover:text-preik-text transition-colors"
               aria-label="Meny"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               {isMobileMenuOpen ? (
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -122,6 +124,10 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
 
       {/* Mobile menu overlay */}
       <div
+        id="mobile-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigasjonsmeny"
         className={`fixed inset-0 z-40 bg-preik-bg/95 backdrop-blur-md transition-all duration-300 md:hidden ${
           isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}

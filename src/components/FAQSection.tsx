@@ -58,8 +58,10 @@ export function FAQSection() {
                 <button
                   onClick={() => toggleFAQ(index)}
                   className="w-full px-6 py-5 text-left flex items-center justify-between gap-4"
+                  aria-expanded={openIndex === index}
+                  aria-controls={`faq-answer-${index}`}
                 >
-                  <span className="font-medium text-preik-text">{faq.question}</span>
+                  <span id={`faq-question-${index}`} className="font-medium text-preik-text">{faq.question}</span>
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${openIndex === index ? "bg-preik-accent text-white" : "bg-preik-bg text-preik-text-muted"}`}>
                     <svg
                       className={`w-4 h-4 transition-transform duration-300 ${
@@ -75,6 +77,9 @@ export function FAQSection() {
                   </div>
                 </button>
                 <div
+                  id={`faq-answer-${index}`}
+                  role="region"
+                  aria-labelledby={`faq-question-${index}`}
                   className={`grid transition-all duration-300 ease-in-out ${
                     openIndex === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                   }`}

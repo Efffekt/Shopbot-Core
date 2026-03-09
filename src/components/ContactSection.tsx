@@ -74,7 +74,7 @@ export function ContactSection() {
           <ScrollReveal animation="right" delay={150}>
             <div className="bg-preik-bg rounded-2xl border border-preik-border p-8">
               {status === "success" ? (
-                <div className="text-center py-8">
+                <div role="status" className="text-center py-8">
                   <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
                     <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -86,15 +86,15 @@ export function ContactSection() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Honeypot — hidden from users, bots fill it */}
-                  <input
-                    ref={honeypotRef}
-                    type="text"
-                    name="website"
-                    autoComplete="off"
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    className="absolute opacity-0 h-0 w-0 overflow-hidden pointer-events-none"
-                  />
+                  <div className="absolute -left-[9999px]" aria-hidden="true">
+                    <input
+                      ref={honeypotRef}
+                      type="text"
+                      name="website"
+                      autoComplete="off"
+                      tabIndex={-1}
+                    />
+                  </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
@@ -157,7 +157,7 @@ export function ContactSection() {
                   </div>
 
                   {status === "error" && (
-                    <p className="text-red-500 text-sm">Noe gikk galt. Prøv igjen eller send e-post direkte.</p>
+                    <p role="alert" className="text-red-500 text-sm">Noe gikk galt. Prøv igjen eller send e-post direkte.</p>
                   )}
 
                   <button
