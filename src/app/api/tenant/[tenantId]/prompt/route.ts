@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
-import { getTenantConfigFromDB } from "@/lib/tenants";
+import { getTenantConfigFromDB, invalidatePromptCache } from "@/lib/tenants";
 import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-content-type";
@@ -131,6 +131,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         );
       }
 
+      invalidatePromptCache(tenantId);
       await logAudit({ actorEmail: user.email || user.id, action: "update", entityType: "tenant_prompt", entityId: tenantId });
 
       return NextResponse.json({
@@ -153,6 +154,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         );
       }
 
+      invalidatePromptCache(tenantId);
       await logAudit({ actorEmail: user.email || user.id, action: "create", entityType: "tenant_prompt", entityId: tenantId });
 
       return NextResponse.json({

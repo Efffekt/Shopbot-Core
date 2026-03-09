@@ -444,10 +444,28 @@ function extractDomain(url: string | null): string | null {
 }
 
 /**
+ * In-memory TTL cache for system prompts.
+ * Avoids hitting the database on every chat message (prompts change rarely).
+ */
+const promptCache = new Map<string, { prompt: string; expiresAt: number }>();
+const PROMPT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/** Clear the prompt cache for a specific tenant (call after prompt updates). */
+export function invalidatePromptCache(storeId: string): void {
+  promptCache.delete(storeId);
+}
+
+/**
  * Fetches the system prompt for a tenant.
- * First checks the database for a custom prompt, falls back to hardcoded config.
+ * Uses a 5-minute in-memory cache. Falls back to hardcoded config on DB errors.
  */
 export async function getTenantSystemPrompt(storeId: string): Promise<string> {
+  // Check cache first
+  const cached = promptCache.get(storeId);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.prompt;
+  }
+
   const config = await getTenantConfigFromDB(storeId);
   const fallbackPrompt = config?.systemPrompt || "";
 
@@ -462,14 +480,13 @@ export async function getTenantSystemPrompt(storeId: string): Promise<string> {
       if (error.code !== "PGRST116") {
         log.warn("Failed to fetch prompt from DB", { storeId, error: error.message });
       }
+      promptCache.set(storeId, { prompt: fallbackPrompt, expiresAt: Date.now() + PROMPT_CACHE_TTL_MS });
       return fallbackPrompt;
     }
 
-    if (data?.system_prompt) {
-      return data.system_prompt;
-    }
-
-    return fallbackPrompt;
+    const prompt = data?.system_prompt || fallbackPrompt;
+    promptCache.set(storeId, { prompt, expiresAt: Date.now() + PROMPT_CACHE_TTL_MS });
+    return prompt;
   } catch (err) {
     log.error("Error fetching tenant prompt", { storeId, error: err as Error });
     return fallbackPrompt;
