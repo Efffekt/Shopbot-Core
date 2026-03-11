@@ -1,6 +1,6 @@
 // Chat API - Gemini 2.5 Flash Lite via Vertex AI (global endpoint) with OpenAI fallback
 // Primary model: gemini-2.5-flash-lite
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { z } from "zod";
 import { embed, streamText, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -1070,24 +1070,29 @@ export async function POST(request: NextRequest) {
             if (text.length === 0) {
               log.error("Empty AI response", { reqId, storeId, model: modelUsed, finishReason });
             }
-
-            // Log conversation (fire and forget)
-            logConversation({
-              storeId,
-              sessionId,
-              userQuery: lastUserText,
-              aiResponse: text,
-              metadata: {
-                docsFound,
-                sources,
-                timestamp: new Date().toISOString(),
-                tenant: tenantConfig.name,
-                model: modelUsed,
-                timings,
-                finishReason,
-              },
-            });
           },
+        });
+
+        // Schedule conversation logging to run after the response is sent.
+        // after() keeps the serverless function alive so the DB insert completes.
+        after(async () => {
+          const text = await result.text;
+          const finishReason = await result.finishReason;
+          await logConversation({
+            storeId,
+            sessionId,
+            userQuery: lastUserText,
+            aiResponse: text,
+            metadata: {
+              docsFound,
+              sources,
+              timestamp: new Date().toISOString(),
+              tenant: tenantConfig.name,
+              model: modelUsed,
+              timings,
+              finishReason,
+            },
+          });
         });
 
         // Pipe through URL sanitizer to replace hallucinated links with search URLs
