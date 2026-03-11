@@ -629,6 +629,7 @@ export async function POST(request: NextRequest) {
     let availableUrls: string[] = [];
     let systemPrompt: string;
     let docsFound = 0;
+    let sources: { url: string; snippet: string; similarity: number }[] = [];
 
     if (isSimpleMessage) {
       // Fast path - just get system prompt, skip embedding/search
@@ -809,6 +810,16 @@ export async function POST(request: NextRequest) {
             return `[${docLabel}-${index + 1}]\nKILDE: ${url}\n${doc.content}`;
           })
           .join("\n\n");
+
+        // Build source attribution for conversation logging
+        sources = relevantDocs.map((doc: { content: string; metadata?: { source?: string; url?: string }; similarity?: number }) => {
+          const rawUrl = doc.metadata?.source || doc.metadata?.url || "";
+          return {
+            url: rawUrl.startsWith("http") ? stripTrackingParams(rawUrl) : rawUrl,
+            snippet: doc.content.slice(0, 150),
+            similarity: Math.round((doc.similarity || 0) * 1000) / 1000,
+          };
+        });
       }
     }
 
@@ -969,6 +980,7 @@ export async function POST(request: NextRequest) {
         aiResponse: result!.text,
         metadata: {
           docsFound,
+          sources,
           timestamp: new Date().toISOString(),
           tenant: tenantConfig.name,
           model: modelUsed,
@@ -1064,6 +1076,7 @@ export async function POST(request: NextRequest) {
               aiResponse: text,
               metadata: {
                 docsFound,
+                sources,
                 timestamp: new Date().toISOString(),
                 tenant: tenantConfig.name,
                 model: modelUsed,

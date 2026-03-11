@@ -253,52 +253,94 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
 
                     {conv.metadata && Object.keys(conv.metadata).length > 0 && (() => {
                       const meta = conv.metadata;
+                      const metaSources = meta.sources as { url: string; snippet: string; similarity: number }[] | undefined;
                       const timings = meta.timings as Record<string, number> | undefined;
                       const fmtMs = (ms: number) => ms >= 1000
                         ? `${(ms / 1000).toFixed(1).replace(".", ",")} s`
                         : `${Math.round(ms)} ms`;
                       return (
-                        <div className="mt-3 pt-3 border-t border-preik-border">
-                          <p className="text-xs font-medium text-preik-text-muted mb-2">Detaljer</p>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {meta.model != null && (
-                              <div className="bg-preik-bg rounded-lg px-3 py-2">
-                                <p className="text-[11px] text-preik-text-muted">Modell</p>
-                                <p className="text-xs font-medium text-preik-text">{String(meta.model)}</p>
+                        <>
+                          {/* Source Attribution */}
+                          {metaSources && metaSources.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-preik-border">
+                              <p className="text-xs font-medium text-preik-text-muted mb-2">Kilder ({metaSources.length})</p>
+                              <div className="space-y-2">
+                                {metaSources.map((src, i) => (
+                                  <div key={i} className="bg-preik-bg rounded-xl px-3 py-2.5 border border-preik-border">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        {src.url && src.url.startsWith("http") ? (
+                                          <a
+                                            href={src.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs font-medium text-preik-accent hover:text-preik-accent-hover transition-colors break-all"
+                                          >
+                                            {src.url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 80)}
+                                            {src.url.replace(/^https?:\/\/(www\.)?/, "").length > 80 ? "..." : ""}
+                                          </a>
+                                        ) : (
+                                          <span className="text-xs font-medium text-preik-text">
+                                            {src.url || "Manuelt innhold"}
+                                          </span>
+                                        )}
+                                        <p className="text-[11px] text-preik-text-muted mt-1 line-clamp-2">
+                                          {src.snippet}...
+                                        </p>
+                                      </div>
+                                      <span className="text-[10px] text-preik-text-muted whitespace-nowrap bg-preik-surface px-1.5 py-0.5 rounded">
+                                        {Math.round(src.similarity * 100)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            )}
-                            {meta.docsFound != null && (
-                              <div className="bg-preik-bg rounded-lg px-3 py-2">
-                                <p className="text-[11px] text-preik-text-muted">Dokumenter funnet</p>
-                                <p className="text-xs font-medium text-preik-text">{String(meta.docsFound)}</p>
-                              </div>
-                            )}
-                            {meta.nonStreaming != null && (
-                              <div className="bg-preik-bg rounded-lg px-3 py-2">
-                                <p className="text-[11px] text-preik-text-muted">Modus</p>
-                                <p className="text-xs font-medium text-preik-text">{meta.nonStreaming ? "Non-streaming" : "Streaming"}</p>
-                              </div>
-                            )}
-                            {timings?.total != null && (
-                              <div className="bg-preik-bg rounded-lg px-3 py-2">
-                                <p className="text-[11px] text-preik-text-muted">Total responstid</p>
-                                <p className="text-xs font-medium text-preik-text">{fmtMs(timings.total)}</p>
-                              </div>
-                            )}
-                            {timings?.vectorSearch != null && (
-                              <div className="bg-preik-bg rounded-lg px-3 py-2">
-                                <p className="text-[11px] text-preik-text-muted">Vektorsok</p>
-                                <p className="text-xs font-medium text-preik-text">{fmtMs(timings.vectorSearch)}</p>
-                              </div>
-                            )}
-                            {timings?.aiTotal != null && (
-                              <div className="bg-preik-bg rounded-lg px-3 py-2">
-                                <p className="text-[11px] text-preik-text-muted">AI-generering</p>
-                                <p className="text-xs font-medium text-preik-text">{fmtMs(timings.aiTotal)}</p>
-                              </div>
-                            )}
+                            </div>
+                          )}
+
+                          {/* Details */}
+                          <div className="mt-3 pt-3 border-t border-preik-border">
+                            <p className="text-xs font-medium text-preik-text-muted mb-2">Detaljer</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {meta.model != null && (
+                                <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                  <p className="text-[11px] text-preik-text-muted">Modell</p>
+                                  <p className="text-xs font-medium text-preik-text">{String(meta.model)}</p>
+                                </div>
+                              )}
+                              {meta.docsFound != null && (
+                                <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                  <p className="text-[11px] text-preik-text-muted">Dokumenter funnet</p>
+                                  <p className="text-xs font-medium text-preik-text">{String(meta.docsFound)}</p>
+                                </div>
+                              )}
+                              {meta.nonStreaming != null && (
+                                <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                  <p className="text-[11px] text-preik-text-muted">Modus</p>
+                                  <p className="text-xs font-medium text-preik-text">{meta.nonStreaming ? "Non-streaming" : "Streaming"}</p>
+                                </div>
+                              )}
+                              {timings?.total != null && (
+                                <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                  <p className="text-[11px] text-preik-text-muted">Total responstid</p>
+                                  <p className="text-xs font-medium text-preik-text">{fmtMs(timings.total)}</p>
+                                </div>
+                              )}
+                              {timings?.vectorSearch != null && (
+                                <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                  <p className="text-[11px] text-preik-text-muted">Vektorsok</p>
+                                  <p className="text-xs font-medium text-preik-text">{fmtMs(timings.vectorSearch)}</p>
+                                </div>
+                              )}
+                              {timings?.aiTotal != null && (
+                                <div className="bg-preik-bg rounded-lg px-3 py-2">
+                                  <p className="text-[11px] text-preik-text-muted">AI-generering</p>
+                                  <p className="text-xs font-medium text-preik-text">{fmtMs(timings.aiTotal)}</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        </>
                       );
                     })()}
 
