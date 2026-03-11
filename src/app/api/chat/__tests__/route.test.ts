@@ -98,6 +98,11 @@ vi.mock("@ai-sdk/google-vertex", () => ({
   createVertex: vi.fn(() => vi.fn((model: string) => ({ modelId: model }))),
 }));
 
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return { ...actual, after: vi.fn() };
+});
+
 vi.mock("@/lib/logger", () => ({
   createLogger: () => ({
     info: vi.fn(),
