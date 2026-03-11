@@ -423,7 +423,7 @@ async function logConversation(data: {
     const wasHandled = checkIfHandled(data.aiResponse);
     const referredToEmail = checkEmailReferral(data.aiResponse);
 
-    await supabaseAdmin.from("conversations").insert({
+    const { error } = await supabaseAdmin.from("conversations").insert({
       store_id: data.storeId,
       session_id: data.sessionId || null,
       user_query: data.userQuery,
@@ -433,6 +433,9 @@ async function logConversation(data: {
       referred_to_email: referredToEmail,
       metadata: data.metadata || {},
     });
+    if (error) {
+      log.error("Failed to insert conversation", { storeId: data.storeId, error });
+    }
   } catch (error) {
     // Don't fail the request if logging fails
     log.error("Failed to log conversation", { error: error as Error });
