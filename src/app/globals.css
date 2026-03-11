@@ -94,27 +94,6 @@ body {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
-/* Frosted blur bar at bottom of viewport — hidden on mobile to avoid overlap with browser chrome */
-body::after {
-  content: "";
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: linear-gradient(to bottom, transparent, var(--preik-bg));
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  pointer-events: none;
-  z-index: 50;
-  display: none;
-}
-
-@media (min-width: 768px) {
-  body::after {
-    display: block;
-  }
-}
 
 
 /* Preik Wordmark - Fraunces Italic 600, SOFT 100 */
