@@ -1,6 +1,3 @@
-"use client";
-
-import LiquidGlass from "liquid-glass-react";
 import { ScrollReveal } from "./ScrollReveal";
 
 const starterFeatures = [
@@ -32,67 +29,56 @@ export function PricingSection() {
 
         {/* Pricing cards */}
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {/* Starter — Liquid Glass featured card */}
+          {/* Starter */}
           <ScrollReveal animation="up" stagger={1}>
-            <div className="relative">
-              {/* "Anbefalt" badge above the glass */}
-              <div className="absolute -top-3 left-8 z-10">
-                <span className="inline-block px-4 py-1 rounded-full bg-preik-accent text-sm font-medium text-white">
-                  Anbefalt
-                </span>
-              </div>
+            <div className="bg-preik-bg rounded-3xl border border-preik-accent p-8 relative overflow-hidden flex flex-col h-full">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-preik-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
-              <LiquidGlass
-                displacementScale={45}
-                blurAmount={0.05}
-                saturation={125}
-                aberrationIntensity={1}
-                elasticity={0.15}
-                cornerRadius={24}
-                overLight
-                className="h-full"
-                padding="32px"
-              >
-                <div className="flex flex-col flex-1 pt-4">
-                  <h3 className="text-xl font-semibold text-preik-text mb-2">
-                    Starter
-                  </h3>
-
-                  <div className="mb-1">
-                    <span className="text-sm text-preik-text-muted">Fra </span>
-                    <span className="text-4xl font-brand font-light text-preik-text">
-                      299
-                    </span>
-                    <span className="text-sm text-preik-text-muted"> kr/mnd</span>
-                  </div>
-
-                  <p className="text-sm text-preik-text-muted mb-6">
-                    1 000 meldinger/mnd
-                  </p>
-
-                  <p className="text-preik-text-muted text-sm mb-8">
-                    Alt du trenger for å komme i gang
-                  </p>
-
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {starterFeatures.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-3 text-preik-text text-sm">
-                        <svg className="w-4 h-4 text-preik-accent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <a
-                    href="/registrer?plan=starter"
-                    className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] bg-preik-accent text-white hover:bg-preik-accent-hover"
-                  >
-                    Kom i gang
-                  </a>
+              <div className="relative flex flex-col flex-1">
+                <div className="mb-6 h-7">
+                  <span className="inline-block px-4 py-1 rounded-full bg-preik-accent text-sm font-medium text-white">
+                    Anbefalt
+                  </span>
                 </div>
-              </LiquidGlass>
+
+                <h3 className="text-xl font-semibold text-preik-text mb-2">
+                  Starter
+                </h3>
+
+                <div className="mb-1">
+                  <span className="text-sm text-preik-text-muted">Fra </span>
+                  <span className="text-4xl font-brand font-light text-preik-text">
+                    299
+                  </span>
+                  <span className="text-sm text-preik-text-muted"> kr/mnd</span>
+                </div>
+
+                <p className="text-sm text-preik-text-muted mb-6">
+                  1 000 meldinger/mnd
+                </p>
+
+                <p className="text-preik-text-muted text-sm mb-8">
+                  Alt du trenger for å komme i gang
+                </p>
+
+                <ul className="space-y-3 mb-8 flex-1">
+                  {starterFeatures.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-3 text-preik-text text-sm">
+                      <svg className="w-4 h-4 text-preik-accent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <a
+                  href="/registrer?plan=starter"
+                  className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] bg-preik-accent text-white hover:bg-preik-accent-hover"
+                >
+                  Kom i gang
+                </a>
+              </div>
             </div>
           </ScrollReveal>
 
