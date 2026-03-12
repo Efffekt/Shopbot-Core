@@ -6,7 +6,7 @@
 CREATE OR REPLACE FUNCTION purge_expired_data()
 RETURNS JSON
 LANGUAGE plpgsql
-AS $func$
+AS $purge_body$
 DECLARE
   v_conversations INTEGER;
   v_contacts INTEGER;
@@ -48,7 +48,7 @@ BEGIN
     'purged_at', NOW()
   );
 END;
-$func$;
+$purge_body$;
 
 -- Add indexes for efficient deletion
 CREATE INDEX IF NOT EXISTS idx_audit_log_created_at_asc
