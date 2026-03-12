@@ -63,11 +63,16 @@ export default async function DashboardPage({
         Dine prosjekter
       </h1>
 
-      {checkout === "success" && <CheckoutStatus />}
+      {checkout === "success" && (
+        <CheckoutStatus
+          tenantId={tenants.length > 0 ? tenants[0].tenant_id : undefined}
+          tenantName={tenants.length > 0 ? (configMap[tenants[0].tenant_id]?.name || tenants[0].tenant_id) : undefined}
+        />
+      )}
 
       {tenants.length === 0 && checkout !== "success" ? (
         <PricingCards userEmail={user?.email || ""} initialPlan={plan} />
-      ) : tenants.length === 0 ? null : (
+      ) : tenants.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {tenants.map((access) => {
             const config = configMap[access.tenant_id];
@@ -90,7 +95,7 @@ export default async function DashboardPage({
             );
           })}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
