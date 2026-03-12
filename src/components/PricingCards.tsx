@@ -33,15 +33,15 @@ const bedriftFeatures = [
   { text: "Dedikert kontaktperson", bold: false },
 ];
 
-// Stripe appearance matching preik dark theme
+// Stripe appearance matching preik theme — light with dark text
 const stripeAppearance = {
-  theme: "night" as const,
+  theme: "flat" as const,
   variables: {
-    colorPrimary: "#52B788",
-    colorBackground: "#0B1F17",
-    colorText: "#E8F0EC",
-    colorTextSecondary: "#A3B8AD",
-    colorTextPlaceholder: "#5C7A6B",
+    colorPrimary: "#2D6A4F",
+    colorBackground: "#FFFFFF",
+    colorText: "#0B1F17",
+    colorTextSecondary: "#405249",
+    colorTextPlaceholder: "#7A8F84",
     colorDanger: "#ef4444",
     fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
     borderRadius: "12px",
@@ -50,34 +50,35 @@ const stripeAppearance = {
   },
   rules: {
     ".Input": {
-      border: "1px solid #1E3A2B",
+      border: "1px solid #D1DBD6",
       boxShadow: "none",
       padding: "12px 16px",
-      backgroundColor: "#0B1F17",
+      backgroundColor: "#FFFFFF",
+      color: "#0B1F17",
     },
     ".Input:focus": {
-      border: "1px solid #52B788",
-      boxShadow: "0 0 0 2px rgba(82, 183, 136, 0.2)",
+      border: "1px solid #2D6A4F",
+      boxShadow: "0 0 0 2px rgba(45, 106, 79, 0.2)",
     },
     ".Label": {
       fontSize: "14px",
       fontWeight: "500",
-      color: "#E8F0EC",
+      color: "#0B1F17",
       marginBottom: "8px",
     },
     ".Tab": {
-      border: "1px solid #1E3A2B",
+      border: "1px solid #D1DBD6",
       boxShadow: "none",
-      backgroundColor: "#0B1F17",
-      color: "#A3B8AD",
+      backgroundColor: "#FFFFFF",
+      color: "#0B1F17",
     },
     ".Tab:hover": {
-      backgroundColor: "#132E21",
+      backgroundColor: "#F5F8F6",
     },
     ".Tab--selected": {
-      border: "1px solid #52B788",
-      backgroundColor: "#132E21",
-      color: "#E8F0EC",
+      border: "1px solid #2D6A4F",
+      backgroundColor: "#F5F8F6",
+      color: "#0B1F17",
     },
   },
 };
