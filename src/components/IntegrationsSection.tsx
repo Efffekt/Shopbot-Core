@@ -7,13 +7,15 @@ const platforms = [
   { name: "Squarespace", logo: "/logos/squarespace.svg" },
   { name: "Webflow", logo: "/logos/webflow.svg" },
   { name: "Framer", logo: "/logos/framer.svg" },
+  { name: "React", logo: "/logos/react.svg" },
+  { name: "Next.js", logo: "/logos/nextjs.svg" },
   { name: "Magento", logo: "/logos/magento.svg" },
   { name: "Egenutviklet", logo: "/logos/code.svg" },
 ];
 
 function PlatformCard({ name, logo }: { name: string; logo: string }) {
   return (
-    <div className="flex-shrink-0 flex flex-col items-center gap-3 py-6 px-6 mx-3 w-36 rounded-2xl border border-preik-border bg-preik-surface">
+    <div className="flex-shrink-0 flex flex-col items-center gap-3 py-6 px-6 mx-3 w-36">
       <img
         src={logo}
         alt={name}
