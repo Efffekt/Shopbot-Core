@@ -1,6 +1,7 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import AccountSettings from "@/components/AccountSettings";
+import DataExportButton from "@/components/DataExportButton";
 import { getCreditStatus } from "@/lib/credits";
 
 interface PageProps {
@@ -136,6 +137,27 @@ export default async function SettingsPage({ params }: PageProps) {
               <p className="text-sm text-preik-text-muted">Kunne ikke hente kredittinformasjon.</p>
             )}
           </div>
+
+          {/* Data Export (GDPR) */}
+          {access.role === "admin" && (
+            <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-preik-accent/10 flex items-center justify-center">
+                  <svg className="w-4.5 h-4.5 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-preik-text">Dataeksport</h2>
+                  <p className="text-xs text-preik-text-muted">GDPR-eksport av alle data</p>
+                </div>
+              </div>
+              <p className="text-sm text-preik-text-muted mb-4">
+                Last ned en komplett eksport av alle samtaler, innhold, innstillinger og kredittbruk som JSON-fil.
+              </p>
+              <DataExportButton tenantId={tenantId} />
+            </div>
+          )}
 
           {/* Support */}
           <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">

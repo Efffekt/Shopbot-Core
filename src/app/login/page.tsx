@@ -45,6 +45,11 @@ function LoginForm() {
   return (
     <div className="bg-preik-surface rounded-2xl border border-preik-border p-8">
       <form onSubmit={handleSubmit} className="space-y-6">
+        {searchParams.get("reason") === "timeout" && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-700 px-4 py-3 rounded-xl text-sm">
+            Du ble logget ut pa grunn av inaktivitet. Logg inn pa nytt.
+          </div>
+        )}
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-3 rounded-xl text-sm">
             {error}

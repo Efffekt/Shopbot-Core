@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase-server";
 import Link from "next/link";
 import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } from "@/lib/admin-emails";
+import SessionTimeout from "@/components/SessionTimeout";
 
 export const metadata: Metadata = {
   title: "Admin – Preik",
@@ -77,6 +78,7 @@ export default async function AdminLayout({
       <main className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {children}
       </main>
+      <SessionTimeout />
     </div>
   );
 }

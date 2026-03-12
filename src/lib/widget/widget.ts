@@ -332,6 +332,7 @@ class PreikChatWidget extends HTMLElement {
   private boundEscapeHandler: ((e: KeyboardEvent) => void) | null = null;
   private mediaQuery: MediaQueryList | null = null;
   private boundMediaHandler: (() => void) | null = null;
+  private boundViewportHandler: (() => void) | null = null;
 
   // DOM references
   private trigger: HTMLButtonElement | null = null;
@@ -405,6 +406,12 @@ class PreikChatWidget extends HTMLElement {
     };
     this.mediaQuery.addEventListener("change", this.boundMediaHandler);
 
+    // Handle iOS virtual keyboard resizing
+    if (window.visualViewport) {
+      this.boundViewportHandler = () => this.handleViewportResize();
+      window.visualViewport.addEventListener("resize", this.boundViewportHandler);
+    }
+
     // Open chat on init if startOpen is true or in contained mode
     if (this.config.startOpen || this.config.contained) {
       // Small delay to ensure rendering is complete
@@ -436,6 +443,10 @@ class PreikChatWidget extends HTMLElement {
       this.mediaQuery.removeEventListener("change", this.boundMediaHandler);
       this.mediaQuery = null;
       this.boundMediaHandler = null;
+    }
+    if (this.boundViewportHandler && window.visualViewport) {
+      window.visualViewport.removeEventListener("resize", this.boundViewportHandler);
+      this.boundViewportHandler = null;
     }
   }
 
@@ -489,6 +500,7 @@ class PreikChatWidget extends HTMLElement {
               aria-label="Message input"
               spellcheck="false"
               autocomplete="off"
+              enterkeyhint="send"
             ></textarea>
             <button class="send-btn" aria-label="Send message" disabled>
               <span class="send-icon">${ICONS.send}</span>
@@ -646,6 +658,30 @@ class PreikChatWidget extends HTMLElement {
     }
   }
 
+  private handleViewportResize() {
+    if (!this.chatWindow || !this.state.isOpen) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    // Only apply on mobile-sized screens (where chat is fullscreen)
+    if (window.innerWidth > 480) return;
+
+    // When keyboard opens, visualViewport.height shrinks.
+    // Resize the chat window to fit above the keyboard.
+    const keyboardHeight = window.innerHeight - vv.height;
+    if (keyboardHeight > 50) {
+      // Keyboard is open
+      this.chatWindow.style.height = `${vv.height}px`;
+      this.chatWindow.style.maxHeight = `${vv.height}px`;
+      // Scroll input into view
+      this.scrollToBottom(true);
+    } else {
+      // Keyboard is closed
+      this.chatWindow.style.height = "";
+      this.chatWindow.style.maxHeight = "";
+    }
+  }
+
   private setupEventListeners() {
     // Trigger button
     this.trigger?.addEventListener("click", () => this.toggleChat());
@@ -686,6 +722,24 @@ class PreikChatWidget extends HTMLElement {
         this.sendMessage();
       }
     });
+
+    // Prevent iOS rubber-band scrolling at boundaries
+    if (this.messagesContainer) {
+      let startY = 0;
+      this.messagesContainer.addEventListener("touchstart", (e) => {
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+      this.messagesContainer.addEventListener("touchmove", (e) => {
+        const el = this.messagesContainer!;
+        const atTop = el.scrollTop <= 0;
+        const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight;
+        const goingDown = e.touches[0].clientY > startY;
+        const goingUp = e.touches[0].clientY < startY;
+        if ((atTop && goingDown) || (atBottom && goingUp)) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+    }
 
     // Onboarding CTA button
     this.shadow.querySelector(".onboarding-cta")?.addEventListener("click", () => this.dismissOnboarding());

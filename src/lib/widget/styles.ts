@@ -84,6 +84,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     /* Trigger Button */
@@ -187,15 +188,16 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
         right: 0;
         bottom: 0;
         width: 100%;
-        height: 100dvh;
         height: 100%;
-        max-height: 100dvh;
         max-height: 100%;
         border-radius: 0;
+        /* Prevent host page scroll-through on iOS */
+        touch-action: pan-y;
+        padding-top: env(safe-area-inset-top, 0px);
       }
 
       .trigger {
-        bottom: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
         right: 16px !important;
         left: auto !important;
         padding: 12px 20px;
@@ -327,6 +329,8 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       flex-direction: column;
       gap: 16px;
       scroll-behavior: smooth;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
 
     /* Empty State */
@@ -497,7 +501,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
 
     /* Input Area */
     .input-area {
-      padding: 16px 20px;
+      padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
       background: var(--widget-surface);
       border-top: 1px solid var(--widget-border);
     }
@@ -523,7 +527,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       border: none;
       background: transparent;
       font-family: var(--widget-font-body);
-      font-size: 15px;
+      font-size: 16px;
       color: var(--widget-text);
       outline: none;
       min-width: 0;

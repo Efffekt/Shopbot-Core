@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase-server";
 import Link from "next/link";
+import SessionTimeout from "@/components/SessionTimeout";
 
 export const metadata: Metadata = {
   title: "Dashboard – Preik",
@@ -55,6 +56,7 @@ export default async function DashboardLayout({
       <main id="main-content" className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 animate-fade-in">
         {children}
       </main>
+      <SessionTimeout />
     </div>
   );
 }

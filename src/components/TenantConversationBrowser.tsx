@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { ConversationRecord, ConversationFeedback, FeedbackCategory } from "@/types/admin";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("TenantConversationBrowser");
@@ -21,9 +22,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 interface TenantConversationBrowserProps {
   tenantId: string;
+  isAdmin?: boolean;
 }
 
-export default function TenantConversationBrowser({ tenantId }: TenantConversationBrowserProps) {
+export default function TenantConversationBrowser({ tenantId, isAdmin = false }: TenantConversationBrowserProps) {
   const [conversations, setConversations] = useState<ConversationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -45,6 +47,12 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+
+  // Delete state
+  const [pendingDeleteSession, setPendingDeleteSession] = useState<string | null>(null);
+  const [pendingDeleteBefore, setPendingDeleteBefore] = useState<string | null>(null);
+  const [deleteBeforeDate, setDeleteBeforeDate] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const fetchFeedback = useCallback(async (convIds: string[]) => {
     if (convIds.length === 0) return;
@@ -138,6 +146,52 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
     }
   }
 
+  async function handleDeleteBySession(sessionId: string) {
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/tenant/${tenantId}/conversations?sessionId=${encodeURIComponent(sessionId)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json();
+        log.error("Failed to delete session:", data.error);
+        return;
+      }
+      // Remove deleted conversations from local state
+      setConversations(prev => prev.filter(c => c.session_id !== sessionId));
+      setExpandedId(null);
+    } catch (error) {
+      log.error("Failed to delete conversation:", error);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleDeleteBefore(dateStr: string) {
+    setDeleting(true);
+    try {
+      const beforeDate = new Date(dateStr);
+      const res = await fetch(
+        `/api/tenant/${tenantId}/conversations?before=${beforeDate.toISOString()}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json();
+        log.error("Failed to delete conversations:", data.error);
+        return;
+      }
+      const data = await res.json();
+      log.info(`Deleted ${data.deleted} conversations before ${dateStr}`);
+      setDeleteBeforeDate("");
+      fetchConversations();
+    } catch (error) {
+      log.error("Failed to delete conversations:", error);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -181,6 +235,25 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
           </button>
         </div>
         <p className="text-xs text-preik-text-muted mt-2">{total} samtaler funnet</p>
+        {isAdmin && (
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-preik-border">
+            <input
+              type="date"
+              value={deleteBeforeDate}
+              onChange={(e) => setDeleteBeforeDate(e.target.value)}
+              className="px-3 py-1.5 bg-preik-bg border border-preik-border rounded-xl text-sm text-preik-text focus:ring-preik-accent focus:border-preik-accent"
+            />
+            <button
+              onClick={() => {
+                if (deleteBeforeDate) setPendingDeleteBefore(deleteBeforeDate);
+              }}
+              disabled={!deleteBeforeDate || deleting}
+              className="px-3 py-1.5 bg-red-500/10 text-red-600 text-sm rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Slett samtaler for dato
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Conversations List */}
@@ -248,7 +321,18 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
                     <p className="text-xs font-medium text-preik-text-muted mb-1">AI-svar:</p>
                     <p className="text-sm text-preik-text whitespace-pre-wrap">{conv.ai_response}</p>
                     {conv.session_id && (
-                      <p className="text-xs text-preik-text-muted mt-2">Session: {conv.session_id}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-preik-text-muted">Session: {conv.session_id}</p>
+                        {isAdmin && (
+                          <button
+                            onClick={() => setPendingDeleteSession(conv.session_id)}
+                            disabled={deleting}
+                            className="px-2 py-1 bg-red-500/10 text-red-600 text-xs rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-40"
+                          >
+                            Slett samtale
+                          </button>
+                        )}
+                      </div>
                     )}
 
                     {conv.metadata && Object.keys(conv.metadata).length > 0 && (() => {
@@ -454,6 +538,29 @@ export default function TenantConversationBrowser({ tenantId }: TenantConversati
           </div>
         </div>
       )}
+      {/* Delete confirmation dialogs */}
+      <ConfirmDialog
+        open={!!pendingDeleteSession}
+        title="Slett samtale"
+        description={`Slett alle meldinger i denne sesjonen? Dette kan ikke angres.`}
+        confirmLabel="Slett"
+        onConfirm={() => {
+          if (pendingDeleteSession) handleDeleteBySession(pendingDeleteSession);
+          setPendingDeleteSession(null);
+        }}
+        onCancel={() => setPendingDeleteSession(null)}
+      />
+      <ConfirmDialog
+        open={!!pendingDeleteBefore}
+        title="Slett samtaler for dato"
+        description={`Slett alle samtaler for ${pendingDeleteBefore ? new Date(pendingDeleteBefore).toLocaleDateString("nb-NO") : ""}? Dette kan ikke angres.`}
+        confirmLabel="Slett"
+        onConfirm={() => {
+          if (pendingDeleteBefore) handleDeleteBefore(pendingDeleteBefore);
+          setPendingDeleteBefore(null);
+        }}
+        onCancel={() => setPendingDeleteBefore(null)}
+      />
     </div>
   );
 }

@@ -27,7 +27,7 @@ export default async function SamtalerPage({ params }: PageProps) {
       <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
         <h1 className="text-2xl font-brand font-light text-preik-text mb-2">Samtaler</h1>
         <p className="text-preik-text-muted mb-6">Se loggen over alle chatsamtaler</p>
-        <TenantConversationBrowser tenantId={tenantId} />
+        <TenantConversationBrowser tenantId={tenantId} isAdmin={access.role === "admin"} />
       </div>
     </div>
   );
