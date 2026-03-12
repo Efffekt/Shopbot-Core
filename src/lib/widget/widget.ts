@@ -461,7 +461,7 @@ class PreikChatWidget extends HTMLElement {
               <span class="brand-name">${this.escapeHtml(this.config.brandName)}</span>
               <span class="status">
                 <span class="status-dot"></span>
-                Online
+                AI-assistent
               </span>
             </div>
           </div>

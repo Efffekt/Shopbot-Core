@@ -30,7 +30,7 @@ export default function PrivacyPage() {
 
         <div className="prose prose-preik text-preik-text-muted space-y-6">
           <p className="text-lg">
-            Sist oppdatert: 1. mars 2026
+            Sist oppdatert: 12. mars 2026
           </p>
 
           <section className="space-y-4">
@@ -145,10 +145,28 @@ export default function PrivacyPage() {
                     <td className="px-4 py-3 border-b border-preik-border">Global (edge)</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 font-medium text-preik-text">Google Ads</td>
-                    <td className="px-4 py-3">Konverteringssporing for annonsering</td>
-                    <td className="px-4 py-3">Cookies, sidevisninger</td>
-                    <td className="px-4 py-3">USA/EU</td>
+                    <td className="px-4 py-3 border-b border-preik-border font-medium text-preik-text">Google Ads</td>
+                    <td className="px-4 py-3 border-b border-preik-border">Konverteringssporing for annonsering</td>
+                    <td className="px-4 py-3 border-b border-preik-border">Cookies, sidevisninger</td>
+                    <td className="px-4 py-3 border-b border-preik-border">USA/EU</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 border-b border-preik-border font-medium text-preik-text">Resend</td>
+                    <td className="px-4 py-3 border-b border-preik-border">E-postutsending (kontaktskjema, varsler)</td>
+                    <td className="px-4 py-3 border-b border-preik-border">E-postadresse, navn, meldingsinnhold</td>
+                    <td className="px-4 py-3 border-b border-preik-border">USA</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 border-b border-preik-border font-medium text-preik-text">Upstash</td>
+                    <td className="px-4 py-3 border-b border-preik-border">Hastighetsbegrensning (rate limiting)</td>
+                    <td className="px-4 py-3 border-b border-preik-border">Anonymisert sesjons-ID, IP-adresse</td>
+                    <td className="px-4 py-3 border-b border-preik-border">EU (Frankfurt)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 font-medium text-preik-text">Firecrawl</td>
+                    <td className="px-4 py-3">Nettskraping for innholdsimport</td>
+                    <td className="px-4 py-3">URL-er oppgitt av kunden</td>
+                    <td className="px-4 py-3">USA</td>
                   </tr>
                 </tbody>
               </table>

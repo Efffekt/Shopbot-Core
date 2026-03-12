@@ -30,7 +30,7 @@ export default function TermsPage() {
 
         <div className="prose prose-preik text-preik-text-muted space-y-6">
           <p className="text-lg">
-            Sist oppdatert: 8. februar 2026
+            Sist oppdatert: 12. mars 2026
           </p>
 
           <section className="space-y-4">
@@ -97,7 +97,28 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-preik-text">8. Oppsigelse</h2>
+            <h2 className="text-xl font-semibold text-preik-text">8. Databehandling og personvern</h2>
+            <p>
+              Preik opptrer som databehandler for personopplysninger som behandles gjennom
+              tjenesten på vegne av kunden (behandlingsansvarlig). Partenes rettigheter og
+              plikter knyttet til personopplysninger er regulert i vår{" "}
+              <Link href="/databehandleravtale" className="text-preik-accent hover:underline">
+                databehandleravtale (DPA)
+              </Link>
+              , som utgjør en integrert del av disse vilkårene.
+            </p>
+            <p>
+              Kunden er ansvarlig for å ha rettslig grunnlag for behandlingen, og for å
+              informere sine sluttbrukere i tråd med GDPR art. 13-14. Se vår{" "}
+              <Link href="/personvern" className="text-preik-accent hover:underline">
+                personvernerklæring
+              </Link>{" "}
+              for fullstendig informasjon om databehandling.
+            </p>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-preik-text">9. Oppsigelse</h2>
             <p>
               Begge parter kan si opp avtalen med 30 dagers skriftlig varsel. Ved oppsigelse
               vil kundens data bli slettet innen 30 dager, med mindre kunden ber om eksport
@@ -106,7 +127,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-preik-text">9. Endringer i vilkårene</h2>
+            <h2 className="text-xl font-semibold text-preik-text">10. Endringer i vilkårene</h2>
             <p>
               Vi kan endre disse vilkårene med 30 dagers varsel. Fortsatt bruk av tjenesten
               etter endringene trer i kraft, anses som aksept av de nye vilkårene.
@@ -114,7 +135,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-preik-text">10. Lovvalg og tvister</h2>
+            <h2 className="text-xl font-semibold text-preik-text">11. Lovvalg og tvister</h2>
             <p>
               Disse vilkårene er underlagt norsk lov. Eventuelle tvister skal søkes løst
               gjennom forhandlinger. Hvis dette ikke fører frem, skal tvisten avgjøres ved
@@ -123,7 +144,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-preik-text">11. Kontakt</h2>
+            <h2 className="text-xl font-semibold text-preik-text">12. Kontakt</h2>
             <p>
               For spørsmål om disse vilkårene, kontakt oss på{" "}
               <a href="mailto:hei@preik.ai" className="text-preik-accent hover:underline">
