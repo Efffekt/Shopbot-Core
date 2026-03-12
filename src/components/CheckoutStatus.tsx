@@ -1,28 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function CheckoutStatus({ tenantId, tenantName }: { tenantId?: string; tenantName?: string }) {
   const router = useRouter();
-  const [polling, setPolling] = useState(!tenantId);
 
   // Poll for tenant creation if not yet provisioned
   useEffect(() => {
-    if (!polling) return;
+    if (tenantId) return;
 
     const interval = setInterval(() => {
       router.refresh();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [polling, router]);
-
-  // Stop polling once tenant appears
-  useEffect(() => {
-    if (tenantId) setPolling(false);
-  }, [tenantId]);
+  }, [tenantId, router]);
 
   return (
     <div className="max-w-lg mx-auto mb-8">
