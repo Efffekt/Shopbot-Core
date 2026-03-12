@@ -35,7 +35,8 @@ export default async function DashboardPage({
   const tenants = (tenantAccess || []) as TenantAccess[];
 
   // If user has exactly one tenant, redirect directly to it
-  if (tenants.length === 1) {
+  // (but not if they just completed checkout — show the onboarding message)
+  if (tenants.length === 1 && checkout !== "success") {
     redirect(`/dashboard/${tenants[0].tenant_id}`);
   }
 
