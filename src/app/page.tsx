@@ -7,6 +7,7 @@ import { DashboardShowcaseSection } from "@/components/DashboardShowcaseSection"
 import { PricingSection } from "@/components/PricingSection";
 
 import { FAQSection } from "@/components/FAQSection";
+import { FinalCTASection } from "@/components/FinalCTASection";
 import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
 
@@ -179,13 +180,13 @@ export default async function Home() {
       <Header isLoggedIn={hasSession} />
       <main id="main-content">
         <HeroSection />
-        <ProcessSection />
         <IntegrationsSection />
+        <ProcessSection />
         <DashboardShowcaseSection />
         <DemoSection />
-
         <PricingSection />
         <FAQSection />
+        <FinalCTASection />
         <ContactSection />
       </main>
       <Footer />

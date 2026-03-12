@@ -23,17 +23,17 @@ export function DashboardShowcaseSection() {
   }, []);
 
   return (
-    <section className="py-32 px-6 bg-preik-accent transition-colors duration-200">
+    <section className="py-32 px-6 bg-preik-bg transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
         <ScrollReveal animation="up">
           <div className="text-center mb-16 md:mb-20">
-            <p className="text-sm font-medium text-white/70 tracking-wide uppercase mb-4">
+            <p className="text-sm font-medium text-preik-text-muted tracking-wide uppercase mb-4">
               Dashboardet
             </p>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-brand font-light text-white mb-6">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-brand font-light text-preik-text mb-6">
               Full kontroll over din AI-assistent
             </h2>
-            <p className="text-lg text-white/70 max-w-xl mx-auto">
+            <p className="text-lg text-preik-text-muted max-w-xl mx-auto">
               Statistikk, samtaler, analyse og integrasjon — alt på ett sted.
             </p>
           </div>
