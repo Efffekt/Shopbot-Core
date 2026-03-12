@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import BlogEditor from "@/components/blog/BlogEditor";
+import { slugify } from "@/lib/slugify";
 
 interface BlogPost {
   id: string;
@@ -42,16 +43,6 @@ const emptyForm: PostForm = {
   published: false,
   cover_image_url: "",
 };
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[æ]/g, "ae")
-    .replace(/[ø]/g, "o")
-    .replace(/[å]/g, "a")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export default function BlogManager() {
   const [posts, setPosts] = useState<BlogPost[]>([]);

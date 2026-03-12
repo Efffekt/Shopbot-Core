@@ -4,6 +4,8 @@ import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS } from "@/lib/admin-emails";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createLogger } from "@/lib/logger";
+import PricingCards from "@/components/PricingCards";
+import CheckoutStatus from "@/components/CheckoutStatus";
 
 const log = createLogger("dashboard");
 
@@ -12,9 +14,14 @@ interface TenantAccess {
   role: string;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string }>;
+}) {
   const user = await getUser();
   const supabase = await createSupabaseServerClient();
+  const { checkout } = await searchParams;
 
   const { data: tenantAccess, error } = await supabase
     .from("tenant_user_access")
@@ -55,14 +62,11 @@ export default async function DashboardPage() {
         Dine prosjekter
       </h1>
 
-      {tenants.length === 0 ? (
-        <div className="bg-preik-accent/10 border border-preik-accent/20 rounded-2xl p-8">
-          <h2 className="text-lg font-medium text-preik-text">Ingen prosjekter</h2>
-          <p className="mt-2 text-preik-text-muted">
-            Du har ikke tilgang til noen prosjekter ennå. Kontakt en administrator for å få tilgang.
-          </p>
-        </div>
-      ) : (
+      {checkout === "success" && <CheckoutStatus />}
+
+      {tenants.length === 0 && checkout !== "success" ? (
+        <PricingCards userEmail={user?.email || ""} />
+      ) : tenants.length === 0 ? null : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {tenants.map((access) => {
             const config = configMap[access.tenant_id];
