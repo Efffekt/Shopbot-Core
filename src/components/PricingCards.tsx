@@ -193,7 +193,7 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
           type="button"
           onClick={() => handlePlanClick("starter")}
           className={`text-left bg-preik-bg rounded-3xl border ${
-            isStarterSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-accent"
+            isStarterSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-border"
           } p-8 relative overflow-hidden flex flex-col h-full transition-all`}
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-preik-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />

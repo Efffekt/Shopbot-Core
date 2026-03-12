@@ -33,9 +33,9 @@ function SignupForm() {
     setLoading(true);
 
     const plan = searchParams.get("plan");
-    const loginUrl = plan
-      ? `${window.location.origin}/login?plan=${plan}`
-      : `${window.location.origin}/login`;
+    const loginParams = new URLSearchParams({ confirmed: "true" });
+    if (plan) loginParams.set("plan", plan);
+    const loginUrl = `${window.location.origin}/login?${loginParams.toString()}`;
 
     const { error } = await supabase.auth.signUp({
       email,
