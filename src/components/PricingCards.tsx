@@ -12,55 +12,24 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
-interface Plan {
-  key: string;
-  name: string;
-  credits: number;
-  priceKr: number;
-  features: string[];
-  popular?: boolean;
-  contactOnly?: boolean;
-}
+const starterFeatures = [
+  "Skreddersydd widget og merkevare",
+  "Opplæring og nettside-skraping",
+  "Avansert innsikt og statistikk",
+  "Flerspråklig (norsk + engelsk)",
+  "Norsk support · GDPR-compliant",
+];
 
-const PLANS: Plan[] = [
-  {
-    key: "starter",
-    name: "Starter",
-    credits: 1000,
-    priceKr: 299,
-    features: [
-      "1 000 AI-kreditter/mnd",
-      "1 chatbot",
-      "E-poststøtte",
-    ],
-  },
-  {
-    key: "pro",
-    name: "Pro",
-    credits: 5000,
-    priceKr: 799,
-    popular: true,
-    features: [
-      "5 000 AI-kreditter/mnd",
-      "Ubegrensede chatbots",
-      "Prioritert støtte",
-      "Analyse-dashboard",
-    ],
-  },
-  {
-    key: "business",
-    name: "Business",
-    credits: 20000,
-    priceKr: 1999,
-    contactOnly: true,
-    features: [
-      "20 000 AI-kreditter/mnd",
-      "Ubegrensede chatbots",
-      "Dedikert støtte",
-      "Analyse-dashboard",
-      "Egendefinert persona",
-    ],
-  },
+const vekstFeatures = [
+  { text: "Alt i Starter", bold: true },
+  { text: "5x meldingsvolum", bold: false },
+  { text: "Prioritert support", bold: false },
+];
+
+const bedriftFeatures = [
+  { text: "Alt i Vekst", bold: true },
+  { text: "Tilpasset meldingsvolum", bold: false },
+  { text: "Dedikert kontaktperson", bold: false },
 ];
 
 interface PricingCardsProps {
@@ -79,12 +48,18 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
   const [error, setError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
 
-  const selected = PLANS.find((p) => p.key === selectedPlan);
-
   const fetchClientSecret = useCallback(async () => {
     if (clientSecret) return clientSecret;
     throw new Error("No client secret available");
   }, [clientSecret]);
+
+  function handlePlanClick(planKey: string) {
+    if (!isLoggedIn) {
+      router.push(`/registrer?plan=${planKey}`);
+      return;
+    }
+    setSelectedPlan(planKey);
+  }
 
   async function handleContinue(e: React.FormEvent) {
     e.preventDefault();
@@ -130,7 +105,7 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
           name: companyName.trim(),
           email: userEmail,
           company: companyName.trim(),
-          message: contactMessage.trim() || `Interessert i Business-planen for ${companyName.trim()}`,
+          message: contactMessage.trim() || `Interessert i Bedrift-planen for ${companyName.trim()}`,
           source: "pricing_business",
         }),
       });
@@ -194,80 +169,161 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
     );
   }
 
+  const isStarterSelected = selectedPlan === "starter";
+  const isVekstSelected = selectedPlan === "pro";
+  const isBedriftSelected = selectedPlan === "business";
+
   return (
     <div>
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-brand font-light text-preik-text">
-          Kom i gang med din AI-chatbot
+      <div className="text-center mb-16">
+        <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
+          Prising
+        </p>
+        <h2 className="text-4xl sm:text-5xl font-brand font-light text-preik-text mb-6">
+          Enkel og transparent
         </h2>
-        <p className="mt-3 text-preik-text-muted">
-          Velg en plan som passer for din bedrift
+        <p className="text-lg text-preik-text-muted max-w-xl mx-auto">
+          Veiledende priser — vi skreddersyr en pakke som passer din bedrift.
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
-        {PLANS.map((plan) => {
-          const isSelected = selectedPlan === plan.key;
-          return (
-            <button
-              key={plan.key}
-              type="button"
-              onClick={() => {
-                if (!isLoggedIn) {
-                  router.push(`/registrer?plan=${plan.key}`);
-                  return;
-                }
-                setSelectedPlan(plan.key);
-              }}
-              className={`relative text-left bg-preik-surface rounded-2xl border-2 p-6 transition-colors ${
-                isSelected
-                  ? "border-preik-accent shadow-lg"
-                  : "border-preik-border hover:border-preik-accent/50"
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-preik-accent text-white text-xs font-semibold px-3 py-1 rounded-full">
-                  Mest populær
-                </span>
-              )}
+      <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        {/* Starter */}
+        <button
+          type="button"
+          onClick={() => handlePlanClick("starter")}
+          className={`text-left bg-preik-bg rounded-3xl border ${
+            isStarterSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-accent"
+          } p-8 relative overflow-hidden flex flex-col h-full transition-all`}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-preik-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
-              <h3 className="text-xl font-semibold text-preik-text">{plan.name}</h3>
+          <div className="relative flex flex-col flex-1">
+            <div className="mb-6 h-7">
+              <span className="inline-block px-4 py-1 rounded-full bg-preik-accent text-sm font-medium text-white">
+                Anbefalt
+              </span>
+            </div>
 
-              <div className="mt-4">
-                {plan.contactOnly ? (
-                  <span className="text-lg font-medium text-preik-text-muted">Ta kontakt</span>
-                ) : (
-                  <>
-                    <span className="text-3xl font-bold text-preik-text">
-                      {plan.priceKr.toLocaleString("nb-NO")}
-                    </span>
-                    <span className="text-preik-text-muted ml-1">kr/mnd</span>
-                  </>
-                )}
-              </div>
+            <h3 className="text-xl font-semibold text-preik-text mb-2">Starter</h3>
 
-              <ul className="mt-6 space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-preik-text-muted">
-                    <svg className="w-4 h-4 text-preik-accent mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+            <div className="mb-1">
+              <span className="text-sm text-preik-text-muted">Fra </span>
+              <span className="text-4xl font-brand font-light text-preik-text">299</span>
+              <span className="text-sm text-preik-text-muted"> kr/mnd</span>
+            </div>
 
-              {isSelected && (
-                <div className="mt-4 text-center text-sm font-medium text-preik-accent">
-                  Valgt
-                </div>
-              )}
-            </button>
-          );
-        })}
+            <p className="text-sm text-preik-text-muted mb-6">1 000 meldinger/mnd</p>
+            <p className="text-preik-text-muted text-sm mb-8">Alt du trenger for å komme i gang</p>
+
+            <ul className="space-y-3 mb-8 flex-1">
+              {starterFeatures.map((feature, index) => (
+                <li key={index} className="flex items-center gap-3 text-preik-text text-sm">
+                  <svg className="w-4 h-4 text-preik-accent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all ${
+              isStarterSelected
+                ? "bg-preik-accent text-white"
+                : "bg-preik-accent text-white hover:bg-preik-accent-hover"
+            }`}>
+              {isStarterSelected ? "Valgt" : "Kom i gang"}
+            </span>
+          </div>
+        </button>
+
+        {/* Vekst */}
+        <button
+          type="button"
+          onClick={() => handlePlanClick("pro")}
+          className={`text-left bg-preik-bg rounded-3xl border ${
+            isVekstSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-border"
+          } p-8 relative overflow-hidden flex flex-col h-full transition-all`}
+        >
+          <div className="relative flex flex-col flex-1">
+            <div className="mb-6 h-7" />
+
+            <h3 className="text-xl font-semibold text-preik-text mb-2">Vekst</h3>
+
+            <div className="mb-1">
+              <span className="text-sm text-preik-text-muted">Fra </span>
+              <span className="text-4xl font-brand font-light text-preik-text">899</span>
+              <span className="text-sm text-preik-text-muted"> kr/mnd</span>
+            </div>
+
+            <p className="text-sm text-preik-text-muted mb-6">5 000 meldinger/mnd</p>
+            <p className="text-preik-text-muted text-sm mb-8">For bedrifter med høyere volum</p>
+
+            <ul className="space-y-3 mb-8 flex-1">
+              {vekstFeatures.map((feature, index) => (
+                <li key={index} className={`flex items-center gap-3 text-preik-text text-sm ${feature.bold ? "font-medium" : ""}`}>
+                  <svg className="w-4 h-4 text-preik-accent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{feature.text}</span>
+                </li>
+              ))}
+            </ul>
+
+            <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all border border-preik-accent ${
+              isVekstSelected
+                ? "bg-preik-accent text-white"
+                : "text-preik-text hover:bg-preik-accent hover:text-white"
+            }`}>
+              {isVekstSelected ? "Valgt" : "Kom i gang"}
+            </span>
+          </div>
+        </button>
+
+        {/* Bedrift */}
+        <button
+          type="button"
+          onClick={() => handlePlanClick("business")}
+          className={`text-left bg-preik-bg rounded-3xl border ${
+            isBedriftSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-border"
+          } p-8 relative overflow-hidden flex flex-col h-full transition-all`}
+        >
+          <div className="relative flex flex-col flex-1">
+            <div className="mb-6 h-7" />
+
+            <h3 className="text-xl font-semibold text-preik-text mb-2">Bedrift</h3>
+
+            <div className="mb-1">
+              <span className="text-4xl font-brand font-light text-preik-text">Tilpasset</span>
+            </div>
+
+            <p className="text-sm text-preik-text-muted mb-6">volum og behov tilpasset deg</p>
+            <p className="text-preik-text-muted text-sm mb-8">For etablerte bedrifter med egne behov</p>
+
+            <ul className="space-y-3 mb-8 flex-1">
+              {bedriftFeatures.map((feature, index) => (
+                <li key={index} className={`flex items-center gap-3 text-preik-text text-sm ${feature.bold ? "font-medium" : ""}`}>
+                  <svg className="w-4 h-4 text-preik-accent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{feature.text}</span>
+                </li>
+              ))}
+            </ul>
+
+            <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all border border-preik-accent ${
+              isBedriftSelected
+                ? "bg-preik-accent text-white"
+                : "text-preik-text hover:bg-preik-accent hover:text-white"
+            }`}>
+              {isBedriftSelected ? "Valgt" : "Kontakt oss for tilbud"}
+            </span>
+          </div>
+        </button>
       </div>
 
-      {selectedPlan && !selected?.contactOnly && (
+      {/* Company name + checkout form for Starter/Vekst */}
+      {(isStarterSelected || isVekstSelected) && (
         <form onSubmit={handleContinue} className="mt-8 max-w-md mx-auto">
           <label htmlFor="companyName" className="block text-sm font-medium text-preik-text mb-2">
             Bedriftsnavn
@@ -298,7 +354,8 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
         </form>
       )}
 
-      {selectedPlan && selected?.contactOnly && (
+      {/* Contact form for Bedrift */}
+      {isBedriftSelected && (
         <form onSubmit={handleContactSubmit} className="mt-8 max-w-md mx-auto">
           <label htmlFor="companyNameBiz" className="block text-sm font-medium text-preik-text mb-2">
             Bedriftsnavn
@@ -341,6 +398,13 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
           </button>
         </form>
       )}
+
+      <p className="text-center text-preik-text-muted text-sm mt-10">
+        Alle priser er veiledende.{" "}
+        <a href="mailto:hei@preik.ai" className="text-preik-accent hover:underline">
+          Vi skreddersyr en pakke for din bedrift.
+        </a>
+      </p>
     </div>
   );
 }

@@ -37,15 +37,14 @@ export const PLANS: Record<string, PlanConfig> = {
     ],
   },
   pro: {
-    name: "Pro",
+    name: "Vekst",
     credits: 5000,
-    priceKr: 799,
+    priceKr: 899,
     priceId: process.env.STRIPE_PRO_PRICE_ID || "",
     features: [
-      "5 000 AI-kreditter/mnd",
-      "Ubegrensede chatbots",
-      "Prioritert støtte",
-      "Analyse-dashboard",
+      "Alt i Starter",
+      "5x meldingsvolum",
+      "Prioritert support",
     ],
   },
   business: {
