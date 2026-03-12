@@ -134,15 +134,25 @@ export async function checkRateLimit(
  * Default rate limit configurations for different endpoints
  */
 export const RATE_LIMITS = {
-  // Chat API: 30 requests per minute per session/IP
+  // Chat API: 10 requests per minute per session/IP
   chat: {
-    maxRequests: 30,
+    maxRequests: 10,
     windowMs: 60 * 1000, // 1 minute
   },
-  // Chat IP-level: 60 requests per minute per IP (catches sessionId spoofing)
+  // Chat IP-level: 20 requests per minute per IP (catches sessionId spoofing)
   chatIp: {
-    maxRequests: 60,
+    maxRequests: 20,
     windowMs: 60 * 1000, // 1 minute
+  },
+  // Chat daily cap per IP per tenant: 100 messages/day (prevents one user draining credits)
+  chatDailyIp: {
+    maxRequests: 100,
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  },
+  // Chat tenant-wide hourly cap: 200 messages/hour (protects against distributed attacks)
+  chatTenant: {
+    maxRequests: 200,
+    windowMs: 60 * 60 * 1000, // 1 hour
   },
   // Ingest API: 5 requests per hour (admin only, but extra protection)
   ingest: {

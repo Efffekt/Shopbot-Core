@@ -533,16 +533,19 @@ export async function POST(request: NextRequest) {
     corsOrigin = requestOrigin || "*";
 
     // === SECURITY: Rate Limiting ===
-    // Two layers: per-session + per-IP (prevents sessionId spoofing bypass)
+    // Four layers: per-session, per-IP burst, per-IP daily, per-tenant hourly
     const clientId = getClientIdentifier(sessionId, request.headers);
     const clientIp = getClientIp(request.headers);
-    const [rateLimit, ipRateLimit] = await Promise.all([
+    const [rateLimit, ipRateLimit, dailyIpLimit, tenantLimit] = await Promise.all([
       checkRateLimit(`chat:${storeId}:${clientId}`, RATE_LIMITS.chat),
       checkRateLimit(`chatIp:${storeId}:ip:${clientIp}`, RATE_LIMITS.chatIp),
+      checkRateLimit(`chatDaily:${storeId}:ip:${clientIp}`, RATE_LIMITS.chatDailyIp),
+      checkRateLimit(`chatTenant:${storeId}`, RATE_LIMITS.chatTenant),
     ]);
 
-    if (!rateLimit.allowed || !ipRateLimit.allowed) {
-      log.warn("Rate limited", { reqId, storeId, clientId, ipBlocked: !ipRateLimit.allowed });
+    if (!rateLimit.allowed || !ipRateLimit.allowed || !dailyIpLimit.allowed || !tenantLimit.allowed) {
+      const blocked = !rateLimit.allowed ? "session" : !ipRateLimit.allowed ? "ip" : !dailyIpLimit.allowed ? "dailyIp" : "tenant";
+      log.warn("Rate limited", { reqId, storeId, clientId, blocked });
       return new Response(
         JSON.stringify({
           error: "Too Many Requests",

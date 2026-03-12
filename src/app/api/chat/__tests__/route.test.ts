@@ -45,8 +45,10 @@ vi.mock("@/lib/ratelimit", () => ({
   getClientIdentifier: mockGetClientIdentifier,
   getClientIp: mockGetClientIp,
   RATE_LIMITS: {
-    chat: { maxRequests: 30, windowMs: 60000 },
-    chatIp: { maxRequests: 60, windowMs: 60000 },
+    chat: { maxRequests: 10, windowMs: 60000 },
+    chatIp: { maxRequests: 20, windowMs: 60000 },
+    chatDailyIp: { maxRequests: 100, windowMs: 86400000 },
+    chatTenant: { maxRequests: 200, windowMs: 3600000 },
   },
 }));
 
@@ -330,7 +332,9 @@ describe("POST /api/chat", () => {
     it("returns 429 when session rate limit exceeded", async () => {
       mockCheckRateLimit
         .mockResolvedValueOnce({ allowed: false, remaining: 0, retryAfterMs: 30000, resetAt: Date.now() + 30000 })
-        .mockResolvedValueOnce({ allowed: true, remaining: 50 });
+        .mockResolvedValueOnce({ allowed: true, remaining: 50, resetAt: Date.now() + 60000 })
+        .mockResolvedValueOnce({ allowed: true, remaining: 90, resetAt: Date.now() + 86400000 })
+        .mockResolvedValueOnce({ allowed: true, remaining: 190, resetAt: Date.now() + 3600000 });
 
       const req = makeRequest(validBody());
       const res = await POST(req);
@@ -343,8 +347,36 @@ describe("POST /api/chat", () => {
 
     it("returns 429 when IP rate limit exceeded", async () => {
       mockCheckRateLimit
-        .mockResolvedValueOnce({ allowed: true, remaining: 29, resetAt: Date.now() + 60000 })
-        .mockResolvedValueOnce({ allowed: false, remaining: 0, retryAfterMs: 30000, resetAt: Date.now() + 30000 });
+        .mockResolvedValueOnce({ allowed: true, remaining: 9, resetAt: Date.now() + 60000 })
+        .mockResolvedValueOnce({ allowed: false, remaining: 0, retryAfterMs: 30000, resetAt: Date.now() + 30000 })
+        .mockResolvedValueOnce({ allowed: true, remaining: 90, resetAt: Date.now() + 86400000 })
+        .mockResolvedValueOnce({ allowed: true, remaining: 190, resetAt: Date.now() + 3600000 });
+
+      const req = makeRequest(validBody());
+      const res = await POST(req);
+
+      expect(res.status).toBe(429);
+    });
+
+    it("returns 429 when daily IP cap exceeded", async () => {
+      mockCheckRateLimit
+        .mockResolvedValueOnce({ allowed: true, remaining: 9, resetAt: Date.now() + 60000 })
+        .mockResolvedValueOnce({ allowed: true, remaining: 19, resetAt: Date.now() + 60000 })
+        .mockResolvedValueOnce({ allowed: false, remaining: 0, retryAfterMs: 3600000, resetAt: Date.now() + 86400000 })
+        .mockResolvedValueOnce({ allowed: true, remaining: 190, resetAt: Date.now() + 3600000 });
+
+      const req = makeRequest(validBody());
+      const res = await POST(req);
+
+      expect(res.status).toBe(429);
+    });
+
+    it("returns 429 when tenant hourly cap exceeded", async () => {
+      mockCheckRateLimit
+        .mockResolvedValueOnce({ allowed: true, remaining: 9, resetAt: Date.now() + 60000 })
+        .mockResolvedValueOnce({ allowed: true, remaining: 19, resetAt: Date.now() + 60000 })
+        .mockResolvedValueOnce({ allowed: true, remaining: 90, resetAt: Date.now() + 86400000 })
+        .mockResolvedValueOnce({ allowed: false, remaining: 0, retryAfterMs: 1800000, resetAt: Date.now() + 3600000 });
 
       const req = makeRequest(validBody());
       const res = await POST(req);
@@ -363,15 +395,15 @@ describe("POST /api/chat", () => {
       expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://baatpleiebutikken.no");
     });
 
-    it("checks both session and IP rate limits in parallel", async () => {
+    it("checks all four rate limit layers in parallel", async () => {
       const req = makeRequest(validBody());
       await POST(req);
 
-      expect(mockCheckRateLimit).toHaveBeenCalledTimes(2);
-      // First call: session-based
+      expect(mockCheckRateLimit).toHaveBeenCalledTimes(4);
       expect(mockCheckRateLimit.mock.calls[0][0]).toContain("chat:");
-      // Second call: IP-based
       expect(mockCheckRateLimit.mock.calls[1][0]).toContain("chatIp:");
+      expect(mockCheckRateLimit.mock.calls[2][0]).toContain("chatDaily:");
+      expect(mockCheckRateLimit.mock.calls[3][0]).toContain("chatTenant:");
     });
   });
 

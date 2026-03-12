@@ -73,7 +73,9 @@ describe("checkRateLimit (in-memory fallback)", () => {
 
 describe("RATE_LIMITS", () => {
   it("has expected presets", () => {
-    expect(RATE_LIMITS.chat.maxRequests).toBe(30);
+    expect(RATE_LIMITS.chat.maxRequests).toBe(10);
+    expect(RATE_LIMITS.chatDailyIp.maxRequests).toBe(100);
+    expect(RATE_LIMITS.chatTenant.maxRequests).toBe(200);
     expect(RATE_LIMITS.ingest.maxRequests).toBe(5);
     expect(RATE_LIMITS.scrape.maxRequests).toBe(3);
     expect(RATE_LIMITS.contact.maxRequests).toBe(5);
