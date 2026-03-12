@@ -1,3 +1,6 @@
+"use client";
+
+import LiquidGlass from "liquid-glass-react";
 import { ScrollReveal } from "./ScrollReveal";
 
 const steps = [
@@ -67,15 +70,25 @@ export function ProcessSection() {
                   </div>
                 )}
 
-                {/* Card */}
-                <div className="relative bg-preik-bg rounded-2xl border border-preik-border p-8 h-full">
-                  {/* Step number badge */}
-                  <div className="absolute -top-3 left-8 md:left-8">
-                    <span className="inline-block px-3 py-0.5 rounded-full bg-preik-accent text-xs font-semibold text-white tracking-wider">
-                      STEG {step.number}
-                    </span>
-                  </div>
+                {/* Step number badge — positioned above the glass card */}
+                <div className="absolute -top-3 left-8 md:left-8 z-10">
+                  <span className="inline-block px-3 py-0.5 rounded-full bg-preik-accent text-xs font-semibold text-white tracking-wider">
+                    STEG {step.number}
+                  </span>
+                </div>
 
+                {/* Liquid Glass Card */}
+                <LiquidGlass
+                  displacementScale={40}
+                  blurAmount={0.05}
+                  saturation={120}
+                  aberrationIntensity={1}
+                  elasticity={0.15}
+                  cornerRadius={16}
+                  overLight
+                  className="h-full"
+                  padding="32px"
+                >
                   {/* Icon */}
                   <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-preik-accent/10 text-preik-accent mb-5 mt-2">
                     {step.icon}
@@ -83,7 +96,7 @@ export function ProcessSection() {
 
                   <h3 className="text-xl font-medium text-preik-text mb-3">{step.title}</h3>
                   <p className="text-preik-text-muted leading-relaxed">{step.description}</p>
-                </div>
+                </LiquidGlass>
               </div>
             </ScrollReveal>
           ))}
