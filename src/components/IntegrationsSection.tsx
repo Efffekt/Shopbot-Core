@@ -50,20 +50,22 @@ export function IntegrationsSection() {
         </ScrollReveal>
 
         <ScrollReveal animation="up" stagger={1}>
-          <div className="relative">
-            {/* Fade edges */}
-            <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-preik-bg to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-preik-bg to-transparent z-10 pointer-events-none" />
+          <div className="relative -mx-6">
+            {/* Fade edges — positioned on the outer wrapper so logos scroll beneath them */}
+            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-preik-bg to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-preik-bg to-transparent z-10 pointer-events-none" />
 
-            {/* Scrolling track */}
-            <div className="flex animate-scroll-x">
-              {platforms.map((p) => (
-                <PlatformCard key={p.name} {...p} />
-              ))}
-              {/* Duplicate for seamless loop */}
-              {platforms.map((p) => (
-                <PlatformCard key={`dup-${p.name}`} {...p} />
-              ))}
+            {/* Scrolling track — overflow hidden so logos clip at the edges */}
+            <div className="overflow-hidden">
+              <div className="flex animate-scroll-x">
+                {platforms.map((p) => (
+                  <PlatformCard key={p.name} {...p} />
+                ))}
+                {/* Duplicate for seamless loop */}
+                {platforms.map((p) => (
+                  <PlatformCard key={`dup-${p.name}`} {...p} />
+                ))}
+              </div>
             </div>
           </div>
         </ScrollReveal>
