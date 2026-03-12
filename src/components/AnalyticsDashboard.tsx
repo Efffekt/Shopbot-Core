@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -94,9 +94,7 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
         const json = await res.json();
         if (res.ok && json.tenants?.length > 0) {
           setAvailableTenants(json.tenants);
-          if (!selectedTenant) {
-            setSelectedTenant(json.tenants[0].id);
-          }
+          setSelectedTenant((prev) => prev || json.tenants[0].id);
         } else {
           setIsLoading(false);
           setError("Ingen kunder tilgjengelig for analyse");
@@ -109,7 +107,7 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
     fetchTenants();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError("");
 
@@ -135,13 +133,13 @@ export default function AnalyticsDashboard({ selectedTenantId, selectedTenantNam
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedTenant, days]);
 
   useEffect(() => {
     if (selectedTenant) {
       fetchData();
     }
-  }, [days, selectedTenant]);
+  }, [fetchData, selectedTenant]);
 
   const chartData = useMemo(() =>
     data?.dailyVolume.map((d) => ({
@@ -402,11 +400,7 @@ function CreditUsageLog({ tenantId }: { tenantId: string }) {
   const [sortKey, setSortKey] = useState<CreditSortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  useEffect(() => {
-    fetchLogs();
-  }, [tenantId]);
-
-  async function fetchLogs() {
+  const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/credit-log?tenantId=${tenantId}&days=30&limit=50`);
@@ -418,7 +412,11 @@ function CreditUsageLog({ tenantId }: { tenantId: string }) {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const sortedLogs = useMemo(() => {
     return [...logs].sort((a, b) => {

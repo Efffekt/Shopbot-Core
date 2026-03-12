@@ -30,7 +30,7 @@ export default function CookiePolicyPage() {
 
         <div className="prose prose-preik text-preik-text-muted space-y-6">
           <p className="text-lg">
-            Sist oppdatert: 1. mars 2026
+            Sist oppdatert: 12. mars 2026
           </p>
 
           <section className="space-y-4">
@@ -46,8 +46,11 @@ export default function CookiePolicyPage() {
             <h2 className="text-xl font-semibold text-preik-text">Hvilke informasjonskapsler bruker vi?</h2>
             <p>
               Preik bruker <strong className="text-preik-text">nødvendige informasjonskapsler</strong> for
-              autentisering, samt <strong className="text-preik-text">markedsføringscookies</strong> fra
+              autentisering, <strong className="text-preik-text">analysecookies</strong> fra
+              Vercel Analytics for anonym trafikkmåling, samt{" "}
+              <strong className="text-preik-text">markedsføringscookies</strong> fra
               Google Ads for å måle effekten av annonsekampanjer.
+              Analyse- og markedsføringscookies krever samtykke.
             </p>
           </section>
 
@@ -83,6 +86,22 @@ export default function CookiePolicyPage() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-preik-text">Analysecookies (Vercel Analytics)</h2>
+            <p>
+              Vi bruker Vercel Web Analytics for anonym trafikkmåling. Denne tjenesten samler
+              inn sidevisninger, referanse-URL og enhetsinformasjon uten å bruke tradisjonelle
+              informasjonskapsler. Dataene er anonyme og kan ikke spores tilbake til enkeltpersoner.
+            </p>
+            <p>
+              Vercel Analytics aktiveres kun etter at du har gitt samtykke via cookie-banneret.
+              Data behandles av Vercel i henhold til{" "}
+              <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-preik-accent hover:underline">
+                Vercels personvernerklæring
+              </a>.
+            </p>
           </section>
 
           <section className="space-y-4">

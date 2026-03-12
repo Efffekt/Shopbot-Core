@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import BlogEditor from "@/components/blog/BlogEditor";
 
 interface BlogPost {
@@ -303,10 +304,13 @@ export default function BlogManager() {
             <label className="block text-sm font-medium text-preik-text mb-1">Coverbilde</label>
             {form.cover_image_url && (
               <div className="mb-2 relative inline-block">
-                <img
+                <Image
                   src={form.cover_image_url}
                   alt={form.title || "Coverbilde"}
-                  className="max-h-40 rounded-xl border border-preik-border"
+                  width={320}
+                  height={160}
+                  className="max-h-40 w-auto rounded-xl border border-preik-border"
+                  unoptimized
                 />
                 <button
                   type="button"

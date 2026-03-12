@@ -17,11 +17,7 @@ export default function AdminPromptEditor({ tenantId }: AdminPromptEditorProps) 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "unsaved">("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    fetchPrompt();
-  }, [tenantId]);
-
-  async function fetchPrompt() {
+  const fetchPrompt = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/tenants/${tenantId}/prompt`);
@@ -40,7 +36,11 @@ export default function AdminPromptEditor({ tenantId }: AdminPromptEditorProps) 
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchPrompt();
+  }, [fetchPrompt]);
 
   const savePrompt = useCallback(async (text: string) => {
     setSaveStatus("saving");

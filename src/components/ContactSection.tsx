@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import { ScrollReveal } from "./ScrollReveal";
 
 export function ContactSection() {
@@ -159,6 +160,13 @@ export function ContactSection() {
                   {status === "error" && (
                     <p role="alert" className="text-red-500 text-sm">Noe gikk galt. Prøv igjen eller send e-post direkte.</p>
                   )}
+
+                  <p className="text-xs text-preik-text-muted">
+                    Ved innsending godtar du vår{" "}
+                    <Link href="/personvern" className="text-preik-accent hover:underline">
+                      personvernerklæring
+                    </Link>. Vi lagrer henvendelsen i 180 dager.
+                  </p>
 
                   <button
                     type="submit"

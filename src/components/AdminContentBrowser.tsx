@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { createLogger } from "@/lib/logger";
 
@@ -25,11 +25,7 @@ export default function AdminContentBrowser({ tenantId }: AdminContentBrowserPro
   const [deleting, setDeleting] = useState<string | null>(null);
   const [pendingDeleteSource, setPendingDeleteSource] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchContent();
-  }, [tenantId]);
-
-  async function fetchContent() {
+  const fetchContent = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/tenants/${tenantId}/content?grouped=true`);
@@ -41,7 +37,11 @@ export default function AdminContentBrowser({ tenantId }: AdminContentBrowserPro
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchContent();
+  }, [fetchContent]);
 
   async function handleDelete(source: string) {
     setDeleting(source);
