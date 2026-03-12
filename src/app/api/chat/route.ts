@@ -883,7 +883,6 @@ export async function POST(request: NextRequest) {
     // NO_CONTEXT:   systemPrompt → noContextRules → securityFooter
     // SIMPLE:       systemPrompt → simpleMessage → securityFooter
     let fullSystemPrompt: string;
-    let promptPath: string;
     if (context) {
       // When context docs exist, the question IS on-topic.
       // Strip canned rejection templates from tenant prompt to prevent GPT-4o-mini
@@ -906,13 +905,10 @@ export async function POST(request: NextRequest) {
         urlAllowlist,
         guardrails.securityFooter,
       ].filter(Boolean).join("\n\n");
-      promptPath = "WITH_CONTEXT";
     } else if (!isSimpleMessage) {
       fullSystemPrompt = [systemPrompt, guardrails.noContextRules, guardrails.securityFooter].join("\n\n");
-      promptPath = "NO_CONTEXT";
     } else {
       fullSystemPrompt = [systemPrompt, guardrails.simpleMessage, guardrails.securityFooter].join("\n\n");
-      promptPath = "SIMPLE_MESSAGE";
     }
     // Build URL allowlist Set for response sanitization
     const allowedUrlSet = new Set(availableUrls);
