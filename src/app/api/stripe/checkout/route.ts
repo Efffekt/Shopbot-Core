@@ -84,14 +84,21 @@ export async function POST(request: NextRequest) {
         companyName: trimmedName,
         plan,
       },
-      expand: ["latest_invoice.payment_intent"],
     });
 
-    // Extract client_secret from the expanded payment intent
-    const invoice = subscription.latest_invoice as unknown as Record<string, unknown> | null;
-    if (!invoice || typeof invoice === "string") {
-      throw new Error("Expected expanded invoice");
+    // Retrieve the latest invoice with payment_intent expanded
+    const invoiceId = typeof subscription.latest_invoice === "string"
+      ? subscription.latest_invoice
+      : subscription.latest_invoice?.id;
+
+    if (!invoiceId) {
+      throw new Error("No invoice on subscription");
     }
+
+    const invoice = await stripe.invoices.retrieve(invoiceId, {
+      expand: ["payment_intent"],
+    }) as unknown as Record<string, unknown>;
+
     const paymentIntent = invoice.payment_intent as Record<string, unknown> | null;
     if (!paymentIntent || typeof paymentIntent === "string") {
       throw new Error("Expected expanded payment_intent");
