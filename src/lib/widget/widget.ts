@@ -496,7 +496,7 @@ class PreikChatWidget extends HTMLElement {
             </button>
           </div>
           <div class="watermark-row">
-            <a href="${this.escapeHtml(this.config.privacyUrl || "https://preik.ai/personvern")}" target="_blank" rel="noopener noreferrer" class="watermark">Personvern</a><span class="watermark-sep">·</span>
+            ${this.config.privacyUrl ? `<a href="${this.escapeHtml(this.config.privacyUrl)}" target="_blank" rel="noopener noreferrer" class="watermark">Personvern</a><span class="watermark-sep">·</span>` : ""}
             <a href="https://preik.ai" target="_blank" rel="noopener noreferrer" class="watermark">Levert av <span class="watermark-brand">preik</span></a>
           </div>
         </div>
