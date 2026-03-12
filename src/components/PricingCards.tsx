@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   EmbeddedCheckoutProvider,
@@ -62,8 +63,15 @@ const PLANS: Plan[] = [
   },
 ];
 
-export default function PricingCards({ userEmail }: { userEmail: string }) {
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+interface PricingCardsProps {
+  userEmail?: string;
+  initialPlan?: string;
+}
+
+export default function PricingCards({ userEmail, initialPlan }: PricingCardsProps) {
+  const router = useRouter();
+  const isLoggedIn = !!userEmail;
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(initialPlan || null);
   const [companyName, setCompanyName] = useState("");
   const [contactMessage, setContactMessage] = useState("");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -204,7 +212,13 @@ export default function PricingCards({ userEmail }: { userEmail: string }) {
             <button
               key={plan.key}
               type="button"
-              onClick={() => setSelectedPlan(plan.key)}
+              onClick={() => {
+                if (!isLoggedIn && !plan.contactOnly) {
+                  router.push(`/registrer?plan=${plan.key}`);
+                  return;
+                }
+                setSelectedPlan(plan.key);
+              }}
               className={`relative text-left bg-preik-surface rounded-2xl border-2 p-6 transition-colors ${
                 isSelected
                   ? "border-preik-accent shadow-lg"

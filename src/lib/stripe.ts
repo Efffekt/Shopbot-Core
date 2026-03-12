@@ -1,13 +1,20 @@
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing STRIPE_SECRET_KEY environment variable");
-}
+// Lazy init — won't crash at build time if key is missing
+let stripeClient: Stripe | null = null;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2026-02-25.clover",
-  typescript: true,
-});
+export function getStripe(): Stripe {
+  if (stripeClient) return stripeClient;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    throw new Error("Missing STRIPE_SECRET_KEY environment variable");
+  }
+  stripeClient = new Stripe(key, {
+    apiVersion: "2026-02-25.clover",
+    typescript: true,
+  });
+  return stripeClient;
+}
 
 export interface PlanConfig {
   name: string;

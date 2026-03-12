@@ -31,8 +31,12 @@ function LoginForm() {
     }
 
     const redirectParam = searchParams.get("redirect");
+    const planParam = searchParams.get("plan");
+
     if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) {
       router.push(redirectParam);
+    } else if (planParam) {
+      router.push(`/dashboard?plan=${planParam}`);
     } else {
       // Determine redirect server-side (keeps admin emails out of client bundle)
       const res = await fetch("/api/auth/post-login");
@@ -118,7 +122,7 @@ function LoginForm() {
         <p className="text-sm text-preik-text-muted">
           Har du ikke en konto?{" "}
           <Link
-            href="/registrer"
+            href={searchParams.get("plan") ? `/registrer?plan=${searchParams.get("plan")}` : "/registrer"}
             className="text-preik-accent hover:text-preik-accent-hover font-medium transition-colors"
           >
             Opprett konto

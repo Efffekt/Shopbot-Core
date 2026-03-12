@@ -32,11 +32,16 @@ function SignupForm() {
 
     setLoading(true);
 
+    const plan = searchParams.get("plan");
+    const loginUrl = plan
+      ? `${window.location.origin}/login?plan=${plan}`
+      : `${window.location.origin}/login`;
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/login`,
+        emailRedirectTo: loginUrl,
       },
     });
 
@@ -170,7 +175,7 @@ function SignupForm() {
         <p className="text-sm text-preik-text-muted">
           Har du allerede en konto?{" "}
           <Link
-            href="/login"
+            href={searchParams.get("plan") ? `/login?plan=${searchParams.get("plan")}` : "/login"}
             className="text-preik-accent hover:text-preik-accent-hover font-medium transition-colors"
           >
             Logg inn

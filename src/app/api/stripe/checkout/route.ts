@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { stripe, PLANS } from "@/lib/stripe";
+import { getStripe, PLANS } from "@/lib/stripe";
 import { slugify } from "@/lib/slugify";
 import { createLogger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-content-type";
@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
     }
 
     const selectedPlan = PLANS[plan];
+
+    const stripe = getStripe();
 
     // Create Stripe customer
     const customer = await stripe.customers.create({

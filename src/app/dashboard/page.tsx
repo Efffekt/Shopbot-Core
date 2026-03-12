@@ -17,11 +17,11 @@ interface TenantAccess {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout?: string }>;
+  searchParams: Promise<{ checkout?: string; plan?: string }>;
 }) {
   const user = await getUser();
   const supabase = await createSupabaseServerClient();
-  const { checkout } = await searchParams;
+  const { checkout, plan } = await searchParams;
 
   const { data: tenantAccess, error } = await supabase
     .from("tenant_user_access")
@@ -65,7 +65,7 @@ export default async function DashboardPage({
       {checkout === "success" && <CheckoutStatus />}
 
       {tenants.length === 0 && checkout !== "success" ? (
-        <PricingCards userEmail={user?.email || ""} />
+        <PricingCards userEmail={user?.email || ""} initialPlan={plan} />
       ) : tenants.length === 0 ? null : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {tenants.map((access) => {
