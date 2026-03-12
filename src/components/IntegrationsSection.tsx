@@ -33,13 +33,27 @@ function PlatformCard({ name, logo }: { name: string; logo: string }) {
 
 export function IntegrationsSection() {
   return (
-    <section className="py-12 px-6 bg-preik-bg transition-colors duration-200 overflow-hidden">
+    <section className="py-32 px-6 bg-preik-surface transition-colors duration-200 overflow-hidden">
       <div className="max-w-5xl mx-auto">
         <ScrollReveal animation="up">
+          <div className="text-center mb-16">
+            <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
+              Kompatibilitet
+            </p>
+            <h2 className="text-4xl sm:text-5xl font-brand font-light text-preik-text mb-6">
+              Fungerer overalt
+            </h2>
+            <p className="text-lg text-preik-text-muted max-w-xl mx-auto">
+              Preik integreres med alle plattformer via en enkel kode-snippet. Ingen plugins, ingen avhengigheter.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal animation="up" stagger={1}>
           <div className="relative -mx-6">
             {/* Fade edges — positioned on the outer wrapper so logos scroll beneath them */}
-            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-preik-bg to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-preik-bg to-transparent z-10 pointer-events-none" />
+            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-preik-surface to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-preik-surface to-transparent z-10 pointer-events-none" />
 
             {/* Scrolling track — overflow hidden so logos clip at the edges */}
             <div className="overflow-hidden">
@@ -56,8 +70,8 @@ export function IntegrationsSection() {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal animation="up" stagger={1}>
-          <p className="text-center text-preik-text-muted text-sm mt-6">
+        <ScrollReveal animation="up" stagger={2}>
+          <p className="text-center text-preik-text-muted text-sm mt-10">
             Fungerer med alle nettsider som støtter JavaScript — fra egenutviklede løsninger til CMS-plattformer.
           </p>
         </ScrollReveal>

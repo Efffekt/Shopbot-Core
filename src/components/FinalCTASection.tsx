@@ -2,7 +2,7 @@ import { ScrollReveal } from "./ScrollReveal";
 
 export function FinalCTASection() {
   return (
-    <section className="py-24 px-6 bg-preik-bg transition-colors duration-200">
+    <section className="py-24 px-6 bg-preik-surface transition-colors duration-200">
       <div className="max-w-3xl mx-auto text-center">
         <ScrollReveal animation="up">
           <h2 className="text-4xl sm:text-5xl font-brand font-light text-preik-text mb-6">
@@ -17,9 +17,9 @@ export function FinalCTASection() {
         <ScrollReveal animation="scale" delay={200}>
           <a
             href="/registrer"
-            className="inline-flex items-center justify-center rounded-full bg-preik-accent px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-preik-accent focus:ring-offset-2 focus:ring-offset-preik-bg"
+            className="inline-flex items-center justify-center rounded-full bg-preik-accent px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-preik-accent focus:ring-offset-2 focus:ring-offset-preik-surface"
           >
-            Start gratis i dag
+            Kom i gang fra 299 kr/mnd
           </a>
         </ScrollReveal>
       </div>

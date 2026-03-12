@@ -39,7 +39,7 @@ export function ContactSection() {
   }
 
   return (
-    <section id="kontakt" className="py-32 px-6 bg-preik-surface transition-colors duration-200">
+    <section id="kontakt" className="py-32 px-6 bg-preik-bg transition-colors duration-200">
       <div className="max-w-5xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-16">
           {/* Left - Info */}
