@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
-      case "checkout.session.completed":
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+      case "invoice.paid":
+        await handleInvoicePaid(event.data.object as unknown as Record<string, unknown>);
         break;
 
       case "customer.subscription.deleted":
@@ -54,17 +54,48 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const { userId, userEmail, tenantSlug, companyName, plan } = session.metadata || {};
+async function handleInvoicePaid(invoiceData: Record<string, unknown>) {
+  // Only provision on the first invoice (subscription creation)
+  if (invoiceData.billing_reason !== "subscription_create") {
+    log.info("Skipping non-creation invoice", { billingReason: invoiceData.billing_reason });
+    return;
+  }
+
+  const sub = invoiceData.subscription;
+  const subscriptionId = typeof sub === "string" ? sub : (sub as { id?: string })?.id;
+
+  if (!subscriptionId) {
+    log.error("No subscription on invoice", { invoiceId: invoiceData.id });
+    return;
+  }
+
+  const customerId = invoiceData.customer;
+
+  // Fetch subscription to get metadata
+  const stripe = getStripe();
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const { userId, userEmail, tenantSlug, companyName, plan } = subscription.metadata || {};
 
   if (!userId || !userEmail || !tenantSlug || !companyName || !plan) {
-    log.error("Missing metadata in checkout session", { sessionId: session.id });
+    log.error("Missing metadata on subscription", { subscriptionId });
     return;
   }
 
   const planConfig = PLANS[plan];
   if (!planConfig) {
-    log.error("Unknown plan in checkout metadata", { plan, sessionId: session.id });
+    log.error("Unknown plan in subscription metadata", { plan, subscriptionId });
+    return;
+  }
+
+  // Check if tenant already exists (idempotency)
+  const { data: existingTenant } = await supabaseAdmin
+    .from("tenants")
+    .select("id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .single();
+
+  if (existingTenant) {
+    log.info("Tenant already exists for subscription, skipping", { subscriptionId });
     return;
   }
 
@@ -95,8 +126,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       credit_limit: planConfig.credits,
       credits_used: 0,
       billing_cycle_start: new Date().toISOString(),
-      stripe_customer_id: session.customer as string,
-      stripe_subscription_id: session.subscription as string,
+      stripe_customer_id: typeof customerId === "string" ? customerId : String(customerId),
+      stripe_subscription_id: subscriptionId,
       stripe_plan: plan,
       features: {
         synonymMapping: false,
@@ -106,7 +137,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
   if (tenantError) {
-    log.error("Failed to create tenant from checkout:", tenantError);
+    log.error("Failed to create tenant from invoice:", tenantError);
     throw new Error(`Tenant creation failed: ${tenantError.message}`);
   }
 
@@ -121,7 +152,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (accessError) {
     log.error("Failed to grant tenant access:", accessError);
-    // Tenant was created, so don't throw — log and continue
   }
 
   logAudit({
@@ -129,7 +159,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     action: "create",
     entityType: "tenant",
     entityId: finalSlug,
-    details: { plan, source: "stripe_checkout", stripeSessionId: session.id },
+    details: { plan, source: "stripe_payment", subscriptionId },
   });
 
   sendWelcomeEmail({
@@ -140,7 +170,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     log.warn("Failed to send welcome email", { error: err as Error });
   });
 
-  log.info("Tenant provisioned via Stripe checkout", { tenantId: finalSlug, plan, userId });
+  log.info("Tenant provisioned via Stripe payment", { tenantId: finalSlug, plan, userId });
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -183,7 +213,6 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     return;
   }
 
-  // Check if the price changed
   const newPriceId = subscription.items.data[0]?.price?.id;
   if (!newPriceId) return;
 

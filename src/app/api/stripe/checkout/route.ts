@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
     }
 
     const selectedPlan = PLANS[plan];
-
     const stripe = getStripe();
 
     // Create Stripe customer
@@ -72,17 +71,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create embedded Checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Create incomplete subscription — Payment Element will confirm it
+    const subscription = await stripe.subscriptions.create({
       customer: customer.id,
-      mode: "subscription",
-      ui_mode: "embedded",
-      line_items: [
-        {
-          price: selectedPlan.priceId,
-          quantity: 1,
-        },
-      ],
+      items: [{ price: selectedPlan.priceId }],
+      payment_behavior: "default_incomplete",
+      payment_settings: { save_default_payment_method: "on_subscription" },
       metadata: {
         userId: user.id,
         userEmail: user.email,
@@ -90,10 +84,23 @@ export async function POST(request: NextRequest) {
         companyName: trimmedName,
         plan,
       },
-      return_url: `${request.nextUrl.origin}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      expand: ["latest_invoice.payment_intent"],
     });
 
-    return NextResponse.json({ clientSecret: session.client_secret });
+    // Extract client_secret from the expanded payment intent
+    const invoice = subscription.latest_invoice as unknown as Record<string, unknown> | null;
+    if (!invoice || typeof invoice === "string") {
+      throw new Error("Expected expanded invoice");
+    }
+    const paymentIntent = invoice.payment_intent as Record<string, unknown> | null;
+    if (!paymentIntent || typeof paymentIntent === "string") {
+      throw new Error("Expected expanded payment_intent");
+    }
+
+    return NextResponse.json({
+      clientSecret: paymentIntent.client_secret as string,
+      subscriptionId: subscription.id,
+    });
   } catch (error) {
     log.error("Checkout session creation failed:", error);
     return NextResponse.json({ error: "Kunne ikke opprette betalingsøkt" }, { status: 500 });

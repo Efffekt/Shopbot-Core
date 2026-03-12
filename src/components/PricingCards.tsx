@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import {
-  EmbeddedCheckoutProvider,
-  EmbeddedCheckout,
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
 } from "@stripe/react-stripe-js";
 
 const stripePromise = loadStripe(
@@ -32,9 +34,115 @@ const bedriftFeatures = [
   { text: "Dedikert kontaktperson", bold: false },
 ];
 
+// Stripe appearance matching preik theme
+const stripeAppearance = {
+  theme: "flat" as const,
+  variables: {
+    colorPrimary: "#2D6A4F",
+    colorBackground: "#FFFFFF",
+    colorText: "#0B1F17",
+    colorTextSecondary: "#405249",
+    colorTextPlaceholder: "#405249",
+    colorDanger: "#ef4444",
+    fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+    borderRadius: "12px",
+    spacingUnit: "4px",
+    fontSizeBase: "15px",
+  },
+  rules: {
+    ".Input": {
+      border: "1px solid #D1DBD6",
+      boxShadow: "none",
+      padding: "12px 16px",
+    },
+    ".Input:focus": {
+      border: "1px solid #2D6A4F",
+      boxShadow: "0 0 0 2px rgba(45, 106, 79, 0.2)",
+    },
+    ".Label": {
+      fontSize: "14px",
+      fontWeight: "500",
+      color: "#0B1F17",
+      marginBottom: "8px",
+    },
+    ".Tab": {
+      border: "1px solid #D1DBD6",
+      boxShadow: "none",
+    },
+    ".Tab--selected": {
+      border: "1px solid #2D6A4F",
+      backgroundColor: "rgba(45, 106, 79, 0.05)",
+    },
+  },
+};
+
 interface PricingCardsProps {
   userEmail?: string;
   initialPlan?: string;
+}
+
+function PaymentForm({ onBack }: { onBack: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setLoading(true);
+    setError(null);
+
+    const { error: submitError } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/dashboard?checkout=success`,
+      },
+    });
+
+    // Only reaches here if there's an error (otherwise redirects)
+    if (submitError) {
+      setError(submitError.message || "Betalingen feilet. Prøv igjen.");
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-6 text-sm text-preik-text-muted hover:text-preik-text transition-colors"
+      >
+        &larr; Tilbake til planoversikt
+      </button>
+      <div className="max-w-md mx-auto">
+        <div className="bg-preik-surface rounded-3xl border border-preik-border p-8">
+          <h3 className="text-lg font-semibold text-preik-text mb-6">Betalingsinformasjon</h3>
+          <form onSubmit={handleSubmit}>
+            <PaymentElement
+              options={{
+                layout: "tabs",
+              }}
+            />
+
+            {error && (
+              <p className="mt-4 text-sm text-red-500">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={!stripe || loading}
+              className="mt-6 w-full py-3.5 px-6 rounded-xl bg-preik-accent text-white font-semibold hover:bg-preik-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Behandler..." : "Betal og start"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function PricingCards({ userEmail, initialPlan }: PricingCardsProps) {
@@ -47,11 +155,6 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
   const [contactSent, setContactSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
-
-  const fetchClientSecret = useCallback(async () => {
-    if (clientSecret) return clientSecret;
-    throw new Error("No client secret available");
-  }, [clientSecret]);
 
   function handlePlanClick(planKey: string) {
     if (!isLoggedIn) {
@@ -124,26 +227,19 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
     }
   }
 
-  // Embedded Stripe checkout view
+  // Payment Element view
   if (clientSecret && selectedPlan) {
     return (
-      <div>
-        <button
-          type="button"
-          onClick={() => setClientSecret(null)}
-          className="mb-6 text-sm text-preik-text-muted hover:text-preik-text transition-colors"
-        >
-          &larr; Tilbake til planoversikt
-        </button>
-        <div className="max-w-2xl mx-auto">
-          <EmbeddedCheckoutProvider
-            stripe={stripePromise}
-            options={{ fetchClientSecret }}
-          >
-            <EmbeddedCheckout />
-          </EmbeddedCheckoutProvider>
-        </div>
-      </div>
+      <Elements
+        stripe={stripePromise}
+        options={{
+          clientSecret,
+          appearance: stripeAppearance,
+          locale: "no",
+        }}
+      >
+        <PaymentForm onBack={() => setClientSecret(null)} />
+      </Elements>
     );
   }
 
