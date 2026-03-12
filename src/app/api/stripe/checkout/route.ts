@@ -99,9 +99,14 @@ export async function POST(request: NextRequest) {
       expand: ["payment_intent"],
     }) as unknown as Record<string, unknown>;
 
-    const paymentIntent = invoice.payment_intent as Record<string, unknown> | null;
-    if (!paymentIntent || typeof paymentIntent === "string") {
-      throw new Error("Expected expanded payment_intent");
+    const paymentIntent = invoice.payment_intent as Record<string, unknown> | string | null;
+    if (!paymentIntent) {
+      log.error("No payment_intent on invoice", { invoiceId, invoiceStatus: invoice.status });
+      throw new Error("No payment_intent on invoice");
+    }
+    if (typeof paymentIntent === "string") {
+      log.error("payment_intent not expanded (got string ID)", { paymentIntent, invoiceId });
+      throw new Error("payment_intent not expanded");
     }
 
     return NextResponse.json({
