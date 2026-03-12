@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import {
-  Elements,
+  CheckoutProvider,
   PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
+  useCheckout,
+} from "@stripe/react-stripe-js/checkout";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -82,28 +81,24 @@ interface PricingCardsProps {
 }
 
 function PaymentForm({ onBack }: { onBack: () => void }) {
-  const stripe = useStripe();
-  const elements = useElements();
+  const checkoutResult = useCheckout();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isReady = checkoutResult.type === "success";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (checkoutResult.type !== "success") return;
 
     setLoading(true);
     setError(null);
 
-    const { error: submitError } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/dashboard?checkout=success`,
-      },
-    });
+    const result = await checkoutResult.checkout.confirm();
 
     // Only reaches here if there's an error (otherwise redirects)
-    if (submitError) {
-      setError(submitError.message || "Betalingen feilet. Prøv igjen.");
+    if (result.type === "error") {
+      setError(result.error.message || "Betalingen feilet. Prøv igjen.");
     }
     setLoading(false);
   }
@@ -133,7 +128,7 @@ function PaymentForm({ onBack }: { onBack: () => void }) {
 
             <button
               type="submit"
-              disabled={!stripe || loading}
+              disabled={!isReady || loading}
               className="mt-6 w-full py-3.5 px-6 rounded-xl bg-preik-accent text-white font-semibold hover:bg-preik-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Behandler..." : "Betal og start"}
@@ -230,16 +225,17 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
   // Payment Element view
   if (clientSecret && selectedPlan) {
     return (
-      <Elements
+      <CheckoutProvider
         stripe={stripePromise}
         options={{
           clientSecret,
-          appearance: stripeAppearance,
-          locale: "no",
+          elementsOptions: {
+            appearance: stripeAppearance,
+          },
         }}
       >
         <PaymentForm onBack={() => setClientSecret(null)} />
-      </Elements>
+      </CheckoutProvider>
     );
   }
 

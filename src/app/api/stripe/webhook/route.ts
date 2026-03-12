@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
-      case "invoice.paid":
-        await handleInvoicePaid(event.data.object as unknown as Record<string, unknown>);
+      case "checkout.session.completed":
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
         break;
 
       case "customer.subscription.deleted":
@@ -54,36 +54,36 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-async function handleInvoicePaid(invoiceData: Record<string, unknown>) {
-  // Only provision on the first invoice (subscription creation)
-  if (invoiceData.billing_reason !== "subscription_create") {
-    log.info("Skipping non-creation invoice", { billingReason: invoiceData.billing_reason });
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  // Only handle subscription checkouts
+  if (session.mode !== "subscription") {
+    log.info("Skipping non-subscription checkout", { mode: session.mode });
     return;
   }
 
-  const sub = invoiceData.subscription;
-  const subscriptionId = typeof sub === "string" ? sub : (sub as { id?: string })?.id;
-
-  if (!subscriptionId) {
-    log.error("No subscription on invoice", { invoiceId: invoiceData.id });
-    return;
-  }
-
-  const customerId = invoiceData.customer;
-
-  // Fetch subscription to get metadata
-  const stripe = getStripe();
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const { userId, userEmail, tenantSlug, companyName, plan } = subscription.metadata || {};
+  const { userId, userEmail, tenantSlug, companyName, plan } = session.metadata || {};
 
   if (!userId || !userEmail || !tenantSlug || !companyName || !plan) {
-    log.error("Missing metadata on subscription", { subscriptionId });
+    log.error("Missing metadata on checkout session", { sessionId: session.id });
     return;
   }
 
   const planConfig = PLANS[plan];
   if (!planConfig) {
-    log.error("Unknown plan in subscription metadata", { plan, subscriptionId });
+    log.error("Unknown plan in checkout metadata", { plan, sessionId: session.id });
+    return;
+  }
+
+  const subscriptionId = typeof session.subscription === "string"
+    ? session.subscription
+    : session.subscription?.id;
+
+  const customerId = typeof session.customer === "string"
+    ? session.customer
+    : session.customer?.id;
+
+  if (!subscriptionId) {
+    log.error("No subscription on checkout session", { sessionId: session.id });
     return;
   }
 
@@ -126,7 +126,7 @@ async function handleInvoicePaid(invoiceData: Record<string, unknown>) {
       credit_limit: planConfig.credits,
       credits_used: 0,
       billing_cycle_start: new Date().toISOString(),
-      stripe_customer_id: typeof customerId === "string" ? customerId : String(customerId),
+      stripe_customer_id: customerId || "",
       stripe_subscription_id: subscriptionId,
       stripe_plan: plan,
       features: {
@@ -137,7 +137,7 @@ async function handleInvoicePaid(invoiceData: Record<string, unknown>) {
     });
 
   if (tenantError) {
-    log.error("Failed to create tenant from invoice:", tenantError);
+    log.error("Failed to create tenant from checkout:", tenantError);
     throw new Error(`Tenant creation failed: ${tenantError.message}`);
   }
 
@@ -159,7 +159,7 @@ async function handleInvoicePaid(invoiceData: Record<string, unknown>) {
     action: "create",
     entityType: "tenant",
     entityId: finalSlug,
-    details: { plan, source: "stripe_payment", subscriptionId },
+    details: { plan, source: "stripe_checkout", subscriptionId },
   });
 
   sendWelcomeEmail({
@@ -170,7 +170,7 @@ async function handleInvoicePaid(invoiceData: Record<string, unknown>) {
     log.warn("Failed to send welcome email", { error: err as Error });
   });
 
-  log.info("Tenant provisioned via Stripe payment", { tenantId: finalSlug, plan, userId });
+  log.info("Tenant provisioned via Stripe checkout", { tenantId: finalSlug, plan, userId });
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {

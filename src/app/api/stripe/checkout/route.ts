@@ -71,12 +71,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create incomplete subscription — Payment Element will confirm it
-    const subscription = await stripe.subscriptions.create({
+    // Determine return URL
+    const origin = request.headers.get("origin") || "https://preik.ai";
+
+    // Create Checkout Session with custom UI mode (Payment Element)
+    const session = await stripe.checkout.sessions.create({
+      ui_mode: "custom",
+      mode: "subscription",
       customer: customer.id,
-      items: [{ price: selectedPlan.priceId }],
-      payment_behavior: "default_incomplete",
-      payment_settings: { save_default_payment_method: "on_subscription" },
+      line_items: [{ price: selectedPlan.priceId, quantity: 1 }],
+      return_url: `${origin}/dashboard?checkout=success`,
       metadata: {
         userId: user.id,
         userEmail: user.email,
@@ -86,32 +90,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Retrieve the latest invoice with payment_intent expanded
-    const invoiceId = typeof subscription.latest_invoice === "string"
-      ? subscription.latest_invoice
-      : subscription.latest_invoice?.id;
-
-    if (!invoiceId) {
-      throw new Error("No invoice on subscription");
-    }
-
-    const invoice = await stripe.invoices.retrieve(invoiceId, {
-      expand: ["payment_intent"],
-    }) as unknown as Record<string, unknown>;
-
-    const paymentIntent = invoice.payment_intent as Record<string, unknown> | string | null;
-    if (!paymentIntent) {
-      log.error("No payment_intent on invoice", { invoiceId, invoiceStatus: invoice.status });
-      throw new Error("No payment_intent on invoice");
-    }
-    if (typeof paymentIntent === "string") {
-      log.error("payment_intent not expanded (got string ID)", { paymentIntent, invoiceId });
-      throw new Error("payment_intent not expanded");
-    }
-
     return NextResponse.json({
-      clientSecret: paymentIntent.client_secret as string,
-      subscriptionId: subscription.id,
+      clientSecret: session.client_secret,
     });
   } catch (error) {
     log.error("Checkout session creation failed:", error);
