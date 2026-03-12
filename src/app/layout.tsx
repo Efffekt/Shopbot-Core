@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Analytics } from "@vercel/analytics/next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
+import { ConsentAnalytics } from "@/components/ConsentAnalytics";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -113,7 +113,7 @@ export default function RootLayout({
           Hopp til hovedinnhold
         </a>
         <Providers>{children}</Providers>
-        <Analytics />
+        <ConsentAnalytics />
       </body>
     </html>
   );

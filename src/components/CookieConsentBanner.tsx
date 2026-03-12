@@ -46,12 +46,14 @@ export function CookieConsentBanner() {
   function accept() {
     localStorage.setItem(STORAGE_KEY, "granted");
     updateConsent(true);
+    window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: "granted" }));
     setVisible(false);
   }
 
   function reject() {
     localStorage.setItem(STORAGE_KEY, "denied");
     updateConsent(false);
+    window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: "denied" }));
     setVisible(false);
   }
 

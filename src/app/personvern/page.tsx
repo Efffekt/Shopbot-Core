@@ -55,7 +55,7 @@ export default function PrivacyPage() {
             <p>
               <strong className="text-preik-text">Chat-samtaler:</strong> Meldinger sendt til og fra
               AI-assistenten lagres på våre servere for å levere tjenesten og forbedre kvaliteten.
-              Samtaler knyttes til en anonym sesjons-ID, ikke til din identitet.
+              Samtaler knyttes til en pseudonymisert sesjons-ID, ikke til din identitet.
             </p>
             <p>
               <strong className="text-preik-text">Teknisk informasjon:</strong> IP-adresse, nettlesertype
@@ -159,7 +159,7 @@ export default function PrivacyPage() {
                   <tr>
                     <td className="px-4 py-3 border-b border-preik-border font-medium text-preik-text">Upstash</td>
                     <td className="px-4 py-3 border-b border-preik-border">Hastighetsbegrensning (rate limiting)</td>
-                    <td className="px-4 py-3 border-b border-preik-border">Anonymisert sesjons-ID, IP-adresse</td>
+                    <td className="px-4 py-3 border-b border-preik-border">Pseudonymisert sesjons-ID, IP-adresse</td>
                     <td className="px-4 py-3 border-b border-preik-border">EU (Frankfurt)</td>
                   </tr>
                   <tr>
