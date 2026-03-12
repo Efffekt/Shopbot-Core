@@ -80,6 +80,17 @@ const stripeAppearance = {
       backgroundColor: "#F5F8F6",
       color: "#0B1F17",
     },
+    ".Tab--selected:hover": {
+      backgroundColor: "#F5F8F6",
+      color: "#0B1F17",
+    },
+    ".TabIcon--selected": {
+      color: "#0B1F17",
+      fill: "#0B1F17",
+    },
+    ".TabLabel--selected": {
+      color: "#0B1F17",
+    },
   },
 };
 
