@@ -1,26 +1,33 @@
+import { PreikWave } from "./PreikWave";
 import { ScrollReveal } from "./ScrollReveal";
 
 export function FinalCTASection() {
   return (
-    <section className="py-24 px-6 bg-preik-surface transition-colors duration-200">
-      <div className="max-w-3xl mx-auto text-center">
+    <section className="relative py-24 px-6 bg-preik-surface transition-colors duration-200 overflow-hidden">
+      {/* Subtle wave pattern background */}
+      <div className="absolute inset-0 opacity-[0.04] text-preik-accent">
+        <PreikWave className="absolute inset-0 w-full h-full" />
+      </div>
+
+      <div className="relative max-w-3xl mx-auto">
         <ScrollReveal animation="up">
-          <h2 className="text-4xl sm:text-5xl font-brand font-light text-preik-text mb-6">
-            Klar til å komme i gang?
-          </h2>
-        </ScrollReveal>
-        <ScrollReveal animation="up" delay={100}>
-          <p className="text-lg text-preik-text-muted mb-10 max-w-xl mx-auto">
-            Gi kundene dine svar på sekunder — med en AI-assistent som kjenner bedriften din ut og inn.
-          </p>
-        </ScrollReveal>
-        <ScrollReveal animation="scale" delay={200}>
-          <a
-            href="/registrer"
-            className="inline-flex items-center justify-center rounded-full bg-preik-accent px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-preik-accent focus:ring-offset-2 focus:ring-offset-preik-surface"
-          >
-            Kom i gang fra 299 kr/mnd
-          </a>
+          <div className="text-center bg-preik-bg rounded-3xl border border-preik-border p-12 md:p-16">
+            <h2 className="text-4xl sm:text-5xl font-brand font-light text-preik-text mb-6">
+              Klar til å komme i gang?
+            </h2>
+            <p className="text-lg text-preik-text-muted mb-10 max-w-xl mx-auto">
+              Gi kundene dine svar på sekunder — med en AI-assistent som kjenner bedriften din ut og inn.
+            </p>
+            <a
+              href="/registrer"
+              className="inline-flex items-center justify-center rounded-full bg-preik-accent px-8 py-4 text-base font-semibold text-white transition-all hover:bg-preik-accent-hover hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-preik-accent focus:ring-offset-2 focus:ring-offset-preik-bg"
+            >
+              Kom i gang fra 299 kr/mnd
+            </a>
+            <p className="mt-4 text-sm text-preik-text-muted">
+              Ingen bindingstid · Oppsett på under 48 timer
+            </p>
+          </div>
         </ScrollReveal>
       </div>
     </section>

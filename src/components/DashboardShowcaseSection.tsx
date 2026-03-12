@@ -23,11 +23,16 @@ export function DashboardShowcaseSection() {
   }, []);
 
   return (
-    <section className="py-32 px-6 bg-preik-bg transition-colors duration-200">
-      <div className="max-w-6xl mx-auto">
+    <section className="relative py-32 px-6 bg-preik-bg transition-colors duration-200 overflow-hidden">
+      {/* Decorative gradient blob behind the dashboard */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[800px] h-[400px] bg-preik-accent/[0.06] rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative max-w-6xl mx-auto">
         <ScrollReveal animation="up">
           <div className="text-center mb-16 md:mb-20">
-            <p className="text-sm font-medium text-preik-text-muted tracking-wide uppercase mb-4">
+            <p className="text-sm font-medium text-preik-accent tracking-wide uppercase mb-4">
               Dashboardet
             </p>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-brand font-light text-preik-text mb-6">
@@ -41,7 +46,7 @@ export function DashboardShowcaseSection() {
 
         {/* Scale the dashboard to always fit the container width */}
         <ScrollReveal animation="up" delay={200}>
-          <div ref={containerRef} className="overflow-hidden rounded-2xl">
+          <div ref={containerRef} className="overflow-hidden rounded-2xl border border-preik-border shadow-lg shadow-preik-accent/[0.04]">
             <div
               className="min-w-[840px] origin-top-left"
               style={{

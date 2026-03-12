@@ -21,7 +21,7 @@ function PlatformCard({ name, logo }: { name: string; logo: string }) {
         alt={name}
         width={32}
         height={32}
-        className="w-8 h-8 opacity-60"
+        className="w-8 h-8 opacity-80"
         loading="lazy"
       />
       <span className="text-sm font-medium text-preik-text whitespace-nowrap">
