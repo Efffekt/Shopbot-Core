@@ -29,6 +29,11 @@ export function DashboardShowcaseSection() {
         <div className="w-[800px] h-[400px] bg-preik-accent/[0.06] rounded-full blur-[100px]" />
       </div>
 
+      {/* Floating decorative elements */}
+      <div className="absolute top-16 right-[10%] w-6 h-6 rounded-lg bg-preik-accent/10 animate-float-slow pointer-events-none rotate-45" />
+      <div className="absolute bottom-24 left-[8%] w-4 h-4 rounded-full bg-preik-accent/10 animate-float-medium pointer-events-none" />
+      <div className="absolute top-1/3 left-[5%] w-3 h-3 rounded-full bg-preik-accent/[0.08] animate-float-fast pointer-events-none" />
+
       <div className="relative max-w-6xl mx-auto">
         <ScrollReveal animation="up">
           <div className="text-center mb-16 md:mb-20">
