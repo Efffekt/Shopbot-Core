@@ -55,8 +55,8 @@ export function ProcessSection() {
         {/* Steps */}
         <div className="grid md:grid-cols-3 gap-8 md:gap-6">
           {steps.map((step, index) => (
-            <ScrollReveal key={index} animation="up" stagger={index + 1}>
-              <div className="relative text-center md:text-left">
+            <ScrollReveal key={index} animation="up" stagger={index + 1} className="h-full">
+              <div className="relative text-center md:text-left h-full">
                 {/* Connecting arrow — hidden on last step and on mobile */}
                 {index < steps.length - 1 && (
                   <div className="hidden md:block absolute top-7 left-[calc(50%+40px)] right-[-24px] z-0">
