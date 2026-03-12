@@ -73,7 +73,7 @@ export function PricingSection() {
                 </ul>
 
                 <a
-                  href="#kontakt"
+                  href="/registrer?plan=starter"
                   className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] bg-preik-accent text-white hover:bg-preik-accent-hover"
                 >
                   Kom i gang
@@ -130,10 +130,10 @@ export function PricingSection() {
                 </ul>
 
                 <a
-                  href="#kontakt"
+                  href="/registrer?plan=pro"
                   className="inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all hover:scale-[1.02] border border-preik-accent text-preik-text hover:bg-preik-accent hover:text-white"
                 >
-                  Ta kontakt
+                  Kom i gang
                 </a>
               </div>
             </div>

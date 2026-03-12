@@ -213,7 +213,7 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
               key={plan.key}
               type="button"
               onClick={() => {
-                if (!isLoggedIn && !plan.contactOnly) {
+                if (!isLoggedIn) {
                   router.push(`/registrer?plan=${plan.key}`);
                   return;
                 }
