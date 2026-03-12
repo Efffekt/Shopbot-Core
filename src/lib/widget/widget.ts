@@ -332,6 +332,8 @@ class PreikChatWidget extends HTMLElement {
   private boundEscapeHandler: ((e: KeyboardEvent) => void) | null = null;
   private mediaQuery: MediaQueryList | null = null;
   private boundMediaHandler: (() => void) | null = null;
+  private mobileViewportCleanup: (() => void) | null = null;
+  private savedScrollY: number = 0;
 
   // DOM references
   private trigger: HTMLButtonElement | null = null;
@@ -437,6 +439,7 @@ class PreikChatWidget extends HTMLElement {
       this.mediaQuery = null;
       this.boundMediaHandler = null;
     }
+    this.teardownMobileViewport();
   }
 
   private render() {
@@ -647,6 +650,50 @@ class PreikChatWidget extends HTMLElement {
     }
   }
 
+  private setupMobileViewport() {
+    if (window.innerWidth > 480 || this.config.contained) return;
+
+    // Lock host page scroll
+    this.savedScrollY = window.scrollY;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+    document.body.style.top = `-${this.savedScrollY}px`;
+
+    // Track visual viewport for keyboard resize
+    const vv = window.visualViewport;
+    if (!vv || !this.chatWindow) return;
+
+    const update = () => {
+      this.chatWindow!.style.setProperty("--vvh", `${vv!.height}px`);
+    };
+
+    vv.addEventListener("resize", update);
+    update();
+
+    this.mobileViewportCleanup = () => {
+      vv.removeEventListener("resize", update);
+    };
+  }
+
+  private teardownMobileViewport() {
+    // Restore host page scroll
+    document.documentElement.style.overflow = "";
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.width = "";
+    document.body.style.top = "";
+    window.scrollTo(0, this.savedScrollY);
+
+    this.mobileViewportCleanup?.();
+    this.mobileViewportCleanup = null;
+
+    if (this.chatWindow) {
+      this.chatWindow.style.removeProperty("--vvh");
+    }
+  }
+
   private setupEventListeners() {
     // Trigger button
     this.trigger?.addEventListener("click", () => this.toggleChat());
@@ -738,6 +785,7 @@ class PreikChatWidget extends HTMLElement {
     this.chatWindow?.classList.add("open");
     this.trigger?.setAttribute("aria-expanded", "true");
     if (this.trigger) this.trigger.style.display = "none";
+    this.setupMobileViewport();
 
     // Focus input after animation
     setTimeout(() => {
@@ -750,6 +798,7 @@ class PreikChatWidget extends HTMLElement {
     this.chatWindow?.classList.remove("open");
     this.trigger?.setAttribute("aria-expanded", "false");
     if (this.trigger) this.trigger.style.display = "";
+    this.teardownMobileViewport();
   }
 
   private setStreamingState(streaming: boolean) {

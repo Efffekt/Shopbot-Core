@@ -184,15 +184,17 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       .chat-window {
         position: fixed;
         top: 0;
-        left: 0;
-        right: 0;
+        left: 0 !important;
+        right: 0 !important;
         bottom: 0;
         width: 100%;
-        height: 100%;
-        max-height: 100%;
+        height: 100dvh;
+        height: var(--vvh, 100dvh);
+        max-height: 100dvh;
+        max-height: var(--vvh, 100dvh);
         border-radius: 0;
-        /* Prevent host page scroll-through on iOS */
-        touch-action: pan-y;
+        overscroll-behavior: contain;
+        overflow: hidden;
         padding-top: env(safe-area-inset-top, 0px);
       }
 
