@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -112,6 +113,7 @@ export default function RootLayout({
           Hopp til hovedinnhold
         </a>
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
