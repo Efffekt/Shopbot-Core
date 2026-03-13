@@ -78,6 +78,7 @@ export default function RootLayout({
   return (
     <html lang="no" data-mode="light">
       <head>
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
         <Script id="consent-defaults" strategy="beforeInteractive">
           {`
             window.dataLayer = window.dataLayer || [];

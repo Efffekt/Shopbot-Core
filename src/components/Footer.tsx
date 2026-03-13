@@ -46,6 +46,8 @@ export function Footer() {
                 <ul className="space-y-3 text-preik-text-muted">
                   <li><Link href="/articles" className="hover:text-preik-text transition-colors">Artikler</Link></li>
                   <li><Link href="/docs" className="hover:text-preik-text transition-colors">Dokumentasjon</Link></li>
+                  <li><Link href="/nyheter" className="hover:text-preik-text transition-colors">Nyheter</Link></li>
+                  <li><Link href="/status" className="hover:text-preik-text transition-colors">Status</Link></li>
                   <li><Link href="/personvern" className="hover:text-preik-text transition-colors">Personvern</Link></li>
                   <li><Link href="/cookies" className="hover:text-preik-text transition-colors">Cookies</Link></li>
                   <li><CookieSettingsButton /></li>

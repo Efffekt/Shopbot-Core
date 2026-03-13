@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 
 export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,6 +35,50 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
     return () => {
       document.body.style.overflow = "";
     };
+  }, [isMobileMenuOpen]);
+
+  // Focus trap for mobile menu
+  const handleMenuKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsMobileMenuOpen(false);
+        menuButtonRef.current?.focus();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const menu = menuRef.current;
+      if (!menu) return;
+
+      const focusable = menu.querySelectorAll<HTMLElement>(
+        'a[href], button, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+    []
+  );
+
+  // Focus first menu item when opening
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      const menu = menuRef.current;
+      if (!menu) return;
+      const firstLink = menu.querySelector<HTMLElement>("a[href], button");
+      // Small delay to let the transition start
+      const timer = setTimeout(() => firstLink?.focus(), 100);
+      return () => clearTimeout(timer);
+    }
   }, [isMobileMenuOpen]);
 
   return (
@@ -63,6 +109,7 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
 
             {/* Mobile menu button */}
             <button
+              ref={menuButtonRef}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 -ml-2 text-preik-text-muted hover:text-preik-text transition-colors"
               aria-label="Meny"
@@ -108,12 +155,12 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
                   Logg inn
                 </Link>
               )}
-              <a
+              <Link
                 href="/registrer"
                 className="text-sm font-medium bg-preik-accent text-white px-4 py-2 rounded-full hover:bg-preik-accent-hover transition-colors"
               >
                 Kom i gang
-              </a>
+              </Link>
             </div>
 
             {/* Mobile - placeholder for balance */}
@@ -124,6 +171,7 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
 
       {/* Mobile menu overlay */}
       <div
+        ref={menuRef}
         id="mobile-menu"
         role="dialog"
         aria-modal="true"
@@ -131,6 +179,7 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
         className={`fixed inset-0 z-40 bg-preik-bg/95 backdrop-blur-md transition-all duration-300 md:hidden ${
           isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
+        onKeyDown={isMobileMenuOpen ? handleMenuKeyDown : undefined}
       >
         <nav className="flex flex-col items-center justify-center h-full gap-8">
           <a
@@ -186,13 +235,13 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
                 Logg inn
               </Link>
             )}
-            <a
+            <Link
               href="/registrer"
               onClick={handleLinkClick}
               className="text-lg font-medium bg-preik-accent text-white px-8 py-3 rounded-full hover:bg-preik-accent-hover transition-colors text-center"
             >
               Kom i gang
-            </a>
+            </Link>
           </div>
         </nav>
       </div>

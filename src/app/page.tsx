@@ -13,6 +13,8 @@ import { Footer } from "@/components/Footer";
 
 import { cookies } from "next/headers";
 
+export const revalidate = 3600;
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
