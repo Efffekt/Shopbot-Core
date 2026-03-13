@@ -19,6 +19,10 @@ export interface WidgetConfig {
   onboarding: string; // Markdown text for onboarding screen (empty = disabled)
   onboardingCta: string; // CTA button text (default: "Start chat")
   privacyUrl: string; // URL to privacy policy (empty = default preik.ai/personvern)
+  utmEnabled: boolean; // Enable UTM parameter tracking on outbound links
+  utmSource: string; // utm_source value (default: "preik")
+  utmMedium: string; // utm_medium value (default: "chatbot")
+  utmCampaign: string; // utm_campaign value (default: "assistant")
 }
 
 export interface Message {

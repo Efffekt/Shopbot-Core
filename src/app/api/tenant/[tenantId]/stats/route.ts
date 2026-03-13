@@ -59,6 +59,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       { data: volumeData },
       { count: documentCount },
       creditStatus,
+      { data: clickData },
+      { data: topClicksData },
     ] = await Promise.all([
       supabaseAdmin
         .from("conversations")
@@ -82,6 +84,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         .select("*", { count: "exact", head: true })
         .eq("store_id", tenantId),
       getCreditStatus(tenantId),
+      supabaseAdmin
+        .from("widget_link_clicks")
+        .select("id, session_id, clicked_url")
+        .eq("store_id", tenantId)
+        .gte("created_at", dateString),
+      supabaseAdmin
+        .from("widget_link_clicks")
+        .select("clicked_url, link_text")
+        .eq("store_id", tenantId)
+        .gte("created_at", dateString)
+        .order("created_at", { ascending: false }),
     ]);
 
     if (convError) throw convError;
@@ -155,6 +168,39 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
     }
 
+    // Build click analytics
+    const clicks = clickData || [];
+    const clicksByUrl: Record<string, { clicks: number; sessions: Set<string>; label: string }> = {};
+    for (const click of topClicksData || []) {
+      const key = click.clicked_url;
+      if (!clicksByUrl[key]) {
+        clicksByUrl[key] = { clicks: 0, sessions: new Set(), label: click.link_text || "" };
+      }
+      clicksByUrl[key].clicks++;
+    }
+    // Count unique sessions per URL from the full click data
+    for (const click of clicks) {
+      const key = click.clicked_url;
+      if (clicksByUrl[key] && click.session_id) {
+        clicksByUrl[key].sessions.add(click.session_id);
+      }
+    }
+    const topClickedLinks = Object.entries(clicksByUrl)
+      .map(([url, data]) => ({
+        url,
+        label: data.label,
+        clicks: data.clicks,
+        uniqueSessions: data.sessions.size,
+      }))
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, 10);
+
+    const clickStats = {
+      totalClicks: clicks.length,
+      uniqueSessions: new Set(clicks.map((c) => c.session_id).filter(Boolean)).size,
+      uniqueUrls: new Set(clicks.map((c) => c.clicked_url)).size,
+    };
+
     return NextResponse.json({
       success: true,
       tenantId,
@@ -170,6 +216,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       dailyVolume,
       documentCount: documentCount || 0,
       credits: creditStatus,
+      clickStats,
+      topClickedLinks,
     }, {
       headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=30" },
     });

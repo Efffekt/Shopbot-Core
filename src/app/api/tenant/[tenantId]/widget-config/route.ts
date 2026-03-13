@@ -24,6 +24,10 @@ const widgetConfigSchema = z.object({
   onboarding: z.string().max(5000).optional(),
   onboardingCta: z.string().max(100).optional(),
   privacyUrl: z.string().url().max(500).optional().or(z.literal("")),
+  utmEnabled: z.boolean().optional(),
+  utmSource: z.string().max(50).optional(),
+  utmMedium: z.string().max(50).optional(),
+  utmCampaign: z.string().max(100).optional(),
 }).strict();
 
 const log = createLogger("api/tenant/widget-config");

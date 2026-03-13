@@ -23,6 +23,10 @@ const DEFAULT_CONFIG: WidgetConfig = {
   onboarding: "",
   onboardingCta: "Start chat",
   privacyUrl: "",
+  utmEnabled: true,
+  utmSource: "preik",
+  utmMedium: "chatbot",
+  utmCampaign: "assistant",
 };
 
 // Generate unique ID
@@ -117,6 +121,10 @@ function parseScriptOverrides(): Partial<WidgetConfig> & { storeId: string; star
   if (d.onboarding !== undefined) overrides.onboarding = d.onboarding.replace(/\\n/g, "\n");
   if (d.onboardingCta !== undefined) overrides.onboardingCta = d.onboardingCta;
   if (d.privacyUrl !== undefined) overrides.privacyUrl = d.privacyUrl;
+  if (d.utmEnabled !== undefined) overrides.utmEnabled = d.utmEnabled !== "false";
+  if (d.utmSource !== undefined) overrides.utmSource = d.utmSource;
+  if (d.utmMedium !== undefined) overrides.utmMedium = d.utmMedium;
+  if (d.utmCampaign !== undefined) overrides.utmCampaign = d.utmCampaign;
 
   return { storeId, startOpen, contained, ...overrides };
 }
@@ -209,6 +217,32 @@ function getThemeColors(config: WidgetConfig): ThemeColors {
   return base;
 }
 
+// Active widget config reference (set by widget instance for use by standalone functions)
+let activeConfig: WidgetConfig = DEFAULT_CONFIG;
+let activeSessionId: string = "";
+
+// Append UTM parameters to a URL if UTM tracking is enabled
+function appendUtmParams(url: string): string {
+  if (!activeConfig.utmEnabled) return url;
+  try {
+    const parsed = new URL(url);
+    // Only add UTMs to http/https links (not mailto:, tel:, etc.)
+    if (!parsed.protocol.startsWith("http")) return url;
+    // Don't overwrite existing UTM params
+    if (parsed.searchParams.has("utm_source")) return url;
+    parsed.searchParams.set("utm_source", activeConfig.utmSource);
+    parsed.searchParams.set("utm_medium", activeConfig.utmMedium);
+    parsed.searchParams.set("utm_campaign", activeConfig.utmCampaign);
+    // Add session ID for conversation-level attribution
+    if (activeSessionId) {
+      parsed.searchParams.set("utm_content", activeSessionId);
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 // Escape HTML special characters including quotes (for attribute safety)
 function escapeHtmlAttr(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -233,8 +267,9 @@ function formatInline(text: string): string {
     .replace(/\[(.+?)\]\((.+?)\)/g, (_match: string, label: string, url: string) => {
       const rawUrl = url.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
       if (!/^(https?:|mailto:|tel:|\/|\.\/|#)/i.test(rawUrl)) return label;
-      const safeUrl = escapeHtmlAttr(rawUrl);
-      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+      const finalUrl = appendUtmParams(rawUrl);
+      const safeUrl = escapeHtmlAttr(finalUrl);
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" data-preik-link="true">${label}</a>`;
     });
 }
 
@@ -366,6 +401,9 @@ class PreikChatWidget extends HTMLElement {
       sessionId: "",
       showOnboarding: false,
     };
+
+    // Set active config for standalone functions (UTM, etc.)
+    activeConfig = this.config;
   }
 
   connectedCallback() {
@@ -375,6 +413,7 @@ class PreikChatWidget extends HTMLElement {
     } catch {
       this.state.sessionId = generateId();
     }
+    activeSessionId = this.state.sessionId;
 
     // Load persisted messages
     this.loadMessages();
@@ -421,6 +460,7 @@ class PreikChatWidget extends HTMLElement {
         // Only re-render if something actually changed
         if (JSON.stringify(updated) !== JSON.stringify(this.config)) {
           this.config = updated;
+          activeConfig = this.config;
           this.render();
           this.setupEventListeners();
         }
@@ -639,6 +679,50 @@ class PreikChatWidget extends HTMLElement {
       if (retryBtn) {
         retryBtn.addEventListener("click", () => this.retryLastMessage());
       }
+
+      // Attach link click tracking
+      this.attachLinkTracking();
+    }
+  }
+
+  private attachLinkTracking() {
+    if (!this.messagesContainer) return;
+    const links = this.messagesContainer.querySelectorAll<HTMLAnchorElement>("a[data-preik-link]");
+    for (const link of links) {
+      if (link.dataset.preikTracked) continue; // Already tracked
+      link.dataset.preikTracked = "1";
+      link.addEventListener("click", () => {
+        this.trackLinkClick(link.href, link.textContent || "");
+      });
+    }
+  }
+
+  private trackLinkClick(url: string, linkText: string) {
+    // Fire-and-forget — don't block the navigation
+    try {
+      const payload = {
+        storeId: this.config.storeId,
+        sessionId: this.state.sessionId,
+        url,
+        linkText,
+        page: window.location.href,
+        timestamp: new Date().toISOString(),
+        messageCount: this.state.messages.length,
+      };
+      // Use sendBeacon for reliability (fires even if page navigates away)
+      const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+      const sent = navigator.sendBeacon(`${this.baseUrl}/api/widget-click`, blob);
+      // Fallback to fetch if sendBeacon fails
+      if (!sent) {
+        fetch(`${this.baseUrl}/api/widget-click`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => {});
+      }
+    } catch {
+      // Tracking should never break the widget
     }
   }
 
