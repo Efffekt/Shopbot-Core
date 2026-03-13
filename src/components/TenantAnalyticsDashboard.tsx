@@ -38,6 +38,19 @@ interface CreditStatus {
   billingCycleEnd: string;
 }
 
+interface ClickStats {
+  totalClicks: number;
+  uniqueSessions: number;
+  uniqueUrls: number;
+}
+
+interface TopLink {
+  url: string;
+  label: string;
+  clicks: number;
+  uniqueSessions: number;
+}
+
 interface AnalyticsData {
   stats: Stats;
   topSearchTerms: SearchTerm[];
@@ -46,10 +59,23 @@ interface AnalyticsData {
   documentCount: number;
   period: string;
   credits: CreditStatus | null;
+  clickStats?: ClickStats;
+  topClickedLinks?: TopLink[];
 }
 
 interface TenantAnalyticsDashboardProps {
   tenantId: string;
+}
+
+// Extract a readable name from a product URL slug
+function extractSlug(url: string): string {
+  try {
+    const path = new URL(url).pathname;
+    const slug = path.split("/").filter(Boolean).pop() || path;
+    return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  } catch {
+    return url;
+  }
 }
 
 const PERIOD_OPTIONS = [
@@ -240,6 +266,22 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
               <div className="text-sm text-preik-text-muted">Kreditter brukt</div>
             </div>
           )}
+
+          {data.clickStats && data.clickStats.totalClicks > 0 && (
+            <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-2xl font-semibold text-preik-text">
+                {data.clickStats.totalClicks}
+              </div>
+              <div className="text-sm text-preik-text-muted">Lenkeklikk</div>
+            </div>
+          )}
         </div>
 
         {/* Daily volume chart */}
@@ -348,6 +390,61 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
             </div>
           </div>
         </div>
+
+        {/* Link click analytics */}
+        {data.clickStats && data.topClickedLinks && data.topClickedLinks.length > 0 && (
+          <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-preik-text">
+                Lenkeklikk fra chatbot
+              </h3>
+              <div className="flex gap-4 text-sm text-preik-text-muted">
+                <span>{data.clickStats.totalClicks} klikk</span>
+                <span>{data.clickStats.uniqueSessions} økter</span>
+                <span>{data.clickStats.uniqueUrls} unike lenker</span>
+              </div>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {data.topClickedLinks.map((link, idx) => {
+                const maxClicks = data.topClickedLinks![0].clicks;
+                const barWidth = maxClicks > 0 ? (link.clicks / maxClicks) * 100 : 0;
+                return (
+                  <div key={link.url} className="relative">
+                    <div
+                      className="absolute inset-0 bg-blue-500 opacity-[0.06] rounded-lg"
+                      style={{ width: `${barWidth}%` }}
+                    />
+                    <div className="relative flex items-center justify-between py-2 px-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <span className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-500 text-xs flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm text-preik-text truncate">
+                            {link.label || extractSlug(link.url)}
+                          </div>
+                          <div className="text-xs text-preik-text-muted truncate">
+                            {link.url.replace(/^https?:\/\/(www\.)?/, "").split("?")[0]}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 ml-4 shrink-0">
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-preik-text">{link.clicks}</div>
+                          <div className="text-xs text-preik-text-muted">klikk</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-preik-text">{link.uniqueSessions}</div>
+                          <div className="text-xs text-preik-text-muted">økter</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Unanswered queries */}
         <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
