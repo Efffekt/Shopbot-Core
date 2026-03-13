@@ -46,3 +46,6 @@ src/lib/widget/dist/
 
 # supabase temp
 supabase/.temp/
+
+# tenant prompt drafts (contain customer business logic)
+*-system-prompt.md

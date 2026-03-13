@@ -713,6 +713,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Machine-type compatibility filter: remove product docs that are incompatible with user's stated machine
+      // NOTE: When user has DA/oscillerende, we do NOT filter out roterende products because
+      // the tenant's system prompt instructs the chatbot to recommend switching to roterende.
+      // We only filter when user has roterende (remove DA-only products).
       if (relevantDocs && relevantDocs.length > 0 && tenantConfig.features.boatExpertise) {
         const userTexts = messages
           .filter((m) => m.role === "user")
@@ -720,14 +723,9 @@ export async function POST(request: NextRequest) {
           .join(" ")
           .toLowerCase();
 
-        let machineType: "roterende" | "da" | null = null;
-        if (/\broterende\b/.test(userTexts)) {
-          machineType = "roterende";
-        } else if (/\b(da|dual.?action|oscillerende|random.?orbit)\b/.test(userTexts)) {
-          machineType = "da";
-        }
+        const hasRoterende = /\broterende\b/.test(userTexts);
 
-        if (machineType) {
+        if (hasRoterende) {
           const before = relevantDocs.length;
           relevantDocs = relevantDocs.filter((doc) => {
             const url = (doc.metadata?.source || doc.metadata?.url || "").toLowerCase();
@@ -735,17 +733,13 @@ export async function POST(request: NextRequest) {
             if (!url.includes("/products/") && !url.includes("/collections/")) return true;
             const snippet = doc.content.slice(0, 300).toLowerCase();
 
-            if (machineType === "roterende") {
-              if (/uten.roterende/.test(url) || /uten.roterende/.test(snippet)) return false;
-              if (/(?:med|for|til).da.maskin/.test(url)) return false;
-              if (/^til deg som .* (?:da|oscillerende)/i.test(doc.content.slice(0, 80))) return false;
-            } else if (machineType === "da") {
-              if (/passer kun til.*roterende/.test(snippet)) return false;
-            }
+            if (/uten.roterende/.test(url) || /uten.roterende/.test(snippet)) return false;
+            if (/(?:med|for|til).da.maskin/.test(url)) return false;
+            if (/^til deg som .* (?:da|oscillerende)/i.test(doc.content.slice(0, 80))) return false;
             return true;
           });
           if (before !== relevantDocs.length) {
-            log.debug("Machine filter applied", { reqId, removed: before - relevantDocs.length, machineType, remaining: relevantDocs.length });
+            log.debug("Machine filter applied", { reqId, removed: before - relevantDocs.length, machineType: "roterende", remaining: relevantDocs.length });
           }
         }
       }
@@ -906,12 +900,13 @@ export async function POST(request: NextRequest) {
         `${guardrails.contextHeader}\n${context}`,
         guardrails.groundingFooter,
         urlAllowlist,
+        guardrails.criticalRulesReinforcement,
         guardrails.securityFooter,
       ].filter(Boolean).join("\n\n");
     } else if (!isSimpleMessage) {
-      fullSystemPrompt = [systemPrompt, guardrails.noContextRules, guardrails.securityFooter].join("\n\n");
+      fullSystemPrompt = [systemPrompt, guardrails.noContextRules, guardrails.criticalRulesReinforcement, guardrails.securityFooter].join("\n\n");
     } else {
-      fullSystemPrompt = [systemPrompt, guardrails.simpleMessage, guardrails.securityFooter].join("\n\n");
+      fullSystemPrompt = [systemPrompt, guardrails.simpleMessage, guardrails.criticalRulesReinforcement, guardrails.securityFooter].join("\n\n");
     }
     // Build URL allowlist Set for response sanitization
     const allowedUrlSet = new Set(availableUrls);
