@@ -27,13 +27,15 @@ ALTER TABLE widget_link_clicks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role has full access on widget_link_clicks"
   ON widget_link_clicks FOR ALL USING (true) WITH CHECK (true);
 
--- Data retention: auto-delete after 90 days (matches conversation retention)
--- Uses the existing pg_cron setup from migration 018
-SELECT cron.schedule(
-  'cleanup-widget-link-clicks',
-  '0 3 * * *',
-  $func$DELETE FROM widget_link_clicks WHERE created_at < NOW() - INTERVAL '90 days';$func$
-);
+-- Data retention: auto-delete after 90 days
+-- Requires pg_cron extension. Enable in Supabase dashboard (Database > Extensions),
+-- then run this manually in SQL editor:
+--
+--   SELECT cron.schedule(
+--     'cleanup-widget-link-clicks',
+--     '0 3 * * *',
+--     $func$DELETE FROM widget_link_clicks WHERE created_at < NOW() - INTERVAL '90 days';$func$
+--   );
 
 -- Helper: Get click stats for a store
 CREATE OR REPLACE FUNCTION get_click_stats(
