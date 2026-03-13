@@ -84,7 +84,6 @@ export async function POST(request: NextRequest) {
         features: {
           synonymMapping: false,
           codeBlockFormatting: false,
-          boatExpertise: false,
         },
       })
       .select()

@@ -622,7 +622,10 @@ export async function POST(request: NextRequest) {
 
     // Fast path: skip embedding/search for very short messages (greetings, etc)
     // But only if the conversation doesn't have product-related context from earlier messages
-    const productKeywords = /produkt|pris|anbefal|kjøp|voks|polish|poler|båt|maskin|pad|pute|ullp|rengjør|vask|bunn|forseg/i;
+    const defaultKeywords = ["produkt", "pris", "anbefal", "kjøp"];
+    const tenantKeywords = tenantConfig.productKeywords || [];
+    const allKeywords = [...new Set([...defaultKeywords, ...tenantKeywords])];
+    const productKeywords = new RegExp(allKeywords.join("|"), "i");
     const hasProductContext = messages.some((m) => productKeywords.test(typeof m.content === "string" ? m.content : JSON.stringify(m.content)));
     const isSimpleMessage = lastUserText.length < SIMPLE_MESSAGE_MAX_LENGTH && !productKeywords.test(lastUserText) && !hasProductContext;
 
@@ -712,57 +715,26 @@ export async function POST(request: NextRequest) {
         log.debug("No documents found for query", { reqId, storeId });
       }
 
-      // Machine-type compatibility filter: remove product docs that are incompatible with user's stated machine
-      // NOTE: When user has DA/oscillerende, we do NOT filter out roterende products because
-      // the tenant's system prompt instructs the chatbot to recommend switching to roterende.
-      // We only filter when user has roterende (remove DA-only products).
-      if (relevantDocs && relevantDocs.length > 0 && tenantConfig.features.boatExpertise) {
-        const userTexts = messages
-          .filter((m) => m.role === "user")
-          .map((m) => extractTextFromMessage(m))
-          .join(" ")
-          .toLowerCase();
-
-        const hasRoterende = /\broterende\b/.test(userTexts);
-
-        if (hasRoterende) {
-          const before = relevantDocs.length;
-          relevantDocs = relevantDocs.filter((doc) => {
-            const url = (doc.metadata?.source || doc.metadata?.url || "").toLowerCase();
-            // Only filter product pages, not blog/guide pages
-            if (!url.includes("/products/") && !url.includes("/collections/")) return true;
-            const snippet = doc.content.slice(0, 300).toLowerCase();
-
-            if (/uten.roterende/.test(url) || /uten.roterende/.test(snippet)) return false;
-            if (/(?:med|for|til).da.maskin/.test(url)) return false;
-            if (/^til deg som .* (?:da|oscillerende)/i.test(doc.content.slice(0, 80))) return false;
-            return true;
-          });
-          if (before !== relevantDocs.length) {
-            log.debug("Machine filter applied", { reqId, removed: before - relevantDocs.length, machineType: "roterende", remaining: relevantDocs.length });
-          }
-        }
-      }
-
-      // Rewrite stale/renamed product references in context docs (temporary until re-scrape)
-      if (relevantDocs && relevantDocs.length > 0 && storeId === "baatpleiebutikken") {
-        const urlRewrites: Record<string, string> = {
-          "/products/tix-kraft": "/products/batproff-kraftvask-til-bat-kraftvask-for-polering",
-          "/products/hostvask-pakkepris-spar-10": "/products/varvask-pakkepris-spar-10",
-        };
+      // Apply tenant-specific URL and content rewrites to context docs
+      if (relevantDocs && relevantDocs.length > 0 && (tenantConfig.urlRewrites || tenantConfig.contentRewrites)) {
         for (const doc of relevantDocs as { content: string; metadata?: { source?: string; url?: string } }[]) {
-          // Rewrite stale URLs
-          for (const [oldPath, newPath] of Object.entries(urlRewrites)) {
-            if (doc.metadata?.source?.includes(oldPath)) {
-              doc.metadata.source = doc.metadata.source.replace(oldPath, newPath);
-            }
-            if (doc.metadata?.url?.includes(oldPath)) {
-              doc.metadata.url = doc.metadata.url.replace(oldPath, newPath);
+          // Rewrite stale/renamed product URLs
+          if (tenantConfig.urlRewrites) {
+            for (const [oldPath, newPath] of Object.entries(tenantConfig.urlRewrites)) {
+              if (doc.metadata?.source?.includes(oldPath)) {
+                doc.metadata.source = doc.metadata.source.replace(oldPath, newPath);
+              }
+              if (doc.metadata?.url?.includes(oldPath)) {
+                doc.metadata.url = doc.metadata.url.replace(oldPath, newPath);
+              }
             }
           }
-          // Rewrite stale product names in content
-          doc.content = doc.content.replace(/\bTix Kraft\b/gi, "Båtproff Kraftvask");
-          doc.content = doc.content.replace(/\bTIX KRAFT\b/g, "Båtproff Kraftvask");
+          // Rewrite stale product names/terms in content
+          if (tenantConfig.contentRewrites) {
+            for (const rewrite of tenantConfig.contentRewrites) {
+              doc.content = doc.content.replace(new RegExp(rewrite.pattern, rewrite.flags || "g"), rewrite.replacement);
+            }
+          }
         }
       }
 
@@ -784,19 +756,13 @@ export async function POST(request: NextRequest) {
         }
         availableUrls = [...contextUrls];
 
-        // Ensure core product URLs are always available for this tenant.
-        // The system prompt instructs the model to recommend these products,
+        // Ensure tenant's core product URLs are always available in the allowlist.
+        // The system prompt may instruct the model to recommend specific products,
         // but vector search may only return blog posts without product page URLs.
-        if (storeId === "baatpleiebutikken") {
-          const coreProductUrls = [
-            "https://www.baatpleiebutikken.no/products/batproff-kraftvask-til-bat-kraftvask-for-polering",
-            "https://www.baatpleiebutikken.no/products/rex-one-step-revolusjoner-poleringen",
-            "https://www.baatpleiebutikken.no/products/easy-gloss-polish-wax-hurtigpolering",
-            "https://www.baatpleiebutikken.no/products/topfinish-2-nano-refinishing-polish-lett-oksidert-bat",
-          ];
-          for (const url of coreProductUrls) {
-            const slug = url.split("/products/")[1];
-            if (!availableUrls.some((u) => u.includes(slug))) {
+        if (tenantConfig.coreProductUrls) {
+          for (const url of tenantConfig.coreProductUrls) {
+            const pathSegment = url.split("/products/")[1] || url.split("/collections/")[1];
+            if (pathSegment && !availableUrls.some((u) => u.includes(pathSegment))) {
               availableUrls.push(url);
             }
           }

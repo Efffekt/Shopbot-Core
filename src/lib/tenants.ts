@@ -14,8 +14,15 @@ export interface TenantConfig {
   features: {
     synonymMapping: boolean;
     codeBlockFormatting: boolean;
-    boatExpertise: boolean;
   };
+  // Tenant-specific product URL rewrites (old path → new path)
+  urlRewrites?: Record<string, string>;
+  // Tenant-specific content text rewrites (applied to RAG doc content)
+  contentRewrites?: { pattern: string; replacement: string; flags?: string }[];
+  // Core product URLs that should always be available in the URL allowlist
+  coreProductUrls?: string[];
+  // Custom product keywords for simple-message detection (merged with defaults)
+  productKeywords?: string[];
 }
 
 
@@ -242,7 +249,6 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
     features: {
       synonymMapping: false,
       codeBlockFormatting: false,
-      boatExpertise: false,
     },
   },
   baatpleiebutikken: {
@@ -265,8 +271,22 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
     features: {
       synonymMapping: true,
       codeBlockFormatting: false,
-      boatExpertise: true,
     },
+    urlRewrites: {
+      "/products/tix-kraft": "/products/batproff-kraftvask-til-bat-kraftvask-for-polering",
+      "/products/hostvask-pakkepris-spar-10": "/products/varvask-pakkepris-spar-10",
+    },
+    contentRewrites: [
+      { pattern: "\\bTix Kraft\\b", replacement: "Båtproff Kraftvask", flags: "gi" },
+      { pattern: "\\bTIX KRAFT\\b", replacement: "Båtproff Kraftvask", flags: "g" },
+    ],
+    coreProductUrls: [
+      "https://www.baatpleiebutikken.no/products/batproff-kraftvask-til-bat-kraftvask-for-polering",
+      "https://www.baatpleiebutikken.no/products/rex-one-step-revolusjoner-poleringen",
+      "https://www.baatpleiebutikken.no/products/easy-gloss-polish-wax-hurtigpolering",
+      "https://www.baatpleiebutikken.no/products/topfinish-2-nano-refinishing-polish-lett-oksidert-bat",
+    ],
+    productKeywords: ["voks", "polish", "poler", "båt", "maskin", "pad", "pute", "ullp", "rengjør", "vask", "bunn", "forseg", "gelcoat", "bunnstoff"],
   },
   "docs-site": {
     id: "docs-site",
@@ -283,7 +303,6 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
     features: {
       synonymMapping: false,
       codeBlockFormatting: true,
-      boatExpertise: false,
     },
   },
   "rk-designsystem-docs": {
@@ -301,7 +320,6 @@ export const TENANT_CONFIGS: Record<string, TenantConfig> = {
     features: {
       synonymMapping: false,
       codeBlockFormatting: true,
-      boatExpertise: false,
     },
   },
 };
@@ -349,8 +367,11 @@ export async function getTenantConfigFromDB(storeId: string): Promise<TenantConf
       features: data.features || {
         synonymMapping: false,
         codeBlockFormatting: false,
-        boatExpertise: false,
       },
+      urlRewrites: data.url_rewrites || undefined,
+      contentRewrites: data.content_rewrites || undefined,
+      coreProductUrls: data.core_product_urls || undefined,
+      productKeywords: data.product_keywords || undefined,
     };
   } catch (err) {
     log.error("Error fetching tenant from DB", { storeId, error: err as Error });

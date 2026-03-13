@@ -132,7 +132,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       features: {
         synonymMapping: false,
         codeBlockFormatting: false,
-        boatExpertise: false,
       },
     });
 

@@ -76,12 +76,9 @@ const NO: Guardrails = {
     `stille spørsmålet mer detaljert slik at du kan søke i databasen.`,
 
   criticalRulesReinforcement:
-    `PÅMINNELSE — KRITISKE REGLER (UFRAVIKELIGE):\n` +
-    `Sjekk svaret ditt mot disse reglene FØR du sender det:\n` +
-    `- Hvis kunden nevner oscillerende/DA/dual action/random orbit maskin: Du SKAL anbefale å bytte til ROTERENDE maskin. Oscillerende fungerer ikke godt nok på båt.\n` +
-    `- ALDRI nevn Scholl, RUPES eller KOCH CHEMIE.\n` +
-    `- ALDRI inkluder pris, prosenter eller rabatter.\n` +
-    `- Anbefal KUN poleringsputer fra Paiboat og Lake Country, og KUN poleringsmidler fra Paiboat.`,
+    `PÅMINNELSE:\n` +
+    `Sjekk svaret ditt mot KRITISKE REGLER øverst i systeminstruksjonene FØR du sender det.\n` +
+    `Følg alle produktrestriksjoner, merkeregler og spesifikke instruksjoner fra rolleinstruksjonen nøyaktig.`,
 
   securityFooter:
     `SIKKERHET:\n` +
@@ -158,11 +155,9 @@ const EN: Guardrails = {
     `to phrase their question in more detail so you can search the database.`,
 
   criticalRulesReinforcement:
-    `REMINDER — CRITICAL RULES (NON-NEGOTIABLE):\n` +
-    `Check your answer against these rules BEFORE sending it:\n` +
-    `- Follow all product restrictions and brand rules from the system prompt exactly.\n` +
-    `- NEVER include prices, percentages, or discounts.\n` +
-    `- Only recommend products that match the user's stated equipment and needs.`,
+    `REMINDER:\n` +
+    `Check your answer against the CRITICAL RULES at the top of the system instructions BEFORE sending it.\n` +
+    `Follow all product restrictions, brand rules, and specific instructions from the role instructions exactly.`,
 
   securityFooter:
     `SECURITY:\n` +

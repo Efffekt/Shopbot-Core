@@ -157,7 +157,8 @@ const MOCK_TENANT_CONFIG = {
   persona: "boat care expert",
   systemPrompt: "Du er en båtpleie-ekspert.",
   allowedDomains: ["baatpleiebutikken.no"],
-  features: { synonymMapping: false, codeBlockFormatting: false, boatExpertise: true },
+  features: { synonymMapping: false, codeBlockFormatting: false },
+  productKeywords: ["polish", "poler", "båt", "maskin", "pad", "pute", "voks", "vask", "roterende"],
 };
 
 function setupDefaultMocks() {

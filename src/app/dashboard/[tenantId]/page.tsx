@@ -182,7 +182,6 @@ export default async function TenantPage({ params }: PageProps) {
               {[
                 config.features.synonymMapping && "Synonymmapping",
                 config.features.codeBlockFormatting && "Kodeformatering",
-                config.features.boatExpertise && "Båtekspertise",
               ]
                 .filter(Boolean)
                 .join(", ") || "Ingen spesialfunksjoner"}
