@@ -35,7 +35,7 @@ const steps = [
 
 export function ProcessSection() {
   return (
-    <section id="losninger" className="py-32 px-6 bg-preik-surface transition-colors duration-200">
+    <section id="losninger" className="py-32 px-6 bg-preik-bg transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
         {/* Section header */}
         <ScrollReveal animation="up">
@@ -68,7 +68,7 @@ export function ProcessSection() {
                 )}
 
                 {/* Card */}
-                <div className="relative bg-preik-bg rounded-2xl border border-preik-border p-8 h-full">
+                <div className="relative bg-preik-surface rounded-2xl border border-preik-border p-8 h-full">
                   {/* Step number badge */}
                   <div className="absolute -top-3 left-8 md:left-8">
                     <span className="inline-block px-3 py-0.5 rounded-full bg-preik-accent text-xs font-semibold text-white tracking-wider">

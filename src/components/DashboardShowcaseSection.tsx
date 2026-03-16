@@ -23,7 +23,7 @@ export function DashboardShowcaseSection() {
   }, []);
 
   return (
-    <section className="relative py-32 px-6 bg-preik-bg transition-colors duration-200 overflow-hidden">
+    <section className="relative py-32 px-6 bg-preik-surface transition-colors duration-200 overflow-hidden">
       {/* Decorative gradient blob behind the dashboard */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-[800px] h-[400px] bg-preik-accent/[0.06] rounded-full blur-[100px]" />
