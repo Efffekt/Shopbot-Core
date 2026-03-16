@@ -1,8 +1,11 @@
 import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase";
 import { redirect } from "next/navigation";
 import AccountSettings from "@/components/AccountSettings";
+import BillingSection from "@/components/BillingSection";
 import DataExportButton from "@/components/DataExportButton";
 import { getCreditStatus } from "@/lib/credits";
+import { PLANS } from "@/lib/stripe";
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
@@ -25,6 +28,16 @@ export default async function SettingsPage({ params }: PageProps) {
   }
 
   const credits = await getCreditStatus(tenantId);
+
+  // Fetch billing info
+  const { data: tenant } = await supabaseAdmin
+    .from("tenants")
+    .select("stripe_customer_id, stripe_plan")
+    .eq("id", tenantId)
+    .single();
+
+  const hasStripe = !!tenant?.stripe_customer_id;
+  const planName = tenant?.stripe_plan ? (PLANS[tenant.stripe_plan]?.name || tenant.stripe_plan) : null;
 
   const percentUsed = credits?.percentUsed ?? 0;
   const barColor = percentUsed > 80
@@ -137,6 +150,24 @@ export default async function SettingsPage({ params }: PageProps) {
               <p className="text-sm text-preik-text-muted">Kunne ikke hente kredittinformasjon.</p>
             )}
           </div>
+
+          {/* Billing Management */}
+          {access.role === "admin" && (
+            <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-preik-accent/10 flex items-center justify-center">
+                  <svg className="w-4.5 h-4.5 text-preik-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-preik-text">Fakturering</h2>
+                  <p className="text-xs text-preik-text-muted">Abonnement og betalingsmetode</p>
+                </div>
+              </div>
+              <BillingSection tenantId={tenantId} planName={planName} hasStripe={hasStripe} />
+            </div>
+          )}
 
           {/* Data Export (GDPR) */}
           {access.role === "admin" && (

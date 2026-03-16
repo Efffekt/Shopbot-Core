@@ -13,8 +13,15 @@ function requiresSupabaseAuth(pathname: string): boolean {
   return SUPABASE_AUTH_PATHS.some((path) => pathname.startsWith(path));
 }
 
+/** Generate a random nonce for CSP */
+function generateNonce(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array));
+}
+
 /** Add security headers (CSP, X-Frame-Options, etc.) to a page response */
-function addSecurityHeaders(response: NextResponse): void {
+function addSecurityHeaders(response: NextResponse, nonce: string): void {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -24,9 +31,11 @@ function addSecurityHeaders(response: NextResponse): void {
     response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
 
+  // Note: 'unsafe-inline' is kept alongside nonce for backwards compatibility with
+  // browsers that don't support nonces. Browsers that support nonces ignore 'unsafe-inline'.
   const cspDirectives = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://js.stripe.com${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://www.googletagmanager.com https://js.stripe.com${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https://*.supabase.co https://www.google.com https://www.googletagmanager.com https://*.g.doubleclick.net https://*.stripe.com",
     "font-src 'self' https://fonts.gstatic.com",
@@ -104,6 +113,25 @@ export async function middleware(request: NextRequest) {
       return new NextResponse(null, { status: 200, headers: preflightHeaders });
     }
 
+    // CSRF protection for internal (same-origin) state-changing requests.
+    // Widget-facing and public-wildcard routes are intentionally open.
+    const isStateMutating = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
+    if (isStateMutating && !isPublicWildcard && !isWidgetFacing) {
+      const origin = request.headers.get("origin");
+      const host = request.headers.get("host");
+      if (origin && host) {
+        try {
+          const originHost = new URL(origin).host;
+          if (originHost !== host) {
+            log.warn("CSRF: origin mismatch", { origin, host, pathname });
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+          }
+        } catch {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+    }
+
     // Non-OPTIONS: let route handlers own their response CORS headers
     return NextResponse.next();
   }
@@ -122,7 +150,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  addSecurityHeaders(response);
+  const nonce = generateNonce();
+  response.headers.set("x-nonce", nonce);
+  addSecurityHeaders(response, nonce);
   return response;
 }
 

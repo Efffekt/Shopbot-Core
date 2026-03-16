@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { headers } from "next/headers";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import { ConsentAnalytics } from "@/components/ConsentAnalytics";
@@ -70,16 +71,18 @@ export const metadata: Metadata = {
   other: { "theme-color": "#ffffff" },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="no" data-mode="light">
       <head>
         <link rel="preconnect" href="https://www.googletagmanager.com" />
-        <Script id="consent-defaults" strategy="beforeInteractive">
+        <Script id="consent-defaults" strategy="beforeInteractive" nonce={nonce}>
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -94,8 +97,9 @@ export default function RootLayout({
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-17961627655"
           strategy="afterInteractive"
+          nonce={nonce}
         />
-        <Script id="gtag-init" strategy="afterInteractive">
+        <Script id="gtag-init" strategy="afterInteractive" nonce={nonce}>
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
