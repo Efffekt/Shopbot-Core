@@ -182,9 +182,9 @@ export default async function Home() {
       <Header isLoggedIn={hasSession} />
       <main id="main-content">
         <HeroSection />
+        <IntegrationsSection />
         <ProcessSection />
         <DashboardShowcaseSection />
-        <IntegrationsSection />
         <DemoSection />
         <PricingSection />
         <FAQSection />
