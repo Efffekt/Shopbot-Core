@@ -42,6 +42,7 @@ interface ClickStats {
   totalClicks: number;
   uniqueSessions: number;
   uniqueUrls: number;
+  clickThroughRate: number;
 }
 
 interface TopLink {
@@ -56,6 +57,7 @@ interface AnalyticsData {
   topSearchTerms: SearchTerm[];
   unansweredQueries: UnansweredQuery[];
   dailyVolume: DailyVolume[];
+  dailyClickVolume?: DailyVolume[];
   documentCount: number;
   period: string;
   credits: CreditStatus | null;
@@ -182,7 +184,7 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
 
       <div className={`space-y-6 transition-opacity ${switching ? "opacity-50 pointer-events-none" : ""}`}>
         {/* Stats cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-preik-accent/10 flex items-center justify-center">
@@ -267,28 +269,52 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
             </div>
           )}
 
-          {data.clickStats && data.clickStats.totalClicks > 0 && (
-            <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                </div>
+          <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
               </div>
-              <div className="text-2xl font-semibold text-preik-text">
-                {data.clickStats.totalClicks}
-              </div>
-              <div className="text-sm text-preik-text-muted">Lenkeklikk</div>
             </div>
-          )}
+            <div className="text-2xl font-semibold text-preik-text">
+              {data.clickStats?.totalClicks ?? 0}
+            </div>
+            <div className="text-sm text-preik-text-muted">Lenkeklikk</div>
+          </div>
+
+          <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-2xl font-semibold text-preik-text">
+              {data.clickStats?.clickThroughRate ?? 0}%
+            </div>
+            <div className="text-sm text-preik-text-muted">Klikkrate</div>
+          </div>
         </div>
 
         {/* Daily volume chart */}
         <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
-          <h3 className="text-base font-semibold text-preik-text mb-4">
-            Daglig samtalevolum
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-preik-text">
+              Daglig aktivitet
+            </h3>
+            <div className="flex items-center gap-4 text-xs text-preik-text-muted">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-preik-accent" />
+                <span>Samtaler</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+                <span>Klikk</span>
+              </div>
+            </div>
+          </div>
           {data.dailyVolume.length > 0 ? (
             <div>
               <div className="flex">
@@ -299,21 +325,31 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
                 </div>
                 {/* Bars */}
                 <div className="flex items-end gap-[2px] h-32 flex-1">
-                  {data.dailyVolume.map((day) => {
-                    const heightPercent = maxVolume > 0
+                  {data.dailyVolume.map((day, idx) => {
+                    const clickCount = data.dailyClickVolume?.[idx]?.count ?? 0;
+                    const convHeight = maxVolume > 0
                       ? Math.max((day.count / maxVolume) * 100, day.count > 0 ? 8 : 2)
                       : 2;
+                    const clickHeight = maxVolume > 0
+                      ? Math.max((clickCount / maxVolume) * 100, clickCount > 0 ? 8 : 0)
+                      : 0;
                     return (
                       <div
                         key={day.date}
-                        className="flex-1 h-full flex items-end group relative"
+                        className="flex-1 h-full flex items-end group relative gap-[1px]"
                       >
                         <div
-                          className="w-full bg-preik-accent rounded-sm transition-all group-hover:bg-preik-accent-hover"
-                          style={{ height: `${heightPercent}%` }}
+                          className="flex-1 bg-preik-accent rounded-sm transition-all group-hover:bg-preik-accent-hover"
+                          style={{ height: `${convHeight}%` }}
                         />
+                        {clickHeight > 0 && (
+                          <div
+                            className="flex-1 bg-blue-500 rounded-sm transition-all group-hover:bg-blue-600"
+                            style={{ height: `${clickHeight}%` }}
+                          />
+                        )}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-preik-surface border border-preik-border rounded text-xs text-preik-text whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                          {day.date.slice(5)}: {day.count} samtaler
+                          {day.date.slice(5)}: {day.count} samtaler{clickCount > 0 ? `, ${clickCount} klikk` : ""}
                         </div>
                       </div>
                     );
@@ -392,18 +428,20 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
         </div>
 
         {/* Link click analytics */}
-        {data.clickStats && data.topClickedLinks && data.topClickedLinks.length > 0 && (
-          <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-preik-text">
-                Lenkeklikk fra chatbot
-              </h3>
+        <div className="bg-preik-bg rounded-xl border border-preik-border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-preik-text">
+              Lenkeklikk fra chatbot
+            </h3>
+            {data.clickStats && data.clickStats.totalClicks > 0 && (
               <div className="flex gap-4 text-sm text-preik-text-muted">
                 <span>{data.clickStats.totalClicks} klikk</span>
                 <span>{data.clickStats.uniqueSessions} økter</span>
                 <span>{data.clickStats.uniqueUrls} unike lenker</span>
               </div>
-            </div>
+            )}
+          </div>
+          {data.topClickedLinks && data.topClickedLinks.length > 0 ? (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {data.topClickedLinks.map((link, idx) => {
                 const maxClicks = data.topClickedLinks![0].clicks;
@@ -443,8 +481,13 @@ export default function TenantAnalyticsDashboard({ tenantId }: TenantAnalyticsDa
                 );
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-sm text-preik-text-muted py-4 text-center">
+              <p>Ingen lenkeklikk registrert ennå.</p>
+              <p className="mt-1 text-xs">Klikk spores automatisk når besøkende trykker på lenker i chatboten.</p>
+            </div>
+          )}
+        </div>
 
         {/* Unanswered queries */}
         <div className="bg-preik-bg rounded-xl border border-preik-border p-5">

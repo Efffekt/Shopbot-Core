@@ -61,6 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       creditStatus,
       { data: clickData },
       { data: topClicksData },
+      { data: clickVolumeData },
     ] = await Promise.all([
       supabaseAdmin
         .from("conversations")
@@ -95,6 +96,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         .eq("store_id", tenantId)
         .gte("created_at", dateString)
         .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("widget_link_clicks")
+        .select("created_at")
+        .eq("store_id", tenantId)
+        .gte("created_at", volumeThreshold.toISOString()),
     ]);
 
     if (convError) throw convError;
@@ -195,10 +201,34 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .sort((a, b) => b.clicks - a.clicks)
       .slice(0, 10);
 
+    // Build daily click volume
+    const dailyClickCounts: Record<string, number> = {};
+    (clickVolumeData || []).forEach((row) => {
+      const date = row.created_at.split("T")[0];
+      dailyClickCounts[date] = (dailyClickCounts[date] || 0) + 1;
+    });
+
+    const dailyClickVolume: { date: string; count: number }[] = [];
+    for (let i = volumeDays - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      dailyClickVolume.push({
+        date: dateStr,
+        count: dailyClickCounts[dateStr] || 0,
+      });
+    }
+
+    const sessionsWithClicks = new Set(clicks.map((c) => c.session_id).filter(Boolean)).size;
+    const clickThroughRate = conversations.length > 0
+      ? Math.round((sessionsWithClicks / conversations.length) * 100 * 10) / 10
+      : 0;
+
     const clickStats = {
       totalClicks: clicks.length,
-      uniqueSessions: new Set(clicks.map((c) => c.session_id).filter(Boolean)).size,
+      uniqueSessions: sessionsWithClicks,
       uniqueUrls: new Set(clicks.map((c) => c.clicked_url)).size,
+      clickThroughRate,
     };
 
     return NextResponse.json({
@@ -218,6 +248,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       credits: creditStatus,
       clickStats,
       topClickedLinks,
+      dailyClickVolume,
     }, {
       headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=30" },
     });
