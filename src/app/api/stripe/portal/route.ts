@@ -3,6 +3,7 @@ import { getUser } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
 import { createLogger } from "@/lib/logger";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 
 const log = createLogger("api/stripe/portal");
 
@@ -11,6 +12,15 @@ export async function POST(request: NextRequest) {
     const user = await getUser();
     if (!user?.email) {
       return NextResponse.json({ error: "Ikke innlogget" }, { status: 401 });
+    }
+
+    // Rate limit per user
+    const rl = await checkRateLimit(`stripe-portal:${user.id}`, RATE_LIMITS.stripePortal);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "For mange forespørsler. Prøv igjen senere." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.retryAfterMs || 60000) / 1000)) } }
+      );
     }
 
     const body = await request.json();

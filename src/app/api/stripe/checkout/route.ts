@@ -5,6 +5,7 @@ import { getStripe, PLANS } from "@/lib/stripe";
 import { slugify } from "@/lib/slugify";
 import { createLogger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-content-type";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
 
 const log = createLogger("api/stripe/checkout");
 
@@ -13,6 +14,15 @@ export async function POST(request: NextRequest) {
     const user = await getUser();
     if (!user?.email) {
       return NextResponse.json({ error: "Ikke innlogget" }, { status: 401 });
+    }
+
+    // Rate limit per user
+    const rl = await checkRateLimit(`stripe-checkout:${user.id}`, RATE_LIMITS.stripeCheckout);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "For mange forespørsler. Prøv igjen senere." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.retryAfterMs || 60000) / 1000)) } }
+      );
     }
 
     const contentLength = parseInt(request.headers.get("content-length") || "0", 10);

@@ -179,6 +179,16 @@ export const RATE_LIMITS = {
     maxRequests: 60,
     windowMs: 60 * 1000, // 1 minute
   },
+  // Stripe checkout: 5 per hour per user (prevents checkout spam)
+  stripeCheckout: {
+    maxRequests: 5,
+    windowMs: 60 * 60 * 1000, // 1 hour
+  },
+  // Stripe portal: 10 per minute per user
+  stripePortal: {
+    maxRequests: 10,
+    windowMs: 60 * 1000, // 1 minute
+  },
 } as const;
 
 /**
