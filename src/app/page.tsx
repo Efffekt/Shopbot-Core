@@ -119,7 +119,7 @@ const aggregateOfferLd = {
   offers: [
     {
       "@type": "Offer",
-      name: "Starter",
+      name: "Start",
       price: 299,
       priceCurrency: "NOK",
       description: "1000 meldinger per måned",
@@ -133,7 +133,7 @@ const aggregateOfferLd = {
     },
     {
       "@type": "Offer",
-      name: "Bedrift",
+      name: "Proff",
       priceCurrency: "NOK",
       description: "Tilpasset pris",
     },

@@ -13,23 +13,28 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
-const starterFeatures = [
-  "Skreddersydd widget og merkevare",
-  "Opplæring og nettside-skraping",
+const startFeatures = [
+  "Skreddersydd widget i din merkevare",
+  "Opplæring på innholdet ditt",
+  "Nettside-skraping av opptil 500 sider",
   "Avansert innsikt og statistikk",
-  "Flerspråklig (norsk + engelsk)",
-  "Norsk support · GDPR-compliant",
+  "Flerspråklig støtte (norsk + engelsk)",
+  "Norsk support",
+  "GDPR-compliant",
 ];
 
 const vekstFeatures = [
-  { text: "Alt i Starter", bold: true },
+  { text: "Alt i Start", bold: true },
   { text: "5x meldingsvolum", bold: false },
+  { text: "Nettside-skraping av opptil 1500 sider", bold: false },
   { text: "Prioritert support", bold: false },
 ];
 
-const bedriftFeatures = [
+const proffFeatures = [
   { text: "Alt i Vekst", bold: true },
   { text: "Tilpasset meldingsvolum", bold: false },
+  { text: "Nettside-skraping og opplæring tilpasset behov", bold: false },
+  { text: "Tilpasset antall sider og kilder", bold: false },
   { text: "Dedikert kontaktperson", bold: false },
 ];
 
@@ -222,7 +227,7 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
           name: companyName.trim(),
           email: userEmail,
           company: companyName.trim(),
-          message: contactMessage.trim() || `Interessert i Bedrift-planen for ${companyName.trim()}`,
+          message: contactMessage.trim() || `Interessert i Proff-planen for ${companyName.trim()}`,
           source: "pricing_business",
         }),
       });
@@ -280,9 +285,9 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
     );
   }
 
-  const isStarterSelected = selectedPlan === "starter";
+  const isStartSelected = selectedPlan === "starter";
   const isVekstSelected = selectedPlan === "pro";
-  const isBedriftSelected = selectedPlan === "business";
+  const isProffSelected = selectedPlan === "business";
 
   return (
     <div>
@@ -299,12 +304,12 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-        {/* Starter */}
+        {/* Start */}
         <button
           type="button"
           onClick={() => handlePlanClick("starter")}
           className={`text-left bg-preik-bg rounded-3xl border ${
-            isStarterSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-border"
+            isStartSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-border"
           } p-8 relative overflow-hidden flex flex-col h-full transition-all`}
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-preik-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
@@ -316,7 +321,7 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
               </span>
             </div>
 
-            <h3 className="text-xl font-semibold text-preik-text mb-2">Starter</h3>
+            <h3 className="text-xl font-semibold text-preik-text mb-2">Start</h3>
 
             <div className="mb-1">
               <span className="text-sm text-preik-text-muted">Fra </span>
@@ -324,11 +329,11 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
               <span className="text-sm text-preik-text-muted"> kr/mnd</span>
             </div>
 
-            <p className="text-sm text-preik-text-muted mb-6">1 000 meldinger/mnd</p>
-            <p className="text-preik-text-muted text-sm mb-8">Alt du trenger for å komme i gang</p>
+            <p className="text-sm font-medium text-preik-text mb-4">1 000 meldinger per måned</p>
+            <p className="text-preik-text-muted text-sm mb-8">For bedrifter som vil komme raskt i gang med AI-kundeservice på egne nettsider.</p>
 
             <ul className="space-y-3 mb-8 flex-1">
-              {starterFeatures.map((feature, index) => (
+              {startFeatures.map((feature, index) => (
                 <li key={index} className="flex items-center gap-3 text-preik-text text-sm">
                   <svg className="w-4 h-4 text-preik-accent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -338,13 +343,18 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
               ))}
             </ul>
 
-            <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all ${
-              isStarterSelected
-                ? "bg-preik-accent text-white"
-                : "bg-preik-accent text-white hover:bg-preik-accent-hover"
-            }`}>
-              {isStarterSelected ? "Valgt" : "Kom i gang"}
-            </span>
+            <div className="mt-auto">
+              <p className="text-xs text-preik-text-muted mb-4 text-center font-medium">
+                Ingen skjulte kostnader
+              </p>
+              <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all ${
+                isStartSelected
+                  ? "bg-preik-accent text-white"
+                  : "bg-preik-accent text-white hover:bg-preik-accent-hover"
+              }`}>
+                {isStartSelected ? "Valgt" : "Kom i gang"}
+              </span>
+            </div>
           </div>
         </button>
 
@@ -367,8 +377,8 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
               <span className="text-sm text-preik-text-muted"> kr/mnd</span>
             </div>
 
-            <p className="text-sm text-preik-text-muted mb-6">5 000 meldinger/mnd</p>
-            <p className="text-preik-text-muted text-sm mb-8">For bedrifter med høyere volum</p>
+            <p className="text-sm font-medium text-preik-text mb-4">5 000 meldinger per måned</p>
+            <p className="text-preik-text-muted text-sm mb-8">For bedrifter med mer trafikk, flere henvendelser og behov for høyere kapasitet.</p>
 
             <ul className="space-y-3 mb-8 flex-1">
               {vekstFeatures.map((feature, index) => (
@@ -381,38 +391,44 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
               ))}
             </ul>
 
-            <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all border border-preik-accent ${
-              isVekstSelected
-                ? "bg-preik-accent text-white"
-                : "text-preik-text hover:bg-preik-accent hover:text-white"
-            }`}>
-              {isVekstSelected ? "Valgt" : "Kom i gang"}
-            </span>
+            <div className="mt-auto">
+              <p className="text-xs text-preik-text-muted mb-4 text-center font-medium">
+                Ingen skjulte kostnader
+              </p>
+              <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all border border-preik-accent ${
+                isVekstSelected
+                  ? "bg-preik-accent text-white"
+                  : "text-preik-text hover:bg-preik-accent hover:text-white"
+              }`}>
+                {isVekstSelected ? "Valgt" : "Kom i gang"}
+              </span>
+            </div>
           </div>
         </button>
 
-        {/* Bedrift */}
+        {/* Proff */}
         <button
           type="button"
           onClick={() => handlePlanClick("business")}
           className={`text-left bg-preik-bg rounded-3xl border ${
-            isBedriftSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-border"
+            isProffSelected ? "border-preik-accent ring-2 ring-preik-accent" : "border-preik-border"
           } p-8 relative overflow-hidden flex flex-col h-full transition-all`}
         >
           <div className="relative flex flex-col flex-1">
             <div className="mb-6 h-7" />
 
-            <h3 className="text-xl font-semibold text-preik-text mb-2">Bedrift</h3>
+            <h3 className="text-xl font-semibold text-preik-text mb-2">Proff</h3>
 
             <div className="mb-1">
               <span className="text-4xl font-brand font-light text-preik-text">Tilpasset</span>
+              <span className="text-sm text-preik-text-muted"> pris</span>
             </div>
 
-            <p className="text-sm text-preik-text-muted mb-6">volum og behov tilpasset deg</p>
-            <p className="text-preik-text-muted text-sm mb-8">For etablerte bedrifter med egne behov</p>
+            <p className="text-sm font-medium text-preik-text mb-4">Volum og behov tilpasset deg</p>
+            <p className="text-preik-text-muted text-sm mb-8">For bedrifter som trenger mer kapasitet, flere kilder og tettere oppfølging.</p>
 
             <ul className="space-y-3 mb-8 flex-1">
-              {bedriftFeatures.map((feature, index) => (
+              {proffFeatures.map((feature, index) => (
                 <li key={index} className={`flex items-center gap-3 text-preik-text text-sm ${feature.bold ? "font-medium" : ""}`}>
                   <svg className="w-4 h-4 text-preik-accent flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -422,19 +438,24 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
               ))}
             </ul>
 
-            <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all border border-preik-accent ${
-              isBedriftSelected
-                ? "bg-preik-accent text-white"
-                : "text-preik-text hover:bg-preik-accent hover:text-white"
-            }`}>
-              {isBedriftSelected ? "Valgt" : "Kontakt oss for tilbud"}
-            </span>
+            <div className="mt-auto">
+              <p className="text-xs text-preik-text-muted mb-4 text-center font-medium">
+                Ingen skjulte kostnader
+              </p>
+              <span className={`inline-flex items-center justify-center w-full rounded-full px-8 py-3.5 text-sm font-semibold transition-all border border-preik-accent ${
+                isProffSelected
+                  ? "bg-preik-accent text-white"
+                  : "text-preik-text hover:bg-preik-accent hover:text-white"
+              }`}>
+                {isProffSelected ? "Valgt" : "Kontakt oss for tilbud"}
+              </span>
+            </div>
           </div>
         </button>
       </div>
 
       {/* Company name + checkout form for Starter/Vekst */}
-      {(isStarterSelected || isVekstSelected) && (
+      {(isStartSelected || isVekstSelected) && (
         <form onSubmit={handleContinue} className="mt-8 max-w-md mx-auto">
           <label htmlFor="companyName" className="block text-sm font-medium text-preik-text mb-2">
             Bedriftsnavn
@@ -465,8 +486,8 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
         </form>
       )}
 
-      {/* Contact form for Bedrift */}
-      {isBedriftSelected && (
+      {/* Contact form for Proff */}
+      {isProffSelected && (
         <form onSubmit={handleContactSubmit} className="mt-8 max-w-md mx-auto">
           <label htmlFor="companyNameBiz" className="block text-sm font-medium text-preik-text mb-2">
             Bedriftsnavn

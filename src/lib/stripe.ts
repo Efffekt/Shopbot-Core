@@ -26,14 +26,18 @@ export interface PlanConfig {
 
 export const PLANS: Record<string, PlanConfig> = {
   starter: {
-    name: "Starter",
+    name: "Start",
     credits: 1000,
     priceKr: 299,
     priceId: process.env.STRIPE_STARTER_PRICE_ID || "",
     features: [
-      "1 000 AI-kreditter/mnd",
-      "1 chatbot",
-      "E-poststøtte",
+      "Skreddersydd widget i din merkevare",
+      "Opplæring på innholdet ditt",
+      "Nettside-skraping av opptil 500 sider",
+      "Avansert innsikt og statistikk",
+      "Flerspråklig støtte (norsk + engelsk)",
+      "Norsk support",
+      "GDPR-compliant",
     ],
   },
   pro: {
@@ -42,22 +46,23 @@ export const PLANS: Record<string, PlanConfig> = {
     priceKr: 899,
     priceId: process.env.STRIPE_PRO_PRICE_ID || "",
     features: [
-      "Alt i Starter",
+      "Alt i Start",
       "5x meldingsvolum",
+      "Nettside-skraping av opptil 1500 sider",
       "Prioritert support",
     ],
   },
   business: {
-    name: "Business",
+    name: "Proff",
     credits: 20000,
-    priceKr: 1999,
+    priceKr: 0,
     priceId: "", // Contact-only — no Stripe price
     features: [
-      "20 000 AI-kreditter/mnd",
-      "Ubegrensede chatbots",
-      "Dedikert støtte",
-      "Analyse-dashboard",
-      "Egendefinert persona",
+      "Alt i Vekst",
+      "Tilpasset meldingsvolum",
+      "Nettside-skraping og opplæring tilpasset behov",
+      "Tilpasset antall sider og kilder",
+      "Dedikert kontaktperson",
     ],
   },
 };
