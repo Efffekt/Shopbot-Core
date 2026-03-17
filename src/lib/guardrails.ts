@@ -76,9 +76,20 @@ const NO: Guardrails = {
     `stille spørsmålet mer detaljert slik at du kan søke i databasen.`,
 
   criticalRulesReinforcement:
-    `PÅMINNELSE:\n` +
-    `Sjekk svaret ditt mot KRITISKE REGLER øverst i systeminstruksjonene FØR du sender det.\n` +
-    `Følg alle produktrestriksjoner, merkeregler og spesifikke instruksjoner fra rolleinstruksjonen nøyaktig.`,
+    `PÅMINNELSE — LES FØR DU SENDER SVARET:\n` +
+    `\n` +
+    `Gå gjennom KRITISKE REGLER øverst i systeminstruksjonene punkt for punkt.\n` +
+    `For HVERT punkt, sjekk om svaret ditt bryter regelen.\n` +
+    `\n` +
+    `Spesielt:\n` +
+    `- Hvis en regel sier ALDRI eller IKKE: Har du likevel gjort det? Fjern det.\n` +
+    `- Hvis en regel sier ALLTID: Har du faktisk gjort det, tydelig og uten å myke opp språket?\n` +
+    `- Forbudte merker: Har du nevnt et merke som er forbudt? Fjern det.\n` +
+    `- Produktkompatibilitet: Passer hvert produkt du anbefaler til det kunden\n` +
+    `  faktisk trenger? Anbefaler du noe som er laget for feil bruksområde?\n` +
+    `- Harde regler er IKKE forslag — de er absolutte. Ikke bruk myke\n` +
+    `  formuleringer som "vurder", "kanskje", "du kan tenke på" når regelen\n` +
+    `  krever en klar anbefaling eller et forbud.`,
 
   securityFooter:
     `SIKKERHET:\n` +
@@ -155,9 +166,20 @@ const EN: Guardrails = {
     `to phrase their question in more detail so you can search the database.`,
 
   criticalRulesReinforcement:
-    `REMINDER:\n` +
-    `Check your answer against the CRITICAL RULES at the top of the system instructions BEFORE sending it.\n` +
-    `Follow all product restrictions, brand rules, and specific instructions from the role instructions exactly.`,
+    `REMINDER — READ BEFORE SENDING YOUR ANSWER:\n` +
+    `\n` +
+    `Go through the CRITICAL RULES at the top of the system instructions point by point.\n` +
+    `For EACH point, check whether your answer violates the rule.\n` +
+    `\n` +
+    `Specifically:\n` +
+    `- If a rule says NEVER or DO NOT: Did you do it anyway? Remove it.\n` +
+    `- If a rule says ALWAYS: Did you actually do it, clearly and without softening the language?\n` +
+    `- Forbidden brands: Did you mention a brand that is forbidden? Remove it.\n` +
+    `- Product compatibility: Does each product you recommend fit what the customer\n` +
+    `  actually needs? Are you recommending something made for the wrong use case?\n` +
+    `- Hard rules are NOT suggestions — they are absolute. Do not use soft\n` +
+    `  language like "consider", "maybe", "you might want to" when the rule\n` +
+    `  requires a clear recommendation or prohibition.`,
 
   securityFooter:
     `SECURITY:\n` +

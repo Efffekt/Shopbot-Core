@@ -326,6 +326,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
     .messages {
       flex: 1;
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 20px;
       display: flex;
       flex-direction: column;
@@ -418,6 +419,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       line-height: 1.5;
       word-wrap: break-word;
       overflow-wrap: break-word;
+      min-width: 0;
       transition: box-shadow 0.2s ease;
     }
 
@@ -443,6 +445,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
       color: inherit;
       text-decoration: underline;
       text-underline-offset: 2px;
+      word-break: break-all;
     }
 
     .message.assistant .bubble a {
