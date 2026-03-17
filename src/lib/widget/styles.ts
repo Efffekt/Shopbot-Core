@@ -545,6 +545,7 @@ export function getStyles(colors: ThemeColors, fontBody: string, fontBrand: stri
 
     .input-field::placeholder {
       color: var(--widget-text-muted);
+      font-size: 14px;
     }
 
     .send-btn {
