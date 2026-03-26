@@ -158,11 +158,11 @@ export default function PromptEditorWithTest({
               onChange={(e) => setPrompt(e.target.value)}
               disabled={!isAdmin}
               rows={20}
-              className="w-full px-4 py-3 bg-preik-bg border border-preik-border rounded-xl text-preik-text font-mono text-sm focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all resize-none"
+              className="w-full px-4 py-3 bg-preik-bg border border-preik-border rounded-xl text-preik-text font-mono text-sm focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all resize-y min-h-[200px]"
             />
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-4">
               <p className="text-sm text-preik-text-muted">{prompt.length} tegn</p>
               {isAdmin && (
@@ -196,7 +196,7 @@ export default function PromptEditorWithTest({
               <button
                 onClick={handleSave}
                 disabled={saving || !hasChanges}
-                className="inline-flex items-center px-5 py-2.5 text-sm font-medium rounded-xl text-white bg-preik-accent hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-preik-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-xl text-white bg-preik-accent hover:bg-preik-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-preik-accent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {saving ? "Lagrer..." : "Lagre nå"}
               </button>

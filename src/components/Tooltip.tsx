@@ -6,7 +6,7 @@ export function Tooltip({ text }: { text: string }) {
       </span>
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 rounded-lg bg-preik-text text-preik-bg text-xs leading-relaxed shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-50"
+        className="pointer-events-none absolute bottom-full left-0 sm:left-1/2 sm:-translate-x-1/2 mb-2 w-56 sm:w-64 px-3 py-2 rounded-lg bg-preik-text text-preik-bg text-xs leading-relaxed shadow-lg opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity z-50"
       >
         {text}
         <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-preik-text" />

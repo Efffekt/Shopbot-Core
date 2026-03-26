@@ -331,39 +331,43 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-preik-text-muted shrink-0">
-          {serverSearching
-            ? "Søker i alt innhold..."
-            : search
-            ? `${filteredSources.length} av ${sources.length} kilder${serverResults !== null ? " (dyptsøk)" : ""}`
-            : `${sources.length} ${sources.length === 1 ? "kilde" : "kilder"} indeksert`}
-        </p>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-preik-text-muted shrink-0">
+            {serverSearching
+              ? "Søker i alt innhold..."
+              : search
+              ? `${filteredSources.length} av ${sources.length} kilder${serverResults !== null ? " (dyptsøk)" : ""}`
+              : `${sources.length} ${sources.length === 1 ? "kilde" : "kilder"} indeksert`}
+          </p>
+          <div className="flex items-center gap-2">
+            {sources.length > 0 && (
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-preik-text bg-preik-surface border border-preik-border hover:bg-preik-bg disabled:opacity-50 transition-colors shrink-0"
+              >
+                {exporting ? "Eksporterer..." : "Eksporter .md"}
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-preik-accent hover:opacity-90 transition-opacity shrink-0"
+              >
+                {showAddForm ? "Avbryt" : "Legg til innhold"}
+              </button>
+            )}
+          </div>
+        </div>
         {sources.length > 0 && (
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Søk i innhold..."
-            className="flex-1 max-w-xs px-3 py-2 text-sm border border-preik-border rounded-xl bg-preik-bg text-preik-text placeholder:text-preik-text-muted"
+            className="w-full px-3 py-2 text-sm border border-preik-border rounded-xl bg-preik-bg text-preik-text placeholder:text-preik-text-muted"
           />
-        )}
-        {sources.length > 0 && (
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-preik-text bg-preik-surface border border-preik-border hover:bg-preik-bg disabled:opacity-50 transition-colors shrink-0"
-          >
-            {exporting ? "Eksporterer..." : "Eksporter .md"}
-          </button>
-        )}
-        {isAdmin && (
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-preik-accent hover:opacity-90 transition-opacity shrink-0"
-          >
-            {showAddForm ? "Avbryt" : "Legg til innhold"}
-          </button>
         )}
       </div>
 
@@ -432,74 +436,72 @@ export default function ContentManager({ tenantId, isAdmin }: ContentManagerProp
       <div className="space-y-3">
         {filteredSources.map((src) => (
           <div key={src.source} className="bg-preik-surface border border-preik-border rounded-2xl p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <span className="font-medium text-preik-text text-sm">{src.title}</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-preik-bg text-preik-text-muted border border-preik-border">
-                    {src.chunkCount} {src.chunkCount === 1 ? "del" : "deler"}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="font-medium text-preik-text text-sm">{src.title}</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-preik-bg text-preik-text-muted border border-preik-border">
+                  {src.chunkCount} {src.chunkCount === 1 ? "del" : "deler"}
+                </span>
+                {src.isManual ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                    Manuell
                   </span>
-                  {src.isManual ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                      Manuell
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                      Skrapet
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-preik-text-muted line-clamp-2 mb-2">{src.preview}</p>
-                <div className="flex items-center gap-3 text-xs text-preik-text-muted">
-                  {src.source !== "manual" && src.source.startsWith("http") && (
-                    <a
-                      href={src.source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-preik-accent truncate max-w-xs transition-colors"
-                    >
-                      {src.source}
-                    </a>
-                  )}
-                  <span>{new Date(src.createdAt).toLocaleDateString("nb-NO")}</span>
-                </div>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                    Skrapet
+                  </span>
+                )}
               </div>
-              {isAdmin && (
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => openEditModal(src.source)}
-                    className="px-3 py-1.5 text-sm text-preik-text-muted hover:text-preik-text hover:bg-preik-bg rounded-lg transition-colors"
+              <p className="text-sm text-preik-text-muted line-clamp-2 mb-2">{src.preview}</p>
+              <div className="flex items-center gap-3 text-xs text-preik-text-muted">
+                {src.source !== "manual" && src.source.startsWith("http") && (
+                  <a
+                    href={src.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-preik-accent truncate max-w-[200px] sm:max-w-xs transition-colors"
                   >
-                    Rediger
-                  </button>
-                  {confirmDelete === src.source ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-red-600">Slett?</span>
-                      <button
-                        onClick={() => handleDelete(src.source)}
-                        className="px-2 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                      >
-                        Ja
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete(null)}
-                        className="px-2 py-1 text-xs text-preik-text-muted hover:text-preik-text hover:bg-preik-bg rounded-lg transition-colors"
-                      >
-                        Nei
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmDelete(src.source)}
-                      disabled={deleting === src.source}
-                      className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg disabled:opacity-50 transition-colors"
-                    >
-                      {deleting === src.source ? "Sletter..." : "Slett"}
-                    </button>
-                  )}
-                </div>
-              )}
+                    {src.source}
+                  </a>
+                )}
+                <span>{new Date(src.createdAt).toLocaleDateString("nb-NO")}</span>
+              </div>
             </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-preik-border sm:border-0 sm:mt-0 sm:pt-0">
+                <button
+                  onClick={() => openEditModal(src.source)}
+                  className="px-3 py-1.5 text-sm text-preik-text-muted hover:text-preik-text hover:bg-preik-bg rounded-lg transition-colors"
+                >
+                  Rediger
+                </button>
+                {confirmDelete === src.source ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-red-600">Slett?</span>
+                    <button
+                      onClick={() => handleDelete(src.source)}
+                      className="px-2 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    >
+                      Ja
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      className="px-2 py-1 text-xs text-preik-text-muted hover:text-preik-text hover:bg-preik-bg rounded-lg transition-colors"
+                    >
+                      Nei
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(src.source)}
+                    disabled={deleting === src.source}
+                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    {deleting === src.source ? "Sletter..." : "Slett"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
 
