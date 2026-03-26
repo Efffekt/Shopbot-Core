@@ -47,10 +47,6 @@ export default function TenantNav({ tenantId, tenantName, isAdmin }: TenantNavPr
     return () => document.removeEventListener("mousedown", handleClick);
   }, [mobileMenuOpen]);
 
-  // Close menu on navigation
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
 
   return (
     <div className="mb-8">
@@ -103,6 +99,7 @@ export default function TenantNav({ tenantId, tenantName, isAdmin }: TenantNavPr
                 <Link
                   key={tab.href}
                   href={fullHref}
+                  onClick={() => setMobileMenuOpen(false)}
                   className={`block px-4 py-3 text-sm font-medium transition-colors ${
                     isActive
                       ? "text-preik-accent bg-preik-accent/5"
