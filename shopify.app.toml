@@ -1,0 +1,22 @@
+# Preik Chat Widget – Shopify App Configuration
+# Deploy extensions with: shopify app deploy
+# Dev server: shopify app dev
+
+name = "Preik Chat Widget"
+client_id = "bf942410b1060c6afe3461388d7e6b57"
+application_url = "https://preik.ai"
+embedded = false
+
+[auth]
+redirect_urls = ["https://preik.ai/api/shopify/callback"]
+
+[access_scopes]
+scopes = ""
+
+[webhooks]
+api_version = "2026-04"
+
+  [webhooks.privacy_compliance]
+  customer_data_request_url = "https://preik.ai/api/shopify/webhooks/customers-data-request"
+  customer_deletion_url = "https://preik.ai/api/shopify/webhooks/customers-redact"
+  shop_deletion_url = "https://preik.ai/api/shopify/webhooks/shop-redact"

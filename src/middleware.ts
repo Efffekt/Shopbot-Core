@@ -90,6 +90,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/")) {
     const isPublicWildcard = pathname.startsWith("/api/widget") || pathname.startsWith("/api/health");
     const isWidgetFacing = pathname.startsWith("/api/chat") || pathname.startsWith("/api/contact");
+    const isShopifyWebhook = pathname.startsWith("/api/shopify/webhooks/");
 
     if (request.method === "OPTIONS") {
       const preflightHeaders: Record<string, string> = {
@@ -116,7 +117,7 @@ export async function middleware(request: NextRequest) {
     // CSRF protection for internal (same-origin) state-changing requests.
     // Widget-facing and public-wildcard routes are intentionally open.
     const isStateMutating = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
-    if (isStateMutating && !isPublicWildcard && !isWidgetFacing) {
+    if (isStateMutating && !isPublicWildcard && !isWidgetFacing && !isShopifyWebhook) {
       const origin = request.headers.get("origin");
       const host = request.headers.get("host");
       if (origin && host) {

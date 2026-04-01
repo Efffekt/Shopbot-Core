@@ -1,0 +1,12 @@
+api_version = "2026-04"
+
+[[extensions]]
+uid = "d66a8c2f-5755-d484-6bd0-0a91380ec37cc4714bb8"
+type = "theme"
+name = "Preik Chat Widget"
+handle = "preik-chat-widget"
+
+  [[extensions.blocks]]
+  template = "blocks/chat-widget.liquid"
+  name = "Chat Widget"
+  target = "body"

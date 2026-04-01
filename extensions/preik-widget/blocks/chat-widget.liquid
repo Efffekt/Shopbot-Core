@@ -1,0 +1,23 @@
+{% comment %}
+  Preik Chat Widget – App Embed Block
+  Reads tenant ID from the app's shop metafield and loads the widget script.
+  Merchants activate this in Theme Settings > App embeds.
+{% endcomment %}
+
+{% assign tenant_id = shop.metafields.preik.tenant_id %}
+
+{% if tenant_id != blank %}
+  <script
+    src="https://preik.ai/widget.js"
+    data-store-id="{{ tenant_id }}"
+    defer>
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Preik Chat",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}
