@@ -253,6 +253,35 @@ function sanitizeResponseUrls(text: string, allowedUrls: Set<string>): string {
     return buildSearchFallback(cleaned, baseDomain);
   });
 
+  // Pass 3: Deduplicate product URLs — if the same product URL is used for
+  // multiple different markdown links, replace the duplicates with search links.
+  // This catches cases where the AI reuses one product's URL for another product.
+  const usedProductUrls = new Map<string, number>(); // url → first occurrence index
+  result = result.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (match, linkText: string, url: string) => {
+    // Skip search URLs and guide/blog URLs — only deduplicate product links
+    try {
+      const parsed = new URL(url);
+      if (parsed.pathname === "/search") return match;
+      if (parsed.pathname.includes("/blogs/") || parsed.pathname.includes("/pages/")) return match;
+    } catch { return match; }
+
+    const normalizedUrl = normalizeUrl(url);
+    const occurrence = usedProductUrls.get(normalizedUrl) ?? 0;
+    usedProductUrls.set(normalizedUrl, occurrence + 1);
+
+    if (occurrence > 0) {
+      // This URL was already used for a different product — replace with search
+      const searchKeywords = linkText
+        .replace(/[*_[\]()]/g, "")
+        .split(/\s+/)
+        .filter((w) => w.length > 2)
+        .slice(0, 3)
+        .join("+");
+      return `[${linkText}](${baseDomain}/search?q=${encodeURIComponent(searchKeywords || linkText)})`;
+    }
+    return match;
+  });
+
   return result;
 }
 
@@ -812,30 +841,40 @@ export async function POST(request: NextRequest) {
 
       // Extract base domain for search URL fallback (e.g. "https://baatpleiebutikken.no")
       let searchUrlHint = "";
+      let baseDomain = "";
       try {
         const firstUrl = new URL(availableUrls[0]);
-        const baseDomain = `${firstUrl.protocol}//${firstUrl.host}`;
+        baseDomain = `${firstUrl.protocol}//${firstUrl.host}`;
+      } catch { /* invalid URL */ }
+
+      if (baseDomain) {
         searchUrlHint = lang === "en"
-          ? `\nIf a product does NOT have a matching URL above, use a search URL: ${baseDomain}/search?q=SEARCH+TERMS (use simple keywords from the user's question, do NOT invent product names). A search link is always better than a wrong product link.`
-          : `\nHvis et produkt IKKE har en matchende URL over, bruk en søkelenke: ${baseDomain}/search?q=SØKEORD (bruk enkle søkeord fra brukerens spørsmål, IKKE finn opp produktnavn). En søkelenke er alltid bedre enn en feil produktlenke.`;
-      } catch { /* invalid URL, skip hint */ }
+          ? `\n\nSEARCH FALLBACK (IMPORTANT — USE THIS WHEN IN DOUBT):\nIf a product you want to recommend does NOT have a matching URL in the list above, you MUST use a search link instead: ${baseDomain}/search?q=KEYWORD\nUse 1-2 simple keywords from the product name. A search link is ALWAYS better than linking to the wrong product. NEVER reuse a URL from one product for a different product.`
+          : `\n\nSØKELENKE (VIKTIG — BRUK DENNE NÅR DU ER USIKKER):\nHvis et produkt du vil anbefale IKKE har en matchende URL i listen over, MÅ du bruke en søkelenke i stedet: ${baseDomain}/search?q=SØKEORD\nBruk 1-2 enkle søkeord fra produktnavnet. En søkelenke er ALLTID bedre enn å lenke til feil produkt. ALDRI gjenbruk en URL fra ett produkt til et annet produkt.`;
+      }
+
+      /** Extract a human-readable label from a URL slug */
+      const labelFromUrl = (url: string): string => {
+        const slug = url.split("/").filter(Boolean).pop() || "";
+        return slug.replace(/-/g, " ");
+      };
 
       if (lang === "en") {
         const sections: string[] = [];
         if (productUrls.length > 0) {
-          sections.push(`Product links:\n${productUrls.map((u) => `- ${u}`).join("\n")}`);
+          sections.push(`Product links:\n${productUrls.map((u) => `- ${labelFromUrl(u)} → ${u}`).join("\n")}`);
         }
         if (guideUrls.length > 0) {
-          sections.push(`Guides and articles:\n${guideUrls.map((u) => `- ${u}`).join("\n")}`);
+          sections.push(`Guides and articles:\n${guideUrls.map((u) => `- ${labelFromUrl(u)} → ${u}`).join("\n")}`);
         }
         urlAllowlist = `AVAILABLE LINKS (use ONLY these, do NOT invent URLs):\n\n${sections.join("\n\n")}${searchUrlHint}`;
       } else {
         const sections: string[] = [];
         if (productUrls.length > 0) {
-          sections.push(`Produktlenker:\n${productUrls.map((u) => `- ${u}`).join("\n")}`);
+          sections.push(`Produktlenker:\n${productUrls.map((u) => `- ${labelFromUrl(u)} → ${u}`).join("\n")}`);
         }
         if (guideUrls.length > 0) {
-          sections.push(`Guider og artikler:\n${guideUrls.map((u) => `- ${u}`).join("\n")}`);
+          sections.push(`Guider og artikler:\n${guideUrls.map((u) => `- ${labelFromUrl(u)} → ${u}`).join("\n")}`);
         }
         urlAllowlist = `TILGJENGELIGE LENKER (bruk KUN disse, IKKE finn opp URL-er):\n\n${sections.join("\n\n")}${searchUrlHint}`;
       }

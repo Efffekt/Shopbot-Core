@@ -43,9 +43,14 @@ const NO: Guardrails = {
     `ovenfor. Hvert produkt du nevner skal finnes med sitt fulle navn i ett\n` +
     `av dokumentene [DOK-X].\n` +
     `\n` +
-    `Koble produkter til riktig URL: Bruk kun KILDE-URL fra det SAMME\n` +
-    `dokumentet der produktet er beskrevet. Hvis et produkt mangler en\n` +
-    `direkte URL, bruk søkelenken i stedet.\n` +
+    `URL-KOBLING (KRITISK):\n` +
+    `Hvert produkt du anbefaler MÅ lenkes til KILDE-URL fra det SAMME\n` +
+    `dokumentet [DOK-X] der produktet er beskrevet.\n` +
+    `- ALDRI bruk en URL fra ett produkt (DOK-1) for å lenke til et annet\n` +
+    `  produkt (DOK-2). Hver URL tilhører ETT spesifikt produkt.\n` +
+    `- Hvis produktet du vil anbefale IKKE har en egen KILDE-URL i\n` +
+    `  dokumentene, bruk søkelenken (search?q=produktnavn).\n` +
+    `- Feil lenke er VERRE enn en søkelenke. Når du er usikker, bruk søk.\n` +
     `\n` +
     `Ved usikkerhet: Presenter produktene du fant i konteksten og spør om\n` +
     `brukeren ønsker noe mer spesifikt, i stedet for å gjette.`,
@@ -87,6 +92,9 @@ const NO: Guardrails = {
     `- Forbudte merker: Har du nevnt et merke som er forbudt? Fjern det.\n` +
     `- Produktkompatibilitet: Passer hvert produkt du anbefaler til det kunden\n` +
     `  faktisk trenger? Anbefaler du noe som er laget for feil bruksområde?\n` +
+    `- LENKER: For HVER lenke i svaret ditt — tilhører URL-en det produktet du\n` +
+    `  beskriver? Hvis nei, bytt til en søkelenke. Samme URL skal ALDRI brukes\n` +
+    `  til to forskjellige produkter.\n` +
     `- Harde regler er IKKE forslag — de er absolutte. Ikke bruk myke\n` +
     `  formuleringer som "vurder", "kanskje", "du kan tenke på" når regelen\n` +
     `  krever en klar anbefaling eller et forbud.`,
@@ -133,9 +141,14 @@ const EN: Guardrails = {
     `above. Every product you mention must exist by its full name in one of the\n` +
     `documents [DOC-X].\n` +
     `\n` +
-    `Link products to the correct URL: Only use the SOURCE-URL from the SAME\n` +
-    `document where the product is described. If a product has no direct URL,\n` +
-    `use the search link instead.\n` +
+    `URL LINKING (CRITICAL):\n` +
+    `Every product you recommend MUST link to the SOURCE-URL from the SAME\n` +
+    `document [DOC-X] where the product is described.\n` +
+    `- NEVER use a URL from one product (DOC-1) to link to a different\n` +
+    `  product (DOC-2). Each URL belongs to ONE specific product.\n` +
+    `- If the product you want to recommend does NOT have its own SOURCE-URL\n` +
+    `  in the documents, use the search link (search?q=product+name).\n` +
+    `- A wrong link is WORSE than a search link. When in doubt, use search.\n` +
     `\n` +
     `When uncertain: Present the products you found in the context and ask if\n` +
     `the user wants something more specific, instead of guessing.`,
@@ -177,6 +190,9 @@ const EN: Guardrails = {
     `- Forbidden brands: Did you mention a brand that is forbidden? Remove it.\n` +
     `- Product compatibility: Does each product you recommend fit what the customer\n` +
     `  actually needs? Are you recommending something made for the wrong use case?\n` +
+    `- LINKS: For EACH link in your answer — does the URL belong to the product\n` +
+    `  you are describing? If not, switch to a search link. The same URL must\n` +
+    `  NEVER be used for two different products.\n` +
     `- Hard rules are NOT suggestions — they are absolute. Do not use soft\n` +
     `  language like "consider", "maybe", "you might want to" when the rule\n` +
     `  requires a clear recommendation or prohibition.`,
