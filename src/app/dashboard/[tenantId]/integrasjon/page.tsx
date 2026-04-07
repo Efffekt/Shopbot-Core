@@ -236,14 +236,14 @@ function ShopifyConnect({ tenantId }: { tenantId: string }) {
       )}
 
       {shopifyStatus === "connected" && connectedShop && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+        <div className="bg-preik-bg border border-preik-border rounded-xl p-4">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-sm font-medium text-green-800 dark:text-green-200">
+            <span className="w-2 h-2 rounded-full bg-green-600" />
+            <span className="text-sm font-medium text-preik-text">
               Koblet til {connectedShop}
             </span>
           </div>
-          <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+          <p className="text-xs text-preik-text-muted mt-2">
             Aktiver widgeten i Shopify-admin under <strong>Nettbutikk → Tilpass tema → App-innbygging</strong>.
           </p>
         </div>
