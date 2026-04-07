@@ -43,7 +43,7 @@ function addSecurityHeaders(response: NextResponse, nonce: string): void {
     "frame-src https://www.googletagmanager.com https://js.stripe.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
-    "form-action 'self' https://checkout.stripe.com",
+    "form-action 'self' https://preik.ai https://www.preik.ai https://checkout.stripe.com",
     "upgrade-insecure-requests",
   ];
   response.headers.set("Content-Security-Policy", cspDirectives.join("; "));
