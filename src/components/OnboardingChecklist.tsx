@@ -51,20 +51,19 @@ const STEP_CONFIG = [
 ];
 
 export function OnboardingChecklist({ tenantId }: { tenantId: string }) {
+  // Read dismissed state synchronously from localStorage to avoid cascading renders
+  const isDismissedInitially = typeof window !== "undefined"
+    && localStorage.getItem(`onboarding-dismissed-${tenantId}`) === "true";
+
   const [steps, setSteps] = useState<OnboardingSteps | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [totalSteps, setTotalSteps] = useState(5);
-  const [dismissed, setDismissed] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [dismissed, setDismissed] = useState(isDismissedInitially);
+  const [loading, setLoading] = useState(!isDismissedInitially);
   const [widgetDomain, setWidgetDomain] = useState<string | null>(null);
 
   useEffect(() => {
-    const key = `onboarding-dismissed-${tenantId}`;
-    if (localStorage.getItem(key) === "true") {
-      setDismissed(true);
-      setLoading(false);
-      return;
-    }
+    if (isDismissedInitially) return;
 
     fetch(`/api/tenant/${tenantId}/onboarding-status`)
       .then((r) => r.json())
@@ -76,7 +75,7 @@ export function OnboardingChecklist({ tenantId }: { tenantId: string }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [tenantId]);
+  }, [tenantId, isDismissedInitially]);
 
   if (loading || dismissed || !steps) return null;
   if (completedCount === totalSteps) return null;

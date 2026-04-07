@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUser } from "@/lib/supabase-server";
-import { createLogger } from "@/lib/logger";
-
-const log = createLogger("api/tenant/shopify");
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ tenantId: string }> }
