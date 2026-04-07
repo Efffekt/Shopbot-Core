@@ -7,6 +7,23 @@ const log = createLogger("email");
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@preik.ai";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "hei@preik.ai";
 const DASHBOARD_BASE_URL = process.env.DASHBOARD_BASE_URL || "https://preik.ai/dashboard";
+const APP_URL = process.env.SHOPIFY_APP_URL || "https://preik.ai";
+
+/** Generate an unsubscribe URL with HMAC token */
+export async function buildUnsubscribeUrl(tenantId: string): Promise<string> {
+  const secret = process.env.CRON_SECRET || "fallback";
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(tenantId));
+  const token = Buffer.from(sig).toString("hex").slice(0, 16);
+  return `${APP_URL}/api/email/unsubscribe?t=${encodeURIComponent(tenantId)}&k=${token}`;
+}
+
+function unsubFooter(url: string): string {
+  return `<p style="margin-top: 32px; font-size: 11px; color: #aaa; text-align: center;">
+    <a href="${url}" style="color: #aaa;">Meld deg av e-poster</a>
+  </p>`;
+}
 
 // Lazy init — won't crash if key is missing in dev
 let resendClient: Resend | null = null;
@@ -223,6 +240,7 @@ interface NudgeEmailData {
   tenantName: string;
   contactEmail: string;
   tenantId: string;
+  unsubUrl?: string;
 }
 
 /** Day 2: Widget not installed yet */
@@ -252,6 +270,7 @@ export async function sendNudgeInstallEmail(data: NudgeEmailData): Promise<void>
             Trenger du hjelp med installasjonen? Svar på denne e-posten — vi setter det opp for deg.
           </p>
           <p style="margin-top: 32px; font-size: 12px; color: #999;">Preik – AI som snakker ditt språk</p>
+          ${data.unsubUrl ? unsubFooter(data.unsubUrl) : ""}
         </div>
       `,
     });
@@ -290,6 +309,7 @@ export async function sendNudgeTipsEmail(data: NudgeEmailData): Promise<void> {
             </a>
           </div>
           <p style="margin-top: 32px; font-size: 12px; color: #999;">Preik – AI som snakker ditt språk</p>
+          ${data.unsubUrl ? unsubFooter(data.unsubUrl) : ""}
         </div>
       `,
     });
@@ -325,6 +345,7 @@ export async function sendNudgeReengageEmail(data: NudgeEmailData): Promise<void
             </a>
           </p>
           <p style="margin-top: 32px; font-size: 12px; color: #999;">Preik – AI som snakker ditt språk</p>
+          ${data.unsubUrl ? unsubFooter(data.unsubUrl) : ""}
         </div>
       `,
     });

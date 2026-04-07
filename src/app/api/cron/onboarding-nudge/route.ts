@@ -5,6 +5,7 @@ import {
   sendNudgeInstallEmail,
   sendNudgeTipsEmail,
   sendNudgeReengageEmail,
+  buildUnsubscribeUrl,
 } from "@/lib/email";
 import { createLogger } from "@/lib/logger";
 
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   const { data: tenants, error } = await supabaseAdmin
     .from("tenants")
-    .select("id, name, contact_email, created_at, widget_first_seen_at, onboarding_nudge_install_sent, onboarding_nudge_tips_sent, onboarding_nudge_reengage_sent")
+    .select("id, name, contact_email, created_at, widget_first_seen_at, onboarding_nudge_install_sent, onboarding_nudge_tips_sent, onboarding_nudge_reengage_sent, email_unsubscribed")
     .neq("stripe_subscription_id", "")
     .gte("created_at", fourteenDaysAgo);
 
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
 
   for (const tenant of tenants) {
     if (!tenant.contact_email) continue;
+    if (tenant.email_unsubscribed) continue;
 
     const createdAt = new Date(tenant.created_at);
     const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
@@ -60,7 +62,8 @@ export async function GET(request: NextRequest) {
 
     const hasConversations = (convCount ?? 0) > 0;
 
-    const emailData = { tenantName: tenant.name || tenant.id, contactEmail: tenant.contact_email, tenantId: tenant.id };
+    const unsubUrl = await buildUnsubscribeUrl(tenant.id);
+    const emailData = { tenantName: tenant.name || tenant.id, contactEmail: tenant.contact_email, tenantId: tenant.id, unsubUrl };
 
     // Day 2+: Widget not installed
     if (daysSinceCreation >= 2 && !hasWidget && !tenant.onboarding_nudge_install_sent) {

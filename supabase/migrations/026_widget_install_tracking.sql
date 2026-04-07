@@ -7,4 +7,5 @@ ALTER TABLE tenants
 ALTER TABLE tenants
   ADD COLUMN IF NOT EXISTS onboarding_nudge_install_sent BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS onboarding_nudge_tips_sent BOOLEAN DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS onboarding_nudge_reengage_sent BOOLEAN DEFAULT FALSE;
+  ADD COLUMN IF NOT EXISTS onboarding_nudge_reengage_sent BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS email_unsubscribed BOOLEAN DEFAULT FALSE;
