@@ -153,6 +153,27 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     log.error("Failed to grant tenant access:", accessError);
   }
 
+  // Pre-fill widget config with sensible Norwegian defaults
+  await supabaseAdmin
+    .from("widget_config")
+    .upsert({
+      tenant_id: finalSlug,
+      config: {
+        accentColor: "#C2410C",
+        brandName: companyName,
+        greeting: "Hei! Hvordan kan jeg hjelpe deg i dag?",
+        placeholder: "Skriv en melding...",
+        position: "bottom-right",
+        theme: "light",
+        brandStyle: "normal",
+      },
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    }, { onConflict: "tenant_id" })
+    .then(({ error: wcError }) => {
+      if (wcError) log.warn("Failed to create default widget config", { error: wcError });
+    });
+
   logAudit({
     actorEmail: userEmail,
     action: "create",

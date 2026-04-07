@@ -44,6 +44,7 @@ const STEP_CONFIG = [
     key: "widgetInstalled" as const,
     label: "Installer widgeten",
     desc: "Legg til embed-kode eller koble til Shopify",
+    doneDesc: null as string | null, // set dynamically
     href: (id: string) => `/dashboard/${id}/integrasjon`,
     linkLabel: "Installer",
   },
@@ -55,6 +56,7 @@ export function OnboardingChecklist({ tenantId }: { tenantId: string }) {
   const [totalSteps, setTotalSteps] = useState(5);
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [widgetDomain, setWidgetDomain] = useState<string | null>(null);
 
   useEffect(() => {
     const key = `onboarding-dismissed-${tenantId}`;
@@ -70,6 +72,7 @@ export function OnboardingChecklist({ tenantId }: { tenantId: string }) {
         setSteps(data.steps);
         setCompletedCount(data.completedCount);
         setTotalSteps(data.totalSteps);
+        setWidgetDomain(data.widgetFirstSeenDomain);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -139,7 +142,11 @@ export function OnboardingChecklist({ tenantId }: { tenantId: string }) {
                 <p className={`text-sm font-medium ${done ? "text-green-700 dark:text-green-300" : "text-preik-text"}`}>
                   {step.label}
                 </p>
-                <p className="text-xs text-preik-text-muted">{step.desc}</p>
+                <p className="text-xs text-preik-text-muted">
+                  {done && step.key === "widgetInstalled" && widgetDomain
+                    ? `Widget oppdaget på ${widgetDomain}`
+                    : step.desc}
+                </p>
               </div>
 
               {/* Action */}

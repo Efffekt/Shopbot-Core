@@ -452,6 +452,21 @@ class PreikChatWidget extends HTMLElement {
       setTimeout(() => this.openChat(), 100);
     }
 
+    // Ping install verification (fire-and-forget, first load only)
+    if (this.config.storeId) {
+      const seenKey = `preik-install-pinged-${this.config.storeId}`;
+      if (!localStorage.getItem(seenKey)) {
+        try {
+          fetch(`${this.baseUrl}/api/widget/verify-install`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ storeId: this.config.storeId, domain: location.hostname }),
+          }).catch(() => {});
+          localStorage.setItem(seenKey, "1");
+        } catch { /* ignore */ }
+      }
+    }
+
     // Fetch server config in background and re-render if different
     if (this.config.storeId) {
       fetchServerConfig(this.config.storeId, this.baseUrl).then((serverConfig) => {

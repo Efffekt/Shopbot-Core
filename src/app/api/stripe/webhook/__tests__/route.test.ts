@@ -128,6 +128,9 @@ describe("POST /api/stripe/webhook", () => {
       if (table === "tenant_user_access") {
         return { insert: vi.fn().mockResolvedValue({ error: null }) };
       }
+      if (table === "widget_config") {
+        return { upsert: vi.fn().mockResolvedValue({ error: null }) };
+      }
       return {};
     });
 

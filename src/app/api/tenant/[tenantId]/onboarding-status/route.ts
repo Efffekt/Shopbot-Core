@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
   // Run all checks in parallel
   const [tenantResult, docsResult, promptResult, widgetResult, shopifyResult] = await Promise.all([
-    supabaseAdmin.from("tenants").select("allowed_domains").eq("id", tenantId).single(),
+    supabaseAdmin.from("tenants").select("allowed_domains, widget_first_seen_at, widget_first_seen_domain").eq("id", tenantId).single(),
     supabaseAdmin.from("documents").select("id", { count: "exact", head: true }).eq("store_id", tenantId),
     supabaseAdmin.from("tenant_prompts").select("id").eq("tenant_id", tenantId).limit(1),
     supabaseAdmin.from("widget_config").select("tenant_id").eq("tenant_id", tenantId).limit(1),
@@ -34,18 +34,27 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     (d: string) => !d.includes("localhost") && !d.includes("127.0.0.1")
   );
 
+  const widgetDetected = !!tenantResult.data?.widget_first_seen_at;
+  const hasShopify = (shopifyResult.data?.length ?? 0) > 0;
+
   const steps = {
     domainsAdded: domains.length > 0,
     contentAdded: (docsResult.count ?? 0) > 0,
     promptConfigured: (promptResult.data?.length ?? 0) > 0,
     widgetCustomized: (widgetResult.data?.length ?? 0) > 0,
-    widgetInstalled: (shopifyResult.data?.length ?? 0) > 0 || domains.length > 0,
+    widgetInstalled: widgetDetected || hasShopify,
   };
 
   const completedCount = Object.values(steps).filter(Boolean).length;
   const totalSteps = Object.keys(steps).length;
 
-  return NextResponse.json({ steps, completedCount, totalSteps }, {
-    headers: { "Cache-Control": "private, max-age=30" },
+  return NextResponse.json({
+    steps,
+    completedCount,
+    totalSteps,
+    widgetFirstSeenAt: tenantResult.data?.widget_first_seen_at || null,
+    widgetFirstSeenDomain: tenantResult.data?.widget_first_seen_domain || null,
+  }, {
+    headers: { "Cache-Control": "private, max-age=15" },
   });
 }

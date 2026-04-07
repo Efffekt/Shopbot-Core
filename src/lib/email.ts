@@ -165,36 +165,172 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
   if (!resend) return;
 
   try {
+    const dashboardLink = `${DASHBOARD_BASE_URL}/${escapeHtml(data.tenantId)}`;
+
     await resend.emails.send({
       from: `Preik <${FROM_EMAIL}>`,
       to: data.contactEmail,
       subject: `Velkommen til Preik, ${data.tenantName}!`,
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1a1a2e;">Velkommen til Preik! 🎉</h2>
-          <p style="color: #1a1a2e; line-height: 1.6;">
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+          <h2>Velkommen til Preik!</h2>
+          <p style="line-height: 1.6;">
             Hei! Vi er glade for å ha <strong>${escapeHtml(data.tenantName)}</strong> med oss.
+            Chatboten din er klar — du kan være oppe og kjøre på under 5 minutter.
           </p>
-          <p style="color: #1a1a2e; line-height: 1.6;">
-            Din AI-chatbot er nå klar til å konfigureres. Her er de neste stegene:
-          </p>
-          <div style="margin: 24px 0; padding: 20px; background: #f5f5f5; border-radius: 8px;">
-            <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>1.</strong> Logg inn på <a href="${DASHBOARD_BASE_URL}/${escapeHtml(data.tenantId)}" style="color: #6C63FF;">dashbordet</a></p>
-            <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>2.</strong> Legg til innhold i kunnskapsbasen (skriv tekst eller importer fra nettside)</p>
-            <p style="margin: 0 0 12px 0; color: #1a1a2e;"><strong>3.</strong> Tilpass chatbotens systemprompt</p>
-            <p style="margin: 0; color: #1a1a2e;"><strong>4.</strong> Kopier embed-koden og legg den inn på nettsiden din</p>
+
+          <div style="margin: 24px 0;">
+            <a href="${dashboardLink}" style="display: inline-block; padding: 12px 28px; background: #C2410C; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600;">
+              Gå til dashbordet
+            </a>
           </div>
-          <p style="color: #1a1a2e; line-height: 1.6;">
-            Har du spørsmål? Svar på denne e-posten eller kontakt oss på
-            <a href="mailto:hei@preik.ai" style="color: #6C63FF;">hei@preik.ai</a>.
+
+          <p style="line-height: 1.6; font-weight: 600; margin-bottom: 8px;">Slik kommer du i gang:</p>
+          <div style="margin: 0 0 24px 0; padding: 20px; background: #f8f8f8; border-radius: 8px;">
+            <p style="margin: 0 0 12px 0;"><strong>1. Legg til domenet ditt</strong> — hvitelist domenet der chatboten skal vises</p>
+            <p style="margin: 0 0 12px 0;"><strong>2. Last opp innhold</strong> — importer fra nettsiden din eller legg til tekst manuelt</p>
+            <p style="margin: 0 0 12px 0;"><strong>3. Sett opp systemprompt</strong> — fortell chatboten hvordan den skal oppføre seg</p>
+            <p style="margin: 0 0 12px 0;"><strong>4. Tilpass widgeten</strong> — velg farger og tekster som matcher merkevaren din</p>
+            <p style="margin: 0;"><strong>5. Installer</strong> — kopier embed-koden eller koble til Shopify med ett klikk</p>
+          </div>
+
+          <p style="line-height: 1.6;">
+            Dashbordet guider deg gjennom hvert steg med en sjekkliste. Vi har også
+            satt opp fornuftige standardverdier, så widgeten fungerer med en gang — du kan finjustere etterpå.
           </p>
-          <p style="margin-top: 24px; font-size: 12px; color: #999;">Preik – AI-chatbot for nettbutikker</p>
+
+          <p style="line-height: 1.6; margin-top: 20px;">
+            <strong>Trenger du hjelp?</strong> Bare svar på denne e-posten eller send oss en melding på
+            <a href="mailto:hei@preik.ai" style="color: #C2410C;">hei@preik.ai</a>.
+            Vi hjelper gjerne med oppsett, konfigurasjon, eller bare å komme i gang.
+          </p>
+
+          <p style="margin-top: 32px; font-size: 12px; color: #999;">
+            Preik – AI som snakker ditt språk
+          </p>
         </div>
       `,
     });
     log.info("Welcome email sent", { tenantId: data.tenantId, to: data.contactEmail });
   } catch (error) {
     log.error("Failed to send welcome email", { error: error as Error, tenantId: data.tenantId });
+  }
+}
+
+// --- Onboarding nudge emails ---
+
+interface NudgeEmailData {
+  tenantName: string;
+  contactEmail: string;
+  tenantId: string;
+}
+
+/** Day 2: Widget not installed yet */
+export async function sendNudgeInstallEmail(data: NudgeEmailData): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+
+  const dashboardLink = `${DASHBOARD_BASE_URL}/${escapeHtml(data.tenantId)}/integrasjon`;
+
+  try {
+    await resend.emails.send({
+      from: `Preik <${FROM_EMAIL}>`,
+      to: data.contactEmail,
+      subject: `Du er nesten klar — ett steg gjenstår`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+          <h2>Hei ${escapeHtml(data.tenantName)}!</h2>
+          <p style="line-height: 1.6;">
+            Vi ser at chatboten din ikke er installert enda. Du er bare ett steg unna å ha den live!
+          </p>
+          <div style="margin: 24px 0;">
+            <a href="${dashboardLink}" style="display: inline-block; padding: 12px 28px; background: #C2410C; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600;">
+              Installer widgeten nå
+            </a>
+          </div>
+          <p style="line-height: 1.6;">
+            Trenger du hjelp med installasjonen? Svar på denne e-posten — vi setter det opp for deg.
+          </p>
+          <p style="margin-top: 32px; font-size: 12px; color: #999;">Preik – AI som snakker ditt språk</p>
+        </div>
+      `,
+    });
+    log.info("Nudge install email sent", { tenantId: data.tenantId });
+  } catch (error) {
+    log.error("Failed to send nudge install email", { error: error as Error, tenantId: data.tenantId });
+  }
+}
+
+/** Day 5: Widget installed but no conversations */
+export async function sendNudgeTipsEmail(data: NudgeEmailData): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+
+  const dashboardLink = `${DASHBOARD_BASE_URL}/${escapeHtml(data.tenantId)}`;
+
+  try {
+    await resend.emails.send({
+      from: `Preik <${FROM_EMAIL}>`,
+      to: data.contactEmail,
+      subject: `Widgeten din er live — slik får du mest ut av den`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+          <h2>Bra jobba!</h2>
+          <p style="line-height: 1.6;">
+            Widgeten til <strong>${escapeHtml(data.tenantName)}</strong> er installert. Her er noen tips for å få best mulig resultat:
+          </p>
+          <div style="margin: 16px 0; padding: 20px; background: #f8f8f8; border-radius: 8px;">
+            <p style="margin: 0 0 12px 0;"><strong>Legg til mer innhold</strong> — jo mer kunnskap chatboten har, desto bedre svar gir den</p>
+            <p style="margin: 0 0 12px 0;"><strong>Finjuster systemprompten</strong> — gi chatboten en tydelig rolle og retningslinjer</p>
+            <p style="margin: 0;"><strong>Test selv</strong> — prøv å chatte med widgeten for å se hvordan den svarer</p>
+          </div>
+          <div style="margin: 24px 0;">
+            <a href="${dashboardLink}" style="display: inline-block; padding: 12px 28px; background: #C2410C; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600;">
+              Gå til dashbordet
+            </a>
+          </div>
+          <p style="margin-top: 32px; font-size: 12px; color: #999;">Preik – AI som snakker ditt språk</p>
+        </div>
+      `,
+    });
+    log.info("Nudge tips email sent", { tenantId: data.tenantId });
+  } catch (error) {
+    log.error("Failed to send nudge tips email", { error: error as Error, tenantId: data.tenantId });
+  }
+}
+
+/** Day 12: Inactive — re-engagement */
+export async function sendNudgeReengageEmail(data: NudgeEmailData): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+
+  try {
+    await resend.emails.send({
+      from: `Preik <${FROM_EMAIL}>`,
+      to: data.contactEmail,
+      subject: `Trenger du hjelp med oppsettet?`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a2e;">
+          <h2>Hei ${escapeHtml(data.tenantName)}!</h2>
+          <p style="line-height: 1.6;">
+            Vi ser at chatboten din ikke har kommet ordentlig i gang enda. Ingen stress — vi hjelper gjerne!
+          </p>
+          <p style="line-height: 1.6;">
+            Svar på denne e-posten med en kort beskrivelse av hva du trenger hjelp med, så fikser vi det for deg.
+            Vi kan sette opp alt fra innhold til systemprompt og installasjon.
+          </p>
+          <p style="line-height: 1.6; margin-top: 16px;">
+            <a href="mailto:hei@preik.ai?subject=Trenger hjelp med ${escapeHtml(data.tenantName)}" style="color: #C2410C; font-weight: 600;">
+              Svar her eller send e-post til hei@preik.ai
+            </a>
+          </p>
+          <p style="margin-top: 32px; font-size: 12px; color: #999;">Preik – AI som snakker ditt språk</p>
+        </div>
+      `,
+    });
+    log.info("Nudge re-engage email sent", { tenantId: data.tenantId });
+  } catch (error) {
+    log.error("Failed to send nudge re-engage email", { error: error as Error, tenantId: data.tenantId });
   }
 }
 
