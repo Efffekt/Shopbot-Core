@@ -192,6 +192,94 @@ function WidgetPreview({ config }: { config: WidgetConfig }) {
   );
 }
 
+function ShopifyConnect({ tenantId }: { tenantId: string }) {
+  const [shopDomain, setShopDomain] = useState("");
+  const [shopifyStatus, setShopifyStatus] = useState<"idle" | "loading" | "connected" | "disconnected">("loading");
+  const [connectedShop, setConnectedShop] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/tenant/${tenantId}/shopify`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.shop_domain && !data.uninstalled_at) {
+          setShopifyStatus("connected");
+          setConnectedShop(data.shop_domain);
+        } else {
+          setShopifyStatus("idle");
+        }
+      })
+      .catch(() => setShopifyStatus("idle"));
+  }, [tenantId]);
+
+  const handleConnect = () => {
+    const shop = shopDomain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const normalized = shop.includes(".") ? shop : `${shop}.myshopify.com`;
+    window.location.href = `/api/shopify/install?shop=${encodeURIComponent(normalized)}&tenantId=${encodeURIComponent(tenantId)}`;
+  };
+
+  return (
+    <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-[#96bf48]/10 flex items-center justify-center">
+          <svg className="w-5 h-5 text-[#96bf48]" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.34 3.04c-.14-.07-.29-.04-.39.08a5.8 5.8 0 0 0-.92 1.51c-.36-.1-.73-.17-1.1-.2.03-.36-.02-.73-.15-1.07-.33-.87-1.03-1.3-1.68-1.22-.18.02-.34.1-.46.22-.46.44-.56 1.29-.28 2.25a3.76 3.76 0 0 0-1.79 1.41c-.04-.01-.09 0-.12.03l-.3.35c-.04.05-.04.12 0 .17.62.73 1.5 1.12 2.39 1.19l-.02.14c-.04.33.03.67.21.96l-5.11 2.09V22l9.78-2.79V7.26l2.49-3.62c.06-.1.05-.21-.03-.29l-2.52-1.31z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-preik-text">Shopify</h2>
+          <p className="text-sm text-preik-text-muted">Installer widgeten direkte i Shopify-butikken din</p>
+        </div>
+      </div>
+
+      {shopifyStatus === "loading" && (
+        <div className="text-sm text-preik-text-muted">Laster...</div>
+      )}
+
+      {shopifyStatus === "connected" && connectedShop && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-sm font-medium text-green-800 dark:text-green-200">
+              Koblet til {connectedShop}
+            </span>
+          </div>
+          <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+            Aktiver widgeten i Shopify-admin under <strong>Nettbutikk → Tilpass tema → App-innbygging</strong>.
+          </p>
+        </div>
+      )}
+
+      {(shopifyStatus === "idle" || shopifyStatus === "disconnected") && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center rounded-xl border border-preik-border bg-preik-bg overflow-hidden focus-within:ring-2 focus-within:ring-preik-accent/40">
+              <input
+                type="text"
+                value={shopDomain}
+                onChange={(e) => setShopDomain(e.target.value)}
+                placeholder="min-butikk"
+                className="flex-1 bg-transparent px-4 py-2.5 text-sm text-preik-text placeholder:text-preik-text-muted/50 outline-none"
+                onKeyDown={(e) => { if (e.key === "Enter" && shopDomain.trim()) handleConnect(); }}
+              />
+              <span className="pr-3 text-xs text-preik-text-muted whitespace-nowrap">.myshopify.com</span>
+            </div>
+            <button
+              onClick={handleConnect}
+              disabled={!shopDomain.trim()}
+              className="px-5 py-2.5 bg-preik-accent text-white text-sm font-medium rounded-xl hover:bg-preik-accent-hover transition-colors disabled:opacity-50"
+            >
+              Koble til
+            </button>
+          </div>
+          <p className="text-xs text-preik-text-muted">
+            Skriv inn Shopify-adressen din og klikk koble til. Du blir sendt til Shopify for å godkjenne installasjonen.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function IntegrationPage() {
   const params = useParams();
   const tenantId = params.tenantId as string;
@@ -844,13 +932,16 @@ export default function IntegrationPage() {
             </p>
           </div>
 
+          {/* Shopify integration */}
+          <ShopifyConnect tenantId={tenantId} />
+
           {/* Quick guides */}
           <div className="bg-preik-surface rounded-2xl border border-preik-border p-6">
             <h2 className="text-lg font-semibold text-preik-text mb-4">Plattform-guider</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 { name: "WordPress", desc: "Insert Headers and Footers plugin" },
-                { name: "Shopify", desc: "theme.liquid → før </body>" },
+                { name: "Shopify", desc: "Bruk Shopify-integrasjonen over" },
                 { name: "Wix", desc: "Settings → Custom Code" },
                 { name: "Squarespace", desc: "Code Injection → Footer" },
               ].map((platform) => (

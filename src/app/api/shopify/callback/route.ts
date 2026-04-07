@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch shop info" }, { status: 500 });
   }
 
-  // ── Check for existing installation (reinstall case) ─────────────────
+  // ── Resolve tenant ID (from cookie or existing installation) ──────────
+  const linkedTenantId = request.cookies.get("shopify_tenant_id")?.value || "";
+
   const { data: existingInstall } = await supabaseAdmin
     .from("shopify_installations")
     .select("id, tenant_id, uninstalled_at")
@@ -88,11 +90,59 @@ export async function GET(request: NextRequest) {
       .eq("id", existingInstall.id);
 
     log.info("Shopify reinstall", { shop, tenantId });
+  } else if (linkedTenantId) {
+    // Dashboard flow: link shop to an existing tenant
+    const { data: existingTenant } = await supabaseAdmin
+      .from("tenants")
+      .select("id")
+      .eq("id", linkedTenantId)
+      .single();
+
+    if (!existingTenant) {
+      log.error("Linked tenant not found", { linkedTenantId, shop });
+      return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+    }
+
+    tenantId = linkedTenantId;
+
+    // Add Shopify domains to allowed_domains
+    const { data: tenant } = await supabaseAdmin
+      .from("tenants")
+      .select("allowed_domains")
+      .eq("id", tenantId)
+      .single();
+
+    const currentDomains: string[] = tenant?.allowed_domains || [];
+    const newDomains = [shopInfo.domain, shop].filter(
+      (d) => d && !currentDomains.includes(d)
+    );
+    if (newDomains.length > 0) {
+      await supabaseAdmin
+        .from("tenants")
+        .update({ allowed_domains: [...currentDomains, ...newDomains] })
+        .eq("id", tenantId);
+    }
+
+    // Create shopify_installations row
+    const { error: installError } = await supabaseAdmin
+      .from("shopify_installations")
+      .insert({
+        tenant_id: tenantId,
+        shop_domain: shop,
+        access_token: accessToken,
+        scopes,
+      });
+
+    if (installError) {
+      log.error("Failed to create Shopify installation record", installError);
+      return NextResponse.json({ error: "Failed to save installation" }, { status: 500 });
+    }
+
+    log.info("Shopify linked to existing tenant", { shop, tenantId });
   } else {
-    // New install: provision tenant
+    // Public install (no tenant): provision new tenant
     let tenantSlug = slugify(shopInfo.name || shop.replace(".myshopify.com", ""));
 
-    // Handle slug collisions
     const { data: existing } = await supabaseAdmin
       .from("tenants")
       .select("id")
@@ -107,7 +157,6 @@ export async function GET(request: NextRequest) {
 
     tenantId = tenantSlug;
 
-    // Create tenant with starter-level free trial credits
     const { error: tenantError } = await supabaseAdmin
       .from("tenants")
       .insert({
@@ -117,7 +166,7 @@ export async function GET(request: NextRequest) {
         language: "no",
         persona: "",
         contact_email: shopInfo.email,
-        credit_limit: 100, // Free trial credits
+        credit_limit: 100,
         credits_used: 0,
         billing_cycle_start: new Date().toISOString(),
         stripe_customer_id: "",
@@ -134,7 +183,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to provision tenant" }, { status: 500 });
     }
 
-    // Create shopify_installations row
     const { error: installError } = await supabaseAdmin
       .from("shopify_installations")
       .insert({
@@ -179,8 +227,9 @@ export async function GET(request: NextRequest) {
   const dashboardUrl = `${appUrl}/dashboard/${tenantId}?shopify=installed`;
   const response = NextResponse.redirect(dashboardUrl);
 
-  // Clear the nonce cookie
+  // Clear cookies
   response.cookies.delete("shopify_nonce");
+  response.cookies.delete("shopify_tenant_id");
 
   return response;
 }

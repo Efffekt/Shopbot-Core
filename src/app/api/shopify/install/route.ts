@@ -31,7 +31,9 @@ export async function GET(request: NextRequest) {
   installUrl.searchParams.set("redirect_uri", redirectUri);
   installUrl.searchParams.set("state", nonce);
 
-  log.info("Initiating Shopify OAuth", { shop });
+  const tenantId = request.nextUrl.searchParams.get("tenantId") || "";
+
+  log.info("Initiating Shopify OAuth", { shop, tenantId: tenantId || "(new)" });
 
   const response = NextResponse.redirect(installUrl.toString());
 
@@ -43,6 +45,17 @@ export async function GET(request: NextRequest) {
     path: "/api/shopify/callback",
     maxAge: 600, // 10 minutes
   });
+
+  // Store tenant ID so the callback knows which tenant to link to
+  if (tenantId) {
+    response.cookies.set("shopify_tenant_id", tenantId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/api/shopify/callback",
+      maxAge: 600,
+    });
+  }
 
   return response;
 }
