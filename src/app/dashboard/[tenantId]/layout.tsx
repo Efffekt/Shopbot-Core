@@ -3,6 +3,7 @@ import { createSupabaseServerClient, getUser } from "@/lib/supabase-server";
 import { getTenantConfigFromDB } from "@/lib/tenants";
 import { redirect } from "next/navigation";
 import TenantNav from "@/components/TenantNav";
+import { HelpButton } from "@/components/HelpButton";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,6 +42,7 @@ export default async function TenantLayout({ children, params }: LayoutProps) {
     <div>
       <TenantNav tenantId={tenantId} tenantName={tenantName} isAdmin={isAdmin} />
       {children}
+      <HelpButton />
     </div>
   );
 }

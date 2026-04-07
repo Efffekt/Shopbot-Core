@@ -3,6 +3,8 @@ import { getTenantConfigFromDB } from "@/lib/tenants";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCreditStatus } from "@/lib/credits";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { DomainWhitelist } from "@/components/DomainWhitelist";
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
@@ -51,6 +53,9 @@ export default async function TenantPage({ params }: PageProps) {
           </span>
         </div>
       </div>
+
+      {/* Onboarding Checklist */}
+      {isAdmin && <OnboardingChecklist tenantId={tenantId} />}
 
       {/* Quick Actions */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? "lg:grid-cols-6" : "lg:grid-cols-4"} gap-4 mb-8`}>
@@ -188,14 +193,18 @@ export default async function TenantPage({ params }: PageProps) {
             </p>
           </div>
 
-          <div className="bg-preik-bg rounded-xl p-4">
-            <h3 className="text-sm font-medium text-preik-text-muted mb-1">Tillatte domener</h3>
-            <p className="text-preik-text text-sm">
-              {config.allowedDomains
-                .filter((d) => !d.includes("localhost") && !d.includes("127.0.0.1"))
-                .join(", ") || "Ingen konfigurert"}
-            </p>
-          </div>
+          {isAdmin ? (
+            <DomainWhitelist tenantId={tenantId} />
+          ) : (
+            <div className="bg-preik-bg rounded-xl p-4">
+              <h3 className="text-sm font-medium text-preik-text-muted mb-1">Tillatte domener</h3>
+              <p className="text-preik-text text-sm">
+                {config.allowedDomains
+                  .filter((d) => !d.includes("localhost") && !d.includes("127.0.0.1"))
+                  .join(", ") || "Ingen konfigurert"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
