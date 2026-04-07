@@ -5,7 +5,14 @@ import { createLogger } from "@/lib/logger";
 const log = createLogger("api/shopify/install");
 
 export async function GET(request: NextRequest) {
-  const shop = request.nextUrl.searchParams.get("shop");
+  let shop = request.nextUrl.searchParams.get("shop")?.trim().toLowerCase() || "";
+
+  // Allow bare store names (e.g. "preik-test") — append .myshopify.com
+  if (shop && !shop.includes(".")) {
+    shop = `${shop}.myshopify.com`;
+  }
+  // Strip trailing slashes and protocol if pasted as full URL
+  shop = shop.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
 
   if (!shop || !isValidShopDomain(shop)) {
     return NextResponse.json(
