@@ -119,6 +119,7 @@ export default async function RootLayout({
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
             fbq('init', '969440352441804');
+            fbq('set', 'testEventCode', 'TEST61521');
             fbq('track', 'PageView');
           `}
         </Script>
