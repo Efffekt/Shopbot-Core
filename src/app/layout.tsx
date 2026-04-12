@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import { ConsentAnalytics } from "@/components/ConsentAnalytics";
+import { FacebookPixelPageView } from "@/components/FacebookPixelPageView";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -143,6 +145,9 @@ export default async function RootLayout({
           Hopp til hovedinnhold
         </a>
         <Providers>{children}</Providers>
+        <Suspense fallback={null}>
+          <FacebookPixelPageView />
+        </Suspense>
         <ConsentAnalytics />
       </body>
     </html>
