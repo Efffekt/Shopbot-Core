@@ -5,6 +5,7 @@ import { checkRateLimit, RATE_LIMITS, getClientIp } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
 import { sendContactNotification } from "@/lib/email";
 import { validateJsonContentType } from "@/lib/validate-content-type";
+import { trackLead } from "@/lib/facebook";
 
 const log = createLogger("api/contact");
 
@@ -82,6 +83,17 @@ export async function POST(request: NextRequest) {
     // Fire-and-forget email notification
     sendContactNotification({ name, email, company: company || undefined, message }).catch((err) => {
       log.warn("Failed to send contact notification email", { error: err as Error });
+    });
+
+    // Fire-and-forget Facebook Conversions API Lead event
+    trackLead({
+      email,
+      name,
+      ip,
+      userAgent: request.headers.get("user-agent") || undefined,
+      sourceUrl: request.headers.get("referer") || undefined,
+    }).catch((err) => {
+      log.warn("Failed to send Facebook Lead event", { error: err as Error });
     });
 
     return NextResponse.json({ success: true }, { headers: corsHeaders });
