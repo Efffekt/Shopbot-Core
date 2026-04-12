@@ -35,11 +35,11 @@ function addSecurityHeaders(response: NextResponse, nonce: string): void {
   // browsers that don't support nonces. Browsers that support nonces ignore 'unsafe-inline'.
   const cspDirectives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://www.googletagmanager.com https://js.stripe.com${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://www.googletagmanager.com https://js.stripe.com https://connect.facebook.net${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https://*.supabase.co https://www.google.com https://www.googletagmanager.com https://*.g.doubleclick.net https://*.googlesyndication.com https://*.stripe.com",
+    "img-src 'self' data: blob: https://*.supabase.co https://www.google.com https://www.googletagmanager.com https://*.g.doubleclick.net https://*.googlesyndication.com https://*.stripe.com https://www.facebook.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.googlesyndication.com https://www.google.com https://api.stripe.com",
+    "connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.googlesyndication.com https://www.google.com https://api.stripe.com https://www.facebook.com",
     "frame-src https://www.googletagmanager.com https://js.stripe.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
