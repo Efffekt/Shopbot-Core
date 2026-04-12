@@ -28,6 +28,12 @@ vi.mock("@/lib/logger", () => ({
   }),
 }));
 
+vi.mock("@/lib/facebook", () => ({
+  trackLead: vi.fn().mockResolvedValue(undefined),
+  trackContact: vi.fn().mockResolvedValue(undefined),
+  extractFbCookies: () => ({}),
+}));
+
 import { POST } from "../route";
 import { checkRateLimit } from "@/lib/ratelimit";
 

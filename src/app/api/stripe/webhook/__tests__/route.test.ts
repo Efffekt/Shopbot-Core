@@ -38,6 +38,12 @@ vi.mock("@/lib/logger", () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
+vi.mock("@/lib/facebook", () => ({
+  trackPurchase: vi.fn().mockResolvedValue(undefined),
+  trackSubscribe: vi.fn().mockResolvedValue(undefined),
+  trackAddPaymentInfo: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { POST } from "../route";
 
 const WEBHOOK_SECRET = "whsec_test_secret";

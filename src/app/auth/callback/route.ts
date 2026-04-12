@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { trackCompleteRegistration } from "@/lib/facebook";
+import { trackCompleteRegistration, extractFbCookies } from "@/lib/facebook";
 import { getClientIp } from "@/lib/ratelimit";
 
 export async function GET(request: NextRequest) {
@@ -39,11 +39,15 @@ export async function GET(request: NextRequest) {
 
     // Fire CompleteRegistration event for new sign-ups
     if (data.user) {
+      const { fbc, fbp } = extractFbCookies(request.headers.get("cookie"));
       trackCompleteRegistration({
         email: data.user.email,
+        externalId: data.user.id,
         ip: getClientIp(request.headers),
         userAgent: request.headers.get("user-agent") || undefined,
         sourceUrl: request.url,
+        fbc,
+        fbp,
       }).catch(() => {});
     }
   } catch {

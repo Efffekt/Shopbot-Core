@@ -6,28 +6,53 @@ const FB_PIXEL_ID = "969440352441804";
 const FB_API_VERSION = "v21.0";
 const FB_API_URL = `https://graph.facebook.com/${FB_API_VERSION}/${FB_PIXEL_ID}/events`;
 
+// ── Types ────────────────────────────────────────────────────────
+
 interface FacebookUserData {
-  client_ip_address?: string;
-  client_user_agent?: string;
-  em?: string; // hashed email
-  fn?: string; // hashed first name
-  ln?: string; // hashed last name
-  ph?: string; // hashed phone
+  em?: string;                // SHA-256 hashed email
+  ph?: string;                // SHA-256 hashed phone
+  fn?: string;                // SHA-256 hashed first name
+  ln?: string;                // SHA-256 hashed last name
+  ct?: string;                // SHA-256 hashed city
+  st?: string;                // SHA-256 hashed state
+  zp?: string;                // SHA-256 hashed zip
+  country?: string;           // SHA-256 hashed 2-char country code
+  ge?: string;                // SHA-256 hashed gender
+  db?: string;                // SHA-256 hashed date of birth
+  client_ip_address?: string; // NOT hashed
+  client_user_agent?: string; // NOT hashed — REQUIRED for website events
+  fbc?: string;               // Facebook click ID cookie — NOT hashed
+  fbp?: string;               // Facebook browser ID cookie — NOT hashed
+  external_id?: string;       // External/CRM ID — NOT hashed
+}
+
+interface FacebookCustomData {
+  value?: number;
+  currency?: string;
+  content_name?: string;
+  content_ids?: string[];
+  content_type?: string;
+  num_items?: number;
 }
 
 interface FacebookEvent {
   event_name: string;
   event_time: number;
   event_id: string;
-  event_source_url?: string;
+  event_source_url: string;           // REQUIRED for website events
   action_source: "website";
   user_data: FacebookUserData;
-  custom_data?: Record<string, unknown>;
+  custom_data?: FacebookCustomData;
+  opt_out?: boolean;
+  data_processing_options: string[];   // [] = no restrictions
+  data_processing_options_country: number;
+  data_processing_options_state: number;
 }
 
+// ── Hashing ──────────────────────────────────────────────────────
+
 /**
- * Hash a value with SHA-256 for Facebook (lowercase, trimmed).
- * Facebook requires PII fields to be SHA-256 hashed.
+ * SHA-256 hash for Facebook PII fields (lowercase, trimmed).
  */
 async function sha256(value: string): Promise<string> {
   const encoded = new TextEncoder().encode(value.trim().toLowerCase());
@@ -37,34 +62,51 @@ async function sha256(value: string): Promise<string> {
     .join("");
 }
 
+// ── Public helpers ───────────────────────────────────────────────
+
 /** Generate a unique event ID for deduplication between pixel and CAPI */
 export function generateEventId(): string {
   return crypto.randomUUID();
 }
 
-/** Build user_data with optional hashed PII fields */
-async function buildUserData(opts: {
-  ip?: string;
-  userAgent?: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-}): Promise<FacebookUserData> {
+/**
+ * Extract fbc and fbp cookies from a cookie header string.
+ * These are first-party cookies set by the Meta Pixel.
+ */
+export function extractFbCookies(cookieHeader: string | null): { fbc?: string; fbp?: string } {
+  if (!cookieHeader) return {};
+  const result: { fbc?: string; fbp?: string } = {};
+  for (const part of cookieHeader.split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    const val = rest.join("=");
+    if (key === "_fbc") result.fbc = val;
+    if (key === "_fbp") result.fbp = val;
+  }
+  return result;
+}
+
+// ── Core sender ──────────────────────────────────────────────────
+
+/** Build user_data with hashed PII + raw identifiers */
+async function buildUserData(opts: UserDataOpts): Promise<FacebookUserData> {
   const data: FacebookUserData = {
     client_ip_address: opts.ip,
     client_user_agent: opts.userAgent,
+    fbc: opts.fbc,
+    fbp: opts.fbp,
+    external_id: opts.externalId,
   };
   if (opts.email) data.em = await sha256(opts.email);
   if (opts.firstName) data.fn = await sha256(opts.firstName);
   if (opts.lastName) data.ln = await sha256(opts.lastName);
   if (opts.phone) data.ph = await sha256(opts.phone);
+  if (opts.country) data.country = await sha256(opts.country);
   return data;
 }
 
 /**
  * Send one or more events to Facebook Conversions API.
- * Fails silently — tracking should never break the user flow.
+ * Fails silently — tracking must never break the user flow.
  */
 export async function sendFacebookEvents(events: FacebookEvent[]): Promise<void> {
   const accessToken = process.env.FB_CONVERSIONS_API_TOKEN;
@@ -99,20 +141,30 @@ export async function sendFacebookEvents(events: FacebookEvent[]): Promise<void>
   }
 }
 
-/** Helper to send a single event */
+// ── Event builder ────────────────────────────────────────────────
+
+interface UserDataOpts {
+  ip?: string;
+  userAgent?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  country?: string;
+  fbc?: string;
+  fbp?: string;
+  externalId?: string;
+}
+
+interface BaseOpts extends UserDataOpts {
+  sourceUrl?: string;
+  eventId?: string;
+}
+
+/** Build and send a single event with all required fields */
 async function sendEvent(
   eventName: string,
-  opts: {
-    ip?: string;
-    userAgent?: string;
-    sourceUrl?: string;
-    eventId?: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    customData?: Record<string, unknown>;
-  },
+  opts: BaseOpts & { customData?: FacebookCustomData },
 ): Promise<void> {
   const userData = await buildUserData(opts);
   await sendFacebookEvents([
@@ -120,106 +172,84 @@ async function sendEvent(
       event_name: eventName,
       event_time: Math.floor(Date.now() / 1000),
       event_id: opts.eventId || generateEventId(),
-      event_source_url: opts.sourceUrl,
+      event_source_url: opts.sourceUrl || "https://preik.ai",
       action_source: "website",
       user_data: userData,
       custom_data: opts.customData,
+      data_processing_options: [],           // No LDU — Norway/EEA, not US
+      data_processing_options_country: 0,
+      data_processing_options_state: 0,
     },
   ]);
 }
 
-// ── Standard events ──────────────────────────────────────────────
+// ── Standard event functions ─────────────────────────────────────
 
-interface BaseOpts {
-  ip?: string;
-  userAgent?: string;
-  sourceUrl?: string;
-  eventId?: string;
+/** Lead — someone submits info and may be contacted later */
+export async function trackLead(opts: BaseOpts): Promise<void> {
+  await sendEvent("Lead", opts);
 }
 
-/** Contact form submission — someone may be contacted later */
-export async function trackLead(opts: BaseOpts & { email?: string; name?: string }): Promise<void> {
-  await sendEvent("Lead", {
-    ...opts,
-    email: opts.email,
-    firstName: opts.name?.split(" ")[0],
-  });
+/** Contact — a customer has been in contact (form, email, chat) */
+export async function trackContact(opts: BaseOpts): Promise<void> {
+  await sendEvent("Contact", opts);
 }
 
-/** Contact — a customer has been in contact (phone, email, chat, etc.) */
-export async function trackContact(opts: BaseOpts & { email?: string; name?: string }): Promise<void> {
-  await sendEvent("Contact", {
-    ...opts,
-    email: opts.email,
-    firstName: opts.name?.split(" ")[0],
-  });
+/** CompleteRegistration — user confirmed email and signed up */
+export async function trackCompleteRegistration(opts: BaseOpts): Promise<void> {
+  await sendEvent("CompleteRegistration", opts);
 }
 
-/** CompleteRegistration — user confirmed their email and registered */
-export async function trackCompleteRegistration(opts: BaseOpts & { email?: string }): Promise<void> {
-  await sendEvent("CompleteRegistration", { ...opts, email: opts.email });
-}
-
-/** InitiateCheckout — user started the Stripe checkout flow */
+/** InitiateCheckout — user started the payment flow */
 export async function trackInitiateCheckout(opts: BaseOpts & {
-  email?: string;
   currency?: string;
   value?: number;
 }): Promise<void> {
   await sendEvent("InitiateCheckout", {
     ...opts,
-    email: opts.email,
     customData: {
       currency: opts.currency || "NOK",
-      value: opts.value ? String(opts.value) : undefined,
+      value: opts.value,
     },
   });
 }
 
-/** AddPaymentInfo — payment information was added during checkout */
-export async function trackAddPaymentInfo(opts: BaseOpts & {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-}): Promise<void> {
-  await sendEvent("AddPaymentInfo", { ...opts });
+/** AddPaymentInfo — payment details added during checkout */
+export async function trackAddPaymentInfo(opts: BaseOpts): Promise<void> {
+  await sendEvent("AddPaymentInfo", opts);
 }
 
 /** Subscribe — user started a paid subscription */
 export async function trackSubscribe(opts: BaseOpts & {
-  email?: string;
   currency?: string;
   value?: number;
 }): Promise<void> {
   await sendEvent("Subscribe", {
     ...opts,
-    email: opts.email,
     customData: {
       currency: opts.currency || "NOK",
-      value: opts.value ? String(opts.value) : undefined,
+      value: opts.value,
     },
   });
 }
 
-/** Purchase — a transaction was completed */
+/** Purchase — a completed transaction */
 export async function trackPurchase(opts: BaseOpts & {
-  email?: string;
   currency?: string;
   value?: number;
 }): Promise<void> {
   await sendEvent("Purchase", {
     ...opts,
-    email: opts.email,
     customData: {
       currency: opts.currency || "NOK",
-      value: opts.value ? String(opts.value) : undefined,
+      value: opts.value,
     },
   });
 }
 
-/** CustomizeProduct — user customized their widget */
-export async function trackCustomizeProduct(opts: BaseOpts & { email?: string }): Promise<void> {
-  await sendEvent("CustomizeProduct", { ...opts, email: opts.email });
+/** CustomizeProduct — user customized their widget config */
+export async function trackCustomizeProduct(opts: BaseOpts): Promise<void> {
+  await sendEvent("CustomizeProduct", opts);
 }
 
 /** ViewContent — a key content page was visited */

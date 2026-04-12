@@ -28,6 +28,7 @@ vi.mock("@/lib/stripe", () => ({
 vi.mock("@/lib/ratelimit", () => ({
   checkRateLimit: mockCheckRateLimit,
   RATE_LIMITS: { stripeCheckout: { maxRequests: 5, windowMs: 3600000 } },
+  getClientIp: () => "127.0.0.1",
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -36,6 +37,11 @@ vi.mock("@/lib/logger", () => ({
 
 vi.mock("@/lib/validate-content-type", () => ({
   validateJsonContentType: vi.fn(() => null),
+}));
+
+vi.mock("@/lib/facebook", () => ({
+  trackInitiateCheckout: vi.fn().mockResolvedValue(undefined),
+  extractFbCookies: () => ({}),
 }));
 
 import { POST } from "../route";

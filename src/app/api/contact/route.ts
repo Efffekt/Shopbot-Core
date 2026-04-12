@@ -5,7 +5,7 @@ import { checkRateLimit, RATE_LIMITS, getClientIp } from "@/lib/ratelimit";
 import { createLogger } from "@/lib/logger";
 import { sendContactNotification } from "@/lib/email";
 import { validateJsonContentType } from "@/lib/validate-content-type";
-import { trackLead, trackContact } from "@/lib/facebook";
+import { trackLead, trackContact, extractFbCookies } from "@/lib/facebook";
 
 const log = createLogger("api/contact");
 
@@ -86,12 +86,17 @@ export async function POST(request: NextRequest) {
     });
 
     // Fire-and-forget Facebook Conversions API events
+    const { fbc, fbp } = extractFbCookies(request.headers.get("cookie"));
+    const nameParts = name.split(" ");
     const fbOpts = {
       email,
-      name,
+      firstName: nameParts[0],
+      lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined,
       ip,
       userAgent: request.headers.get("user-agent") || undefined,
       sourceUrl: request.headers.get("referer") || undefined,
+      fbc,
+      fbp,
     };
     trackLead(fbOpts).catch((err) => {
       log.warn("Failed to send Facebook Lead event", { error: err as Error });

@@ -192,7 +192,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   });
 
   // Fire-and-forget Facebook CAPI events for the purchase funnel
-  const fbOpts = { email: userEmail, sourceUrl: "https://preik.ai/dashboard" };
+  // Note: Stripe webhooks lack browser context (no cookies/IP/UA), so we send
+  // what we have (email + external_id) for server-side attribution.
+  const fbOpts = {
+    email: userEmail,
+    externalId: userId,
+    sourceUrl: "https://preik.ai/dashboard",
+  };
   const priceKr = planConfig.priceKr;
   trackPurchase({ ...fbOpts, currency: "NOK", value: priceKr }).catch(() => {});
   trackSubscribe({ ...fbOpts, currency: "NOK", value: priceKr }).catch(() => {});
