@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -102,6 +102,7 @@ const stripeAppearance = {
 interface PricingCardsProps {
   userEmail?: string;
   initialPlan?: string;
+  initialCompanyName?: string;
 }
 
 function PaymentForm({ onBack }: { onBack: () => void }) {
@@ -164,16 +165,17 @@ function PaymentForm({ onBack }: { onBack: () => void }) {
   );
 }
 
-export default function PricingCards({ userEmail, initialPlan }: PricingCardsProps) {
+export default function PricingCards({ userEmail, initialPlan, initialCompanyName }: PricingCardsProps) {
   const router = useRouter();
   const isLoggedIn = !!userEmail;
   const [selectedPlan, setSelectedPlan] = useState<string | null>(initialPlan || null);
-  const [companyName, setCompanyName] = useState("");
+  const [companyName, setCompanyName] = useState(initialCompanyName || "");
   const [contactMessage, setContactMessage] = useState("");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [contactSent, setContactSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
+  const autoCheckoutAttempted = useRef(false);
 
   function handlePlanClick(planKey: string) {
     if (!isLoggedIn) {
@@ -182,6 +184,41 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
     }
     setSelectedPlan(planKey);
   }
+
+  // Auto-initiate Stripe checkout when user arrives with a pending plan +
+  // company name stored from signup (post-login redirect flow)
+  useEffect(() => {
+    if (
+      !autoCheckoutAttempted.current &&
+      isLoggedIn &&
+      initialPlan &&
+      initialCompanyName &&
+      (initialPlan === "starter" || initialPlan === "pro") &&
+      !clientSecret
+    ) {
+      autoCheckoutAttempted.current = true;
+      (async () => {
+        setValidating(true);
+        try {
+          const res = await fetch("/api/stripe/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan: initialPlan, companyName: initialCompanyName.trim() }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setClientSecret(data.clientSecret);
+          } else {
+            setError(data.error || "Noe gikk galt");
+          }
+        } catch {
+          setError("Kunne ikke koble til betalingstjenesten");
+        } finally {
+          setValidating(false);
+        }
+      })();
+    }
+  }, [isLoggedIn, initialPlan, initialCompanyName, clientSecret]);
 
   async function handleContinue(e: React.FormEvent) {
     e.preventDefault();
@@ -299,7 +336,7 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
           Enkel og transparent
         </h2>
         <p className="text-lg text-preik-text-muted max-w-xl mx-auto">
-          Veiledende priser — vi skreddersyr en pakke som passer din bedrift.
+          Velg pakken som passer din bedrift — kom raskt i gang.
         </p>
       </div>
 
@@ -532,7 +569,7 @@ export default function PricingCards({ userEmail, initialPlan }: PricingCardsPro
       )}
 
       <p className="text-center text-preik-text-muted text-sm mt-10">
-        Alle priser er veiledende.{" "}
+        Trenger du noe tilpasset?{" "}
         <a href="mailto:hei@preik.ai" className="text-preik-accent hover:underline">
           Vi skreddersyr en pakke for din bedrift.
         </a>

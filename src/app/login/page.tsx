@@ -19,7 +19,7 @@ function LoginForm() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -32,11 +32,12 @@ function LoginForm() {
 
     const redirectParam = searchParams.get("redirect");
     const planParam = searchParams.get("plan");
+    const pendingPlan = (data.user?.user_metadata?.pending_plan as string | undefined) || null;
 
     if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) {
       router.push(redirectParam);
-    } else if (planParam) {
-      router.push(`/dashboard?plan=${planParam}`);
+    } else if (planParam || pendingPlan) {
+      router.push(`/dashboard?plan=${planParam || pendingPlan}`);
     } else {
       // Determine redirect server-side (keeps admin emails out of client bundle)
       const res = await fetch("/api/auth/post-login");

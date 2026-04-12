@@ -5,15 +5,25 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
+const PLAN_LABELS: Record<string, { name: string; price: string }> = {
+  starter: { name: "Start", price: "299 kr/mnd" },
+  pro: { name: "Vekst", price: "899 kr/mnd" },
+  business: { name: "Proff", price: "Tilpasset pris" },
+};
+
 function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const searchParams = useSearchParams();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+
+  const plan = searchParams.get("plan");
+  const planInfo = plan ? PLAN_LABELS[plan] : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,9 +39,13 @@ function SignupForm() {
       return;
     }
 
+    if (!companyName.trim() || companyName.trim().length < 2) {
+      setError("Bedriftsnavn er påkrevd (minst 2 tegn).");
+      return;
+    }
+
     setLoading(true);
 
-    const plan = searchParams.get("plan");
     const loginParams = new URLSearchParams({ confirmed: "true" });
     if (plan) loginParams.set("plan", plan);
     const loginUrl = `${window.location.origin}/login?${loginParams.toString()}`;
@@ -41,6 +55,10 @@ function SignupForm() {
       password,
       options: {
         emailRedirectTo: loginUrl,
+        data: {
+          company_name: companyName.trim(),
+          pending_plan: plan || null,
+        },
       },
     });
 
@@ -82,9 +100,12 @@ function SignupForm() {
   return (
     <div className="bg-preik-surface rounded-2xl border border-preik-border p-8">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {searchParams.get("plan") && (
-          <div className="bg-preik-accent/10 border border-preik-accent/20 text-preik-accent px-4 py-3 rounded-xl text-sm">
-            Opprett en konto for a komme i gang med Preik.
+        {planInfo && (
+          <div className="bg-preik-accent/10 border border-preik-accent/20 px-4 py-3 rounded-xl text-sm">
+            <p className="text-preik-text-muted">Valgt pakke</p>
+            <p className="text-preik-text font-semibold mt-0.5">
+              {planInfo.name} <span className="text-preik-text-muted font-normal">· {planInfo.price}</span>
+            </p>
           </div>
         )}
         {error && (
@@ -92,6 +113,27 @@ function SignupForm() {
             {error}
           </div>
         )}
+
+        <div>
+          <label
+            htmlFor="companyName"
+            className="block text-sm font-medium text-preik-text mb-2"
+          >
+            Bedriftsnavn
+          </label>
+          <input
+            id="companyName"
+            name="companyName"
+            type="text"
+            required
+            minLength={2}
+            maxLength={100}
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            className="w-full px-4 py-3 bg-preik-bg border border-preik-border rounded-xl text-preik-text placeholder:text-preik-text-muted focus:outline-none focus:ring-2 focus:ring-preik-accent focus:border-transparent transition-all"
+            placeholder="F.eks. Min Bedrift AS"
+          />
+        </div>
 
         <div>
           <label

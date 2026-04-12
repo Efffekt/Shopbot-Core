@@ -71,7 +71,11 @@ export default async function DashboardPage({
       )}
 
       {tenants.length === 0 && checkout !== "success" ? (
-        <PricingCards userEmail={user?.email || ""} initialPlan={plan} />
+        <PricingCards
+          userEmail={user?.email || ""}
+          initialPlan={plan || (user?.user_metadata?.pending_plan as string | undefined)}
+          initialCompanyName={user?.user_metadata?.company_name as string | undefined}
+        />
       ) : tenants.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {tenants.map((access) => {

@@ -45,7 +45,7 @@ export function PricingSection() {
               Enkel og transparent
             </h2>
             <p className="text-lg text-preik-text-muted max-w-xl mx-auto">
-              Veiledende priser — vi skreddersyr en pakke som passer din bedrift.
+              Velg pakken som passer din bedrift — kom raskt i gang.
             </p>
           </div>
         </ScrollReveal>
@@ -211,7 +211,7 @@ export function PricingSection() {
         {/* Custom note */}
         <ScrollReveal animation="up" delay={400}>
           <p className="text-center text-preik-text-muted text-sm mt-10">
-            Alle priser er veiledende.{" "}
+            Trenger du noe tilpasset?{" "}
             <a href="#kontakt" className="text-preik-accent hover:underline">
               Vi skreddersyr en pakke for din bedrift.
             </a>

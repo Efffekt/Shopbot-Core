@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PreikWave } from "./PreikWave";
 import { ScrollReveal } from "./ScrollReveal";
 
@@ -18,12 +19,12 @@ export function FinalCTASection() {
             <p className="text-lg text-preik-text-muted mb-10 max-w-xl mx-auto">
               Gi kundene dine svar på sekunder — med en AI-assistent som kjenner bedriften din ut og inn.
             </p>
-            <a
-              href="/registrer"
+            <Link
+              href="/#priser"
               className="inline-flex items-center justify-center rounded-full bg-preik-accent px-8 py-4 text-base font-semibold text-white transition-all hover:bg-preik-accent-hover hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-preik-accent focus:ring-offset-2 focus:ring-offset-preik-bg"
             >
               Kom i gang fra 299 kr/mnd
-            </a>
+            </Link>
             <p className="mt-4 text-sm text-preik-text-muted">
               Ingen bindingstid · Oppsett på under 48 timer
             </p>

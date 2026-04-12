@@ -156,7 +156,7 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
                 </Link>
               )}
               <Link
-                href="/registrer"
+                href="/#priser"
                 className="text-sm font-medium bg-preik-accent text-white px-4 py-2 rounded-full hover:bg-preik-accent-hover transition-colors"
               >
                 Kom i gang
@@ -236,7 +236,7 @@ export function Header({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
               </Link>
             )}
             <Link
-              href="/registrer"
+              href="/#priser"
               onClick={handleLinkClick}
               className="text-lg font-medium bg-preik-accent text-white px-8 py-3 rounded-full hover:bg-preik-accent-hover transition-colors text-center"
             >
