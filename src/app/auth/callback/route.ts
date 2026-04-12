@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { trackCompleteRegistration } from "@/lib/facebook";
+import { getClientIp } from "@/lib/ratelimit";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -30,9 +32,19 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       return NextResponse.redirect(new URL("/login?error=auth_failed", request.url));
+    }
+
+    // Fire CompleteRegistration event for new sign-ups
+    if (data.user) {
+      trackCompleteRegistration({
+        email: data.user.email,
+        ip: getClientIp(request.headers),
+        userAgent: request.headers.get("user-agent") || undefined,
+        sourceUrl: request.url,
+      }).catch(() => {});
     }
   } catch {
     return NextResponse.redirect(new URL("/login?error=auth_failed", request.url));

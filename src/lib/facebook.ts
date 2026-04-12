@@ -11,8 +11,8 @@ interface FacebookUserData {
   client_user_agent?: string;
   em?: string; // hashed email
   fn?: string; // hashed first name
-  fbc?: string; // click ID cookie
-  fbp?: string; // browser ID cookie
+  ln?: string; // hashed last name
+  ph?: string; // hashed phone
 }
 
 interface FacebookEvent {
@@ -40,6 +40,26 @@ async function sha256(value: string): Promise<string> {
 /** Generate a unique event ID for deduplication between pixel and CAPI */
 export function generateEventId(): string {
   return crypto.randomUUID();
+}
+
+/** Build user_data with optional hashed PII fields */
+async function buildUserData(opts: {
+  ip?: string;
+  userAgent?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}): Promise<FacebookUserData> {
+  const data: FacebookUserData = {
+    client_ip_address: opts.ip,
+    client_user_agent: opts.userAgent,
+  };
+  if (opts.email) data.em = await sha256(opts.email);
+  if (opts.firstName) data.fn = await sha256(opts.firstName);
+  if (opts.lastName) data.ln = await sha256(opts.lastName);
+  if (opts.phone) data.ph = await sha256(opts.phone);
+  return data;
 }
 
 /**
@@ -79,57 +99,135 @@ export async function sendFacebookEvents(events: FacebookEvent[]): Promise<void>
   }
 }
 
-/**
- * Track a Lead event (contact form submission).
- */
-export async function trackLead(opts: {
-  email?: string;
-  name?: string;
-  ip?: string;
-  userAgent?: string;
-  sourceUrl?: string;
-  eventId?: string;
-}): Promise<void> {
-  const userData: FacebookUserData = {
-    client_ip_address: opts.ip,
-    client_user_agent: opts.userAgent,
-  };
-
-  if (opts.email) userData.em = await sha256(opts.email);
-  if (opts.name) userData.fn = await sha256(opts.name.split(" ")[0]);
-
+/** Helper to send a single event */
+async function sendEvent(
+  eventName: string,
+  opts: {
+    ip?: string;
+    userAgent?: string;
+    sourceUrl?: string;
+    eventId?: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    customData?: Record<string, unknown>;
+  },
+): Promise<void> {
+  const userData = await buildUserData(opts);
   await sendFacebookEvents([
     {
-      event_name: "Lead",
+      event_name: eventName,
       event_time: Math.floor(Date.now() / 1000),
       event_id: opts.eventId || generateEventId(),
       event_source_url: opts.sourceUrl,
       action_source: "website",
       user_data: userData,
+      custom_data: opts.customData,
     },
   ]);
 }
 
-/**
- * Track a PageView event (server-side, for dedup with pixel).
- */
-export async function trackPageView(opts: {
+// ── Standard events ──────────────────────────────────────────────
+
+interface BaseOpts {
   ip?: string;
   userAgent?: string;
   sourceUrl?: string;
   eventId?: string;
+}
+
+/** Contact form submission — someone may be contacted later */
+export async function trackLead(opts: BaseOpts & { email?: string; name?: string }): Promise<void> {
+  await sendEvent("Lead", {
+    ...opts,
+    email: opts.email,
+    firstName: opts.name?.split(" ")[0],
+  });
+}
+
+/** Contact — a customer has been in contact (phone, email, chat, etc.) */
+export async function trackContact(opts: BaseOpts & { email?: string; name?: string }): Promise<void> {
+  await sendEvent("Contact", {
+    ...opts,
+    email: opts.email,
+    firstName: opts.name?.split(" ")[0],
+  });
+}
+
+/** CompleteRegistration — user confirmed their email and registered */
+export async function trackCompleteRegistration(opts: BaseOpts & { email?: string }): Promise<void> {
+  await sendEvent("CompleteRegistration", { ...opts, email: opts.email });
+}
+
+/** InitiateCheckout — user started the Stripe checkout flow */
+export async function trackInitiateCheckout(opts: BaseOpts & {
+  email?: string;
+  currency?: string;
+  value?: number;
 }): Promise<void> {
-  await sendFacebookEvents([
-    {
-      event_name: "PageView",
-      event_time: Math.floor(Date.now() / 1000),
-      event_id: opts.eventId || generateEventId(),
-      event_source_url: opts.sourceUrl,
-      action_source: "website",
-      user_data: {
-        client_ip_address: opts.ip,
-        client_user_agent: opts.userAgent,
-      },
+  await sendEvent("InitiateCheckout", {
+    ...opts,
+    email: opts.email,
+    customData: {
+      currency: opts.currency || "NOK",
+      value: opts.value ? String(opts.value) : undefined,
     },
-  ]);
+  });
+}
+
+/** AddPaymentInfo — payment information was added during checkout */
+export async function trackAddPaymentInfo(opts: BaseOpts & {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+}): Promise<void> {
+  await sendEvent("AddPaymentInfo", { ...opts });
+}
+
+/** Subscribe — user started a paid subscription */
+export async function trackSubscribe(opts: BaseOpts & {
+  email?: string;
+  currency?: string;
+  value?: number;
+}): Promise<void> {
+  await sendEvent("Subscribe", {
+    ...opts,
+    email: opts.email,
+    customData: {
+      currency: opts.currency || "NOK",
+      value: opts.value ? String(opts.value) : undefined,
+    },
+  });
+}
+
+/** Purchase — a transaction was completed */
+export async function trackPurchase(opts: BaseOpts & {
+  email?: string;
+  currency?: string;
+  value?: number;
+}): Promise<void> {
+  await sendEvent("Purchase", {
+    ...opts,
+    email: opts.email,
+    customData: {
+      currency: opts.currency || "NOK",
+      value: opts.value ? String(opts.value) : undefined,
+    },
+  });
+}
+
+/** CustomizeProduct — user customized their widget */
+export async function trackCustomizeProduct(opts: BaseOpts & { email?: string }): Promise<void> {
+  await sendEvent("CustomizeProduct", { ...opts, email: opts.email });
+}
+
+/** ViewContent — a key content page was visited */
+export async function trackViewContent(opts: BaseOpts): Promise<void> {
+  await sendEvent("ViewContent", opts);
+}
+
+/** PageView — generic page view (for dedup with pixel) */
+export async function trackPageView(opts: BaseOpts): Promise<void> {
+  await sendEvent("PageView", opts);
 }

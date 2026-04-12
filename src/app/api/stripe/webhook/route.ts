@@ -4,6 +4,7 @@ import { getStripe, PLANS, getPlanByPriceId } from "@/lib/stripe";
 import { logAudit } from "@/lib/audit";
 import { sendWelcomeEmail } from "@/lib/email";
 import { createLogger } from "@/lib/logger";
+import { trackPurchase, trackSubscribe, trackAddPaymentInfo } from "@/lib/facebook";
 import Stripe from "stripe";
 
 const log = createLogger("api/stripe/webhook");
@@ -189,6 +190,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }).catch((err) => {
     log.warn("Failed to send welcome email", { error: err as Error });
   });
+
+  // Fire-and-forget Facebook CAPI events for the purchase funnel
+  const fbOpts = { email: userEmail, sourceUrl: "https://preik.ai/dashboard" };
+  const priceKr = planConfig.priceKr;
+  trackPurchase({ ...fbOpts, currency: "NOK", value: priceKr }).catch(() => {});
+  trackSubscribe({ ...fbOpts, currency: "NOK", value: priceKr }).catch(() => {});
+  trackAddPaymentInfo({ ...fbOpts }).catch(() => {});
 
   log.info("Tenant provisioned via Stripe checkout", { tenantId: finalSlug, plan, userId });
 }

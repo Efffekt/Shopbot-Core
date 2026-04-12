@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { createLogger } from "@/lib/logger";
 import { z } from "zod";
 import { validateJsonContentType } from "@/lib/validate-content-type";
+import { trackCustomizeProduct } from "@/lib/facebook";
 
 const widgetConfigSchema = z.object({
   accentColor: z.string().max(50).optional(),
@@ -122,6 +123,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     await logAudit({ actorEmail: user.email || user.id, action: "update", entityType: "widget_config", entityId: tenantId });
+
+    // Fire-and-forget Facebook CustomizeProduct event
+    trackCustomizeProduct({
+      email: user.email || undefined,
+      userAgent: request.headers.get("user-agent") || undefined,
+      sourceUrl: request.headers.get("referer") || undefined,
+    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (err) {

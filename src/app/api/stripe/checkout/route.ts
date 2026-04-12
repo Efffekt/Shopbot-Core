@@ -6,6 +6,7 @@ import { slugify } from "@/lib/slugify";
 import { createLogger } from "@/lib/logger";
 import { validateJsonContentType } from "@/lib/validate-content-type";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/ratelimit";
+import { trackInitiateCheckout } from "@/lib/facebook";
 
 const log = createLogger("api/stripe/checkout");
 
@@ -99,6 +100,15 @@ export async function POST(request: NextRequest) {
         plan,
       },
     });
+
+    // Fire-and-forget Facebook InitiateCheckout event
+    trackInitiateCheckout({
+      email: user.email,
+      currency: "NOK",
+      value: selectedPlan.priceKr,
+      userAgent: request.headers.get("user-agent") || undefined,
+      sourceUrl: request.headers.get("referer") || undefined,
+    }).catch(() => {});
 
     return NextResponse.json({
       clientSecret: session.client_secret,
