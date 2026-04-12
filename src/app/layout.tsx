@@ -110,7 +110,7 @@ export default async function RootLayout({
             gtag('config', 'AW-17961627655');
           `}
         </Script>
-        <Script id="fb-pixel" strategy="afterInteractive" nonce={nonce}>
+        <Script id="fb-pixel" strategy="beforeInteractive" nonce={nonce}>
           {`
             !function(f,b,e,v,n,t,s)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
